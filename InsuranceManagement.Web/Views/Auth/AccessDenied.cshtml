@@ -1,0 +1,24 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Erisim Engellendi</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="hero">
+        <div class="panel auth-card">
+            <div class="kicker">Yetki</div>
+            <h1>Bu ekrana erisiminiz yok</h1>
+            <p class="muted">Rol matrisi bu islemi mevcut kullanici icin izinli gormuyor.</p>
+            <div class="page-actions">
+                <a class="btn primary" asp-controller="Dashboard" asp-action="Executive">Dashboard'a Don</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

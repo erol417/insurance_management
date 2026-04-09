@@ -1,0 +1,25 @@
+@model InsuranceManagement.Web.ViewModels.ExpenseDashboardViewModel
+@{
+    ViewData["Title"] = "Masraf Analizi";
+    ViewData["Subtitle"] = "Masraf toplamlarini ve dagilimini izler";
+}
+<section class="grid cards-3">
+    <div class="panel metric"><span class="tag">Toplam Masraf</span><div class="value">@Model.TotalExpense.ToString("N0")</div></div>
+    <div class="panel metric"><span class="tag">Satis Basina Masraf</span><div class="value">@Model.CostPerSale.ToString("N0")</div></div>
+    <div class="panel metric"><span class="tag">MVP</span><div class="value">Onaysiz</div><div class="muted">kayit ve raporlama</div></div>
+</section>
+<div class="panel" style="margin-top:18px;">
+    <table class="table">
+        <thead><tr><th>Masraf Turu</th><th>Kayit</th><th>Toplam</th></tr></thead>
+        <tbody>
+        @foreach (var row in Model.Rows)
+        {
+            <tr>
+                <td>@row.ExpenseType</td>
+                <td>@row.Count</td>
+                <td>@row.Total.ToString("N0") TRY</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

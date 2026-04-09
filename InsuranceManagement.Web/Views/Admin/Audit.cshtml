@@ -1,0 +1,32 @@
+@model List<InsuranceManagement.Web.Domain.AuditLog>
+@{
+    ViewData["Title"] = "Audit Kayitlari";
+    ViewData["Subtitle"] = "Kritik create, update, delete ve atama izleri";
+}
+<div class="panel">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Tarih</th>
+                <th>Kullanici</th>
+                <th>Modul</th>
+                <th>Islem</th>
+                <th>Kayit</th>
+                <th>Detay</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var row in Model)
+        {
+            <tr>
+                <td>@row.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                <td>@row.UserName</td>
+                <td>@row.Module</td>
+                <td>@row.ActionType</td>
+                <td>@row.EntityCode</td>
+                <td>@row.Detail</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

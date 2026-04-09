@@ -1,0 +1,34 @@
+@model InsuranceManagement.Web.ViewModels.PerformanceDashboardViewModel
+@{
+    ViewData["Title"] = "Personel Performansi";
+    ViewData["Subtitle"] = "Personel bazli aktivite, satis ve masraf performansi";
+}
+<div class="panel">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Personel</th>
+                <th>Bolge</th>
+                <th>Aktivite</th>
+                <th>Satis</th>
+                <th>Donusum</th>
+                <th>Tahsilat</th>
+                <th>Masraf</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var row in Model.Rows)
+        {
+            <tr>
+                <td>@row.EmployeeName</td>
+                <td>@row.Region</td>
+                <td>@row.ActivityCount</td>
+                <td>@row.SaleCount</td>
+                <td>@row.ConversionRate %</td>
+                <td>@row.CollectionTotal.ToString("N0") TRY</td>
+                <td>@row.ExpenseTotal.ToString("N0") TRY</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,6 @@
+@model InsuranceManagement.Web.ViewModels.GridBulkSaveFormViewModel
+<form method="post" asp-action="@Model.ActionName" id="@Model.FormId" class="inline-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Page" value="@Model.Page" />
+    <input type="hidden" name="PayloadJson" id="@Model.PayloadInputId" />
+</form>

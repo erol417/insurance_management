@@ -1,0 +1,28 @@
+@model InsuranceManagement.Web.ViewModels.ExpenseFormViewModel
+@{
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    ViewData["Title"] = "Yeni Masraf";
+    ViewData["Subtitle"] = "Yol, yemek, konaklama ve diger masraflar";
+}
+<div class="panel">
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="validation-summary-errors"></div>
+        <div class="form-grid three">
+            <div class="field"><label asp-for="ExpenseDate"></label><input asp-for="ExpenseDate" type="date" /></div>
+            <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
+            <div class="field">
+                <label asp-for="ExpenseType"></label>
+                <select asp-for="ExpenseType">
+                    <option value="Travel">Yol</option>
+                    <option value="Meal">Yemek</option>
+                    <option value="Accommodation">Konaklama</option>
+                    <option value="Other">Diger</option>
+                </select>
+            </div>
+            <div class="field"><label asp-for="Amount"></label><input asp-for="Amount" /></div>
+        </div>
+        <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
+        <div class="page-actions"><button type="submit" class="btn primary">Masrafi Kaydet</button></div>
+    </form>
+</div>

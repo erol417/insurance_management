@@ -1,0 +1,25 @@
+@model InsuranceManagement.Web.ViewModels.ActivityFormViewModel
+@{
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    var accounts = ViewBag.Accounts as List<InsuranceManagement.Web.Domain.Account> ?? [];
+    var leads = ViewBag.Leads as List<InsuranceManagement.Web.Domain.Lead> ?? [];
+    ViewData["Title"] = "Aktivite Duzenle";
+    ViewData["Subtitle"] = "Aktivite kaydini guncelle";
+}
+<div class="panel">
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="validation-summary-errors"></div>
+        <div class="form-grid three">
+            <div class="field"><label asp-for="ActivityDate"></label><input asp-for="ActivityDate" type="date" /></div>
+            <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
+            <div class="field"><label asp-for="AccountId"></label><select asp-for="AccountId">@foreach (var account in accounts){<option value="@account.Id">@account.DisplayName</option>}</select></div>
+            <div class="field"><label asp-for="LeadId"></label><select asp-for="LeadId"><option value="">Lead yok</option>@foreach (var lead in leads){<option value="@lead.Id">@lead.Code · @lead.DisplayName</option>}</select></div>
+            <div class="field"><label asp-for="ContactName"></label><input asp-for="ContactName" /></div>
+            <div class="field"><label asp-for="ContactStatus"></label><select asp-for="ContactStatus" data-contact-status><option value="Contacted">Gorusuldu</option><option value="NotContacted">Gorusulmedi</option></select></div>
+            <div class="field" data-outcome-wrapper><label asp-for="OutcomeStatus"></label><select asp-for="OutcomeStatus"><option value="">Seciniz</option><option value="Positive">Olumlu</option><option value="Negative">Olumsuz</option><option value="Postponed">Ertelendi</option><option value="SaleClosed">Satis Oldu</option></select></div>
+        </div>
+        <div class="field"><label asp-for="Summary"></label><textarea asp-for="Summary"></textarea></div>
+        <div class="page-actions"><button type="submit" class="btn primary">Guncelle</button></div>
+    </form>
+</div>

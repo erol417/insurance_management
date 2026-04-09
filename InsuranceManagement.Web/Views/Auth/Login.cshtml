@@ -1,0 +1,47 @@
+@model InsuranceManagement.Web.ViewModels.LoginViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giris - Sigorta Operasyon</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="hero">
+        <div class="panel auth-card">
+            <div class="kicker">Sigorta Saha Operasyonlari</div>
+            <h1>Tek uygulamada lead, aktivite, satis ve masraf takibi</h1>
+            <p class="muted">Seed kullanicilar: `admin/admin123`, `manager/manager123`, `sales/sales123`, `ops/ops123`, `field1/field123`, `call/call123`</p>
+            <form method="post" asp-action="Login">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="validation-summary-errors"></div>
+                <div class="field">
+                    <label asp-for="UserName"></label>
+                    <input asp-for="UserName" />
+                </div>
+                <div class="field">
+                    <label asp-for="Password"></label>
+                    <input asp-for="Password" />
+                </div>
+                <div class="page-actions">
+                    <button type="submit" class="btn primary">Giris Yap</button>
+                </div>
+            </form>
+        </div>
+        <div class="auth-side">
+            <div class="kicker" style="color: rgba(255,255,255,0.7);">MVP Scope</div>
+            <h2>Lead -> Account + Activity -> Sale -> Expense</h2>
+            <p>Bu surum, dokumanlarda belirlenen operasyon akisini tek MVC uygulamasi icinde calisan MVP olarak baslatir.</p>
+            <div class="stats-row">
+                <div class="stat-box"><strong>Lead Queue</strong><p>Call center havuzu ve atama</p></div>
+                <div class="stat-box"><strong>Field Flow</strong><p>Ziyaret ve satis zinciri</p></div>
+                <div class="stat-box"><strong>Dashboards</strong><p>Yonetsel KPI ozetleri</p></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

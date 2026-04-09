@@ -1,0 +1,74 @@
+@model InsuranceManagement.Web.ViewModels.ExecutiveDashboardViewModel
+@{
+    ViewData["Title"] = "Yonetici Ozeti";
+    ViewData["Subtitle"] = "Lead -> aktivite -> satis zincirini tek bakista gosterir";
+}
+<section class="grid cards-4">
+    <div class="panel metric"><span class="tag">Yeni Lead</span><div class="value">@Model.NewLeadCount</div><div class="muted">son 30 gun</div></div>
+    <div class="panel metric"><span class="tag">Aktivite</span><div class="value">@Model.ActivityCount</div><div class="muted">toplam kayit</div></div>
+    <div class="panel metric"><span class="tag">Satis</span><div class="value">@Model.SaleCount</div><div class="muted">toplam police</div></div>
+    <div class="panel metric"><span class="tag">Masraf</span><div class="value">@Model.ExpenseTotal.ToString("N0") TRY</div><div class="muted">toplam masraf</div></div>
+</section>
+
+<section class="grid equal-2" style="margin-top:18px;">
+    <div class="panel">
+        <div class="section-title"><h3>Lead hatti</h3><span class="pill">call center -> saha</span></div>
+        <div class="list">
+            <div class="list-item"><strong>Atama bekleyen</strong><span class="status warn">@Model.WaitingAssignmentLeadCount</span></div>
+            <div class="list-item"><strong>Bu hafta atanan</strong><span>@Model.AssignedThisWeekLeadCount</span></div>
+            <div class="list-item"><strong>Aktiviteye donusen</strong><span class="status ok">@Model.ConvertedLeadCount</span></div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="section-title"><h3>Acik saha isleri</h3><span class="pill">atanmis leadler</span></div>
+        <div class="list">
+            @foreach (var item in Model.EmployeeWorkloads.Take(4))
+            {
+                <div class="list-item"><strong>@item.EmployeeName</strong><span>@item.OpenLeadCount acik is</span></div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="grid two" style="margin-top:18px;">
+    <div class="panel">
+        <div class="section-title"><h3>Aktivite ve satis trendi</h3><span class="pill">MVP gorsel</span></div>
+        <div class="chart line-chart"></div>
+    </div>
+    <div class="panel">
+        <div class="section-title"><h3>Urun kirilimi</h3><span class="pill">toplam satis</span></div>
+        <div class="donut"></div>
+        <div class="list">
+            @foreach (var item in Model.ProductBreakdown)
+            {
+                <div class="list-item"><strong>@item.ProductName</strong><span>@item.SaleCount satis</span></div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="grid equal-2" style="margin-top:18px;">
+    <div class="panel">
+        <div class="section-title"><h3>Bolgesel aktivite</h3><span class="pill">ziyaret bazli</span></div>
+        <table class="table">
+            <thead><tr><th>Bolge</th><th>Aktivite</th><th>Donusum</th></tr></thead>
+            <tbody>
+            @foreach (var item in Model.RegionalStats)
+            {
+                <tr>
+                    <td>@item.Region</td>
+                    <td>@item.ActivityCount</td>
+                    <td><span class="status @(item.ConversionRate >= 15 ? "ok" : "warn")">@item.ConversionRate %</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <div class="section-title"><h3>Veri kalitesi notlari</h3><span class="pill">uyarilar</span></div>
+        @foreach (var warning in Model.DataWarnings)
+        {
+            <div class="note-box"><strong>Kontrol</strong><p>@warning</p></div>
+        }
+    </div>
+</section>

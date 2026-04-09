@@ -1,0 +1,37 @@
+@model InsuranceManagement.Web.Domain.Activity
+@{
+    var employee = ViewBag.Employee as InsuranceManagement.Web.Domain.Employee;
+    var account = ViewBag.Account as InsuranceManagement.Web.Domain.Account;
+    var sales = ViewBag.Sales as List<InsuranceManagement.Web.Domain.Sale> ?? [];
+    ViewData["Title"] = "Aktivite Detayi";
+    ViewData["Subtitle"] = "Iki asamali aktivite sonucu modeli";
+}
+<div class="grid equal-2">
+    <div class="panel">
+        <div class="list">
+            <div class="list-item"><strong>Aktivite</strong><span>@Model.Code</span></div>
+            <div class="list-item"><strong>Personel</strong><span>@employee?.FullName</span></div>
+            <div class="list-item"><strong>Account</strong><span>@account?.DisplayName</span></div>
+            <div class="list-item"><strong>Temas Durumu</strong><span>@Model.ContactStatus.ToDisplayText()</span></div>
+            <div class="list-item"><strong>Sonuc</strong><span>@(Model.OutcomeStatus.HasValue ? Model.OutcomeStatus.Value.ToDisplayText() : "-")</span></div>
+        </div>
+        <div class="note-box"><strong>Icerik</strong><p>@Model.Summary</p></div>
+    </div>
+    <div class="panel">
+        <div class="section-title"><h3>Bagli satislar</h3><span class="pill">@sales.Count kayit</span></div>
+        <div class="list">
+            @foreach (var sale in sales)
+            {
+                <div class="list-item"><strong>@sale.Code</strong><span>@sale.ProductType</span></div>
+            }
+        </div>
+    </div>
+</div>
+<div class="page-actions">
+    <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
+    <form asp-action="Delete" method="post" class="inline-form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn secondary">Sil</button>
+    </form>
+</div>

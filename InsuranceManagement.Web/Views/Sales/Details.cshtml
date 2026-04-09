@@ -1,0 +1,37 @@
+@model InsuranceManagement.Web.Domain.Sale
+@{
+    var employee = ViewBag.Employee as InsuranceManagement.Web.Domain.Employee;
+    var account = ViewBag.Account as InsuranceManagement.Web.Domain.Account;
+    var activity = ViewBag.Activity as InsuranceManagement.Web.Domain.Activity;
+    ViewData["Title"] = "Satis Detayi";
+    ViewData["Subtitle"] = "Urun bazli finansal alanlari ayrik tutar";
+}
+<div class="grid equal-2">
+    <div class="panel">
+        <div class="list">
+            <div class="list-item"><strong>Satis</strong><span>@Model.Code</span></div>
+            <div class="list-item"><strong>Urun</strong><span>@Model.ProductType.ToDisplayText()</span></div>
+            <div class="list-item"><strong>Personel</strong><span>@employee?.FullName</span></div>
+            <div class="list-item"><strong>Account</strong><span>@account?.DisplayName</span></div>
+            <div class="list-item"><strong>Aktivite</strong><span>@(activity?.Code ?? "Bagimsiz")</span></div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="list">
+            <div class="list-item"><strong>Tahsilat</strong><span>@Model.CollectionAmount</span></div>
+            <div class="list-item"><strong>APE</strong><span>@Model.ApeAmount</span></div>
+            <div class="list-item"><strong>Toplu Para</strong><span>@Model.LumpSumAmount</span></div>
+            <div class="list-item"><strong>Aylik Odeme</strong><span>@Model.MonthlyPaymentAmount</span></div>
+            <div class="list-item"><strong>Prim / Uretim</strong><span>@(Model.PremiumAmount ?? Model.ProductionAmount ?? Model.SaleAmount)</span></div>
+        </div>
+        <div class="note-box"><strong>Not</strong><p>@Model.Notes</p></div>
+    </div>
+</div>
+<div class="page-actions">
+    <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
+    <form asp-action="Delete" method="post" class="inline-form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn secondary">Sil</button>
+    </form>
+</div>

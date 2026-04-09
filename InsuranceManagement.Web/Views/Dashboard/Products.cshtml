@@ -1,0 +1,26 @@
+@model InsuranceManagement.Web.ViewModels.ProductDashboardViewModel
+@{
+    ViewData["Title"] = "Urun Kirilimi";
+    ViewData["Subtitle"] = "Urun bazli uretim ve satis gorunumu";
+}
+<div class="grid equal-2">
+    <div class="panel">
+        <div class="donut"></div>
+    </div>
+    <div class="panel">
+        <table class="table">
+            <thead><tr><th>Urun</th><th>Satis</th><th>Tahsilat</th><th>Ana Metrik</th></tr></thead>
+            <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td>@row.ProductName</td>
+                    <td>@row.SaleCount</td>
+                    <td>@row.CollectionTotal.ToString("N0") TRY</td>
+                    <td>@row.PrimaryFinancialMetric.ToString("N0")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

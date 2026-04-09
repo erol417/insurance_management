@@ -1,0 +1,27 @@
+@model InsuranceManagement.Web.ViewModels.ImportUploadViewModel
+@{
+    ViewData["Title"] = "Import Yukleme";
+    ViewData["Subtitle"] = "Excel veya CSV referans batch yukleme ekrani";
+}
+<div class="panel">
+    <div class="page-actions">
+        <a class="btn secondary" asp-action="Template" asp-route-module="lead">Lead Sablonu Indir</a>
+    </div>
+    <form method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="validation-summary-errors"></div>
+        <div class="form-grid two">
+            <div class="field"><label asp-for="File"></label><input asp-for="File" type="file" accept=".xlsx,.xls,.csv" /></div>
+            <div class="field"><label asp-for="Notes"></label><input asp-for="Notes" /></div>
+        </div>
+        <div class="note-box">
+            <strong>Import karari</strong>
+            <p>Excel dosyalari su an nihai veri kaynagi degil; referans ve kontrollu batch mantigiyla izlenir.</p>
+            <p>Desteklenen tipler: .xlsx, .xls, .csv | Maksimum boyut: 15 MB</p>
+            <p>Lead import icin beklenen kolonlar: DisplayName, City, District, ContactName, Phone, Email, Source, Status, Priority, Note, AssignedEmployee</p>
+            <p>Sablon dosyasini indirip ayni kolon sirasiyla doldurman gerekir.</p>
+            <p>Toplu onizleme ve iceri alma su an CSV sablonu ile aktif. Excel dosyalari yuklenir ama otomatik parse edilmez.</p>
+        </div>
+        <div class="page-actions"><button type="submit" class="btn primary">Dosyayi Yukle</button></div>
+    </form>
+</div>

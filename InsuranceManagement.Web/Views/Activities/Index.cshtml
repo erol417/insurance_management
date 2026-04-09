@@ -1,0 +1,245 @@
+@model InsuranceManagement.Web.ViewModels.ActivitiesIndexViewModel
+@{
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    var accounts = ViewBag.Accounts as List<InsuranceManagement.Web.Domain.Account> ?? [];
+    var leads = ViewBag.Leads as List<InsuranceManagement.Web.Domain.Lead> ?? [];
+    var canManageAll = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SalesManager") || User.IsInRole("Operations");
+    var prevPage = Math.Max(1, Model.CurrentPage - 1);
+    var nextPage = Math.Min(Model.TotalPages, Model.CurrentPage + 1);
+    ViewData["Title"] = "Aktiviteler";
+    ViewData["Subtitle"] = "Saha ziyaret ve gorusme kayitlari";
+}
+<div class="page-actions">
+    <button type="button" class="btn primary" onclick="toggleActivityInsertRow()">Yeni Satir Ekle</button>
+    <button type="button" class="btn secondary" id="save-all-activities-btn">Degisiklikleri Kaydet</button>
+    <button type="button" class="btn ghost" id="clear-activity-draft-btn">Taslagi Temizle</button>
+    <a class="btn secondary" asp-action="Create">Detayli Form</a>
+</div>
+<div class="panel" style="margin-top:18px;">
+    <div class="note-box">
+        <strong>Grid duzenleme</strong>
+        <p>Bu ekranda aktiviteler tablo uzerinden hizli duzenlenir. Tum degisiklikler taslakta tutulur ve tek kaydetme ile veritabanina yazilir.</p>
+        <p>Sayfalar arasinda gezsen bile taslak korunur. Kaydetmeden sayfadan ayrilirsan sistem seni uyarir.</p>
+    </div>
+    <div class="table-scroll">
+        <table class="table compact-table">
+            <thead>
+                <tr>
+                    <th>Kod</th>
+                    <th>Tarih</th>
+                    <th>Personel</th>
+                    <th>Musteri</th>
+                    <th>Lead</th>
+                    <th>Kontak</th>
+                    <th>Gorusme</th>
+                    <th>Sonuc</th>
+                    <th>Ozet</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="activity-insert-row" class="inline-entry-row" style="display:none;">
+                    <td><span class="muted">Yeni</span></td>
+                    <td><input data-field="activityDate" type="date" class="cell-input" value="@Model.NewActivity.ActivityDate.ToString("yyyy-MM-dd")" /></td>
+                    <td>
+                        @if (canManageAll)
+                        {
+                            <select data-field="employeeId" class="cell-input cell-select">
+                                <option value="">Sec</option>
+                                @foreach (var employee in employees)
+                                {
+                                    <option value="@employee.Id">@employee.FullName</option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <input type="hidden" data-field="employeeId" value="@Model.NewActivity.EmployeeId" />
+                            <span class="pill">@employees.FirstOrDefault()?.FullName</span>
+                        }
+                    </td>
+                    <td>
+                        <select data-field="accountId" class="cell-input cell-select">
+                            <option value="">Sec</option>
+                            @foreach (var account in accounts)
+                            {
+                                <option value="@account.Id">@account.DisplayName</option>
+                            }
+                        </select>
+                    </td>
+                    <td>
+                        <select data-field="leadId" class="cell-input cell-select">
+                            <option value="">-</option>
+                            @foreach (var lead in leads)
+                            {
+                                <option value="@lead.Id">@lead.Code - @lead.DisplayName</option>
+                            }
+                        </select>
+                    </td>
+                    <td><input data-field="contactName" class="cell-input" placeholder="Kontak" /></td>
+                    <td>
+                        <select data-field="contactStatus" class="cell-input cell-select js-contact-status">
+                            <option value="Contacted">Gorusuldu</option>
+                            <option value="NotContacted">Gorusulmedi</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select data-field="outcomeStatus" class="cell-input cell-select js-outcome-status">
+                            <option value="">-</option>
+                            @foreach (InsuranceManagement.Web.Domain.OutcomeStatus status in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.OutcomeStatus)))
+                            {
+                                <option value="@status">@status.ToDisplayText()</option>
+                            }
+                        </select>
+                    </td>
+                    <td><input data-field="summary" class="cell-input" placeholder="Ozet" /></td>
+                </tr>
+                @foreach (var activity in Model.Items)
+                {
+                    <tr data-activity-id="@activity.Id">
+                        <td><a asp-action="Details" asp-route-id="@activity.Id">@activity.Code</a></td>
+                        <td><input data-field="activityDate" type="date" class="cell-input" value="@activity.ActivityDate.ToString("yyyy-MM-dd")" /></td>
+                        <td>
+                            @if (canManageAll)
+                            {
+                                <select data-field="employeeId" class="cell-input cell-select">
+                                    <option value="">Sec</option>
+                                    @foreach (var employee in employees)
+                                    {
+                                        @if (activity.EmployeeId == employee.Id)
+                                        {
+                                            <option value="@employee.Id" selected>@employee.FullName</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@employee.Id">@employee.FullName</option>
+                                        }
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="hidden" data-field="employeeId" value="@activity.EmployeeId" />
+                                <span class="pill">@employees.FirstOrDefault(x => x.Id == activity.EmployeeId)?.FullName</span>
+                            }
+                        </td>
+                        <td>
+                            <select data-field="accountId" class="cell-input cell-select">
+                                <option value="">Sec</option>
+                                @foreach (var account in accounts)
+                                {
+                                    @if (activity.AccountId == account.Id)
+                                    {
+                                        <option value="@account.Id" selected>@account.DisplayName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@account.Id">@account.DisplayName</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select data-field="leadId" class="cell-input cell-select">
+                                <option value="">-</option>
+                                @foreach (var lead in leads)
+                                {
+                                    @if (activity.LeadId == lead.Id)
+                                    {
+                                        <option value="@lead.Id" selected>@lead.Code - @lead.DisplayName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@lead.Id">@lead.Code - @lead.DisplayName</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                        <td><input data-field="contactName" class="cell-input" value="@activity.ContactName" /></td>
+                        <td>
+                            <select data-field="contactStatus" class="cell-input cell-select js-contact-status">
+                                @foreach (InsuranceManagement.Web.Domain.ContactStatus status in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.ContactStatus)))
+                                {
+                                    @if (activity.ContactStatus == status)
+                                    {
+                                        <option value="@status" selected>@status.ToDisplayText()</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@status">@status.ToDisplayText()</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select data-field="outcomeStatus" class="cell-input cell-select js-outcome-status">
+                                <option value="">-</option>
+                                @foreach (InsuranceManagement.Web.Domain.OutcomeStatus status in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.OutcomeStatus)))
+                                {
+                                    @if (activity.OutcomeStatus == status)
+                                    {
+                                        <option value="@status" selected>@status.ToDisplayText()</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@status">@status.ToDisplayText()</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                        <td><input data-field="summary" class="cell-input" value="@activity.Summary" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="page-actions split-actions">
+        <div class="pager">
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" asp-action="Index" asp-route-page="@prevPage" asp-route-pageSize="@Model.PageSize">Onceki</a>
+            <span class="pill">Sayfa @Model.CurrentPage / @Model.TotalPages</span>
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" asp-action="Index" asp-route-page="@nextPage" asp-route-pageSize="@Model.PageSize">Sonraki</a>
+        </div>
+        <div class="muted">Toplam @Model.TotalCount kayit</div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_GridBulkSaveForm", new InsuranceManagement.Web.ViewModels.GridBulkSaveFormViewModel
+{
+    ActionName = "BulkSave",
+    FormId = "activity-bulk-save-form",
+    PayloadInputId = "activity-bulk-payload",
+    Page = Model.CurrentPage
+})
+
+@section Scripts {
+    <script>
+        function toggleActivityInsertRow() {
+            InsuranceGridDraft.toggleRow("activity-insert-row");
+        }
+
+        function syncOutcomeState(row) {
+            const contact = row.querySelector(".js-contact-status");
+            const outcome = row.querySelector(".js-outcome-status");
+            if (!contact || !outcome) return;
+            const contacted = contact.value === "Contacted";
+            outcome.disabled = !contacted;
+            if (!contacted) {
+                outcome.value = "";
+            }
+        }
+
+        InsuranceGridDraft.create({
+            storageKey: "activity-grid-draft-v1",
+            rowSelector: "tr[data-activity-id]",
+            rowIdAttribute: "data-activity-id",
+            insertRowId: "activity-insert-row",
+            saveButtonId: "save-all-activities-btn",
+            clearButtonId: "clear-activity-draft-btn",
+            formId: "activity-bulk-save-form",
+            payloadInputId: "activity-bulk-payload",
+            clearOnLoad: @(((TempData["ClearGridDraftKey"] as string) == "activity-grid-draft-v1").ToString().ToLowerInvariant()),
+            onRowReady: syncOutcomeState,
+            onInsertRowReady: syncOutcomeState,
+            afterDraftApplied: syncOutcomeState
+        });
+    </script>
+}

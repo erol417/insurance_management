@@ -1,0 +1,199 @@
+@model InsuranceManagement.Web.ViewModels.LeadsIndexViewModel
+@{
+    var employeeMap = ViewBag.EmployeeMap as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    var canManage = User.IsInRole("Admin") || User.IsInRole("SalesManager") || User.IsInRole("CallCenter");
+    var canAssign = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SalesManager");
+    var prevPage = Math.Max(1, Model.CurrentPage - 1);
+    var nextPage = Math.Min(Model.TotalPages, Model.CurrentPage + 1);
+    ViewData["Title"] = "Lead Havuzu";
+    ViewData["Subtitle"] = "Call center tarafindan bulunan potansiyel musteriler";
+}
+<div class="page-actions">
+    @if (canManage)
+    {
+        <button type="button" class="btn primary" onclick="toggleLeadInsertRow()">Yeni Satir Ekle</button>
+        <button type="button" class="btn secondary" id="save-all-leads-btn">Degisiklikleri Kaydet</button>
+        <button type="button" class="btn ghost" id="clear-lead-draft-btn">Taslagi Temizle</button>
+        <a class="btn" asp-controller="Imports" asp-action="Upload">Excel Toplu Yukle</a>
+        <a class="btn secondary" asp-action="Create">Detayli Form</a>
+    }
+    @if (canAssign)
+    {
+        <a class="btn" asp-action="Assignments">Atama Ekrani</a>
+    }
+</div>
+<div class="panel" style="margin-top:18px;">
+    <div class="note-box">
+        <strong>Grid duzenleme</strong>
+        <p>Bu ekran hizli veri girisi icin tablo uzerinden duzenlenebilir. Degisiklikler taslak olarak tutulur, tek bir kaydetme ile toplu islenir.</p>
+        <p>Sayfalar arasinda gezsen bile taslak degisiklikler korunur. Kaydetmeden sayfadan ayrilirsan sistem uyarir.</p>
+    </div>
+    <div class="table-scroll">
+        <table class="table compact-table lead-grid">
+            <thead>
+                <tr>
+                    <th>Kod</th>
+                    <th>Ad / Unvan</th>
+                    <th>Sehir</th>
+                    <th>Ilce</th>
+                    <th>Kontak</th>
+                    <th>Telefon</th>
+                    <th>E-posta</th>
+                    <th>Kaynak</th>
+                    <th>Durum</th>
+                    <th>Atanan</th>
+                    <th>Oncelik</th>
+                    <th>Not</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (canManage)
+            {
+                <tr id="lead-insert-row" class="inline-entry-row" style="display:none;">
+                        <td><span class="muted">Yeni</span></td>
+                        <td><input data-field="displayName" class="cell-input" placeholder="Lead adi" /></td>
+                        <td><input data-field="city" class="cell-input" placeholder="Sehir" /></td>
+                        <td><input data-field="district" class="cell-input" placeholder="Ilce" /></td>
+                        <td><input data-field="contactName" class="cell-input" placeholder="Kontak" /></td>
+                        <td><input data-field="phone" class="cell-input" placeholder="Telefon" /></td>
+                        <td><input data-field="email" class="cell-input" placeholder="E-posta" /></td>
+                        <td><input data-field="source" class="cell-input" value="Call Center" /></td>
+                        <td>
+                            <select data-field="status" class="cell-input cell-select">
+                                <option value="New">Yeni</option>
+                                <option value="Researched">Arastirildi</option>
+                                <option value="ContactFound">Kontak Bulundu</option>
+                                <option value="ReadyForAssignment">Atamaya Hazir</option>
+                                <option value="Assigned">Atandi</option>
+                                <option value="VisitScheduled">Ziyaret Planlandi</option>
+                                <option value="Visited">Ziyaret Edildi</option>
+                                <option value="ConvertedToActivity">Aktiviteye Donustu</option>
+                                <option value="Disqualified">Elenmis</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select data-field="assignedEmployeeId" class="cell-input cell-select">
+                                <option value="">-</option>
+                                @foreach (var employee in employees)
+                                {
+                                    <option value="@employee.Id">@employee.FullName</option>
+                                }
+                            </select>
+                        </td>
+                        <td><input data-field="priority" class="cell-input" value="Medium" /></td>
+                        <td><input data-field="note" class="cell-input" placeholder="Not" /></td>
+                </tr>
+            }
+            @foreach (var lead in Model.Items)
+            {
+                <tr data-lead-id="@lead.Id">
+                    @if (canManage)
+                    {
+                        <td><a asp-action="Details" asp-route-id="@lead.Id">@lead.Code</a></td>
+                        <td><input data-field="displayName" class="cell-input" value="@lead.DisplayName" /></td>
+                        <td><input data-field="city" class="cell-input" value="@lead.City" /></td>
+                        <td><input data-field="district" class="cell-input" value="@lead.District" /></td>
+                        <td><input data-field="contactName" class="cell-input" value="@lead.ContactName" /></td>
+                        <td><input data-field="phone" class="cell-input" value="@lead.Phone" /></td>
+                        <td><input data-field="email" class="cell-input" value="@lead.Email" /></td>
+                        <td><input data-field="source" class="cell-input" value="@lead.Source" /></td>
+                        <td>
+                            <select data-field="status" class="cell-input cell-select">
+                                @foreach (InsuranceManagement.Web.Domain.LeadStatus status in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.LeadStatus)))
+                                {
+                                    @if (lead.Status == status)
+                                    {
+                                        <option value="@status" selected>@status.ToDisplayText()</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@status">@status.ToDisplayText()</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select data-field="assignedEmployeeId" class="cell-input cell-select">
+                                <option value="">-</option>
+                                @foreach (var employee in employees)
+                                {
+                                    @if (lead.AssignedEmployeeId == employee.Id)
+                                    {
+                                        <option value="@employee.Id" selected>@employee.FullName</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@employee.Id">@employee.FullName</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                        <td><input data-field="priority" class="cell-input" value="@lead.Priority" /></td>
+                        <td><input data-field="note" class="cell-input" value="@lead.Note" /></td>
+                    }
+                    else
+                    {
+                        <td><a asp-action="Details" asp-route-id="@lead.Id">@lead.Code</a></td>
+                        <td>@lead.DisplayName</td>
+                        <td>@lead.City</td>
+                        <td>@lead.District</td>
+                        <td>@lead.ContactName</td>
+                        <td>@lead.Phone</td>
+                        <td>@lead.Email</td>
+                        <td>@lead.Source</td>
+                        <td><span class="status @(lead.Status == InsuranceManagement.Web.Domain.LeadStatus.ReadyForAssignment ? "warn" : lead.Status == InsuranceManagement.Web.Domain.LeadStatus.Assigned ? "ok" : "neutral")">@lead.Status.ToDisplayText()</span></td>
+                        <td>@(lead.AssignedEmployeeId.HasValue && employeeMap.TryGetValue(lead.AssignedEmployeeId.Value, out var employeeName) ? employeeName : "-")</td>
+                        <td>@lead.Priority</td>
+                        <td>@lead.Note</td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="page-actions split-actions">
+        <div class="pager">
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" asp-action="Index" asp-route-page="@prevPage" asp-route-pageSize="@Model.PageSize">Onceki</a>
+            <span class="pill">Sayfa @Model.CurrentPage / @Model.TotalPages</span>
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" asp-action="Index" asp-route-page="@nextPage" asp-route-pageSize="@Model.PageSize">Sonraki</a>
+        </div>
+        <div class="muted">Toplam @Model.TotalCount kayit</div>
+    </div>
+</div>
+
+@if (canManage)
+{
+    @await Html.PartialAsync("_GridBulkSaveForm", new InsuranceManagement.Web.ViewModels.GridBulkSaveFormViewModel
+    {
+        ActionName = "BulkSave",
+        FormId = "lead-bulk-save-form",
+        PayloadInputId = "lead-bulk-payload",
+        Page = Model.CurrentPage
+    })
+}
+
+@section Scripts {
+    <script>
+        function toggleLeadInsertRow() {
+            InsuranceGridDraft.toggleRow("lead-insert-row");
+        }
+
+        @if (canManage)
+        {
+            <text>
+            InsuranceGridDraft.create({
+                storageKey: "lead-grid-draft-v1",
+                rowSelector: "tr[data-lead-id]",
+                rowIdAttribute: "data-lead-id",
+                insertRowId: "lead-insert-row",
+                saveButtonId: "save-all-leads-btn",
+                clearButtonId: "clear-lead-draft-btn",
+                formId: "lead-bulk-save-form",
+                payloadInputId: "lead-bulk-payload",
+                clearOnLoad: @(((TempData["ClearGridDraftKey"] as string) == "lead-grid-draft-v1").ToString().ToLowerInvariant())
+            });
+            </text>
+        }
+    </script>
+}

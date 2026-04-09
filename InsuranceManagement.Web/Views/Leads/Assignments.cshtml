@@ -1,0 +1,94 @@
+@model List<InsuranceManagement.Web.Domain.Lead>
+@{
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    var assignedLeads = ViewBag.AssignedLeads as List<InsuranceManagement.Web.Domain.Lead> ?? [];
+    ViewData["Title"] = "Lead Atama";
+    ViewData["Subtitle"] = "Dropdown ile hizli atama, detay gerekiyorsa kart bazli inceleme";
+}
+<section class="grid equal-2">
+    <div class="panel">
+        <div class="section-title"><h3>Atama bekleyen leadler</h3><span class="pill">queue</span></div>
+        @if (Model.Any())
+        {
+            <div class="list">
+                @foreach (var lead in Model)
+                {
+                    <div class="list-item">
+                        <div>
+                            <strong>@lead.Code · @lead.DisplayName</strong>
+                            <div class="muted">@lead.City · @lead.Source · @lead.Note</div>
+                        </div>
+                        <span class="status warn">@lead.Status.ToDisplayText()</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="note-box">
+                <strong>Bekleyen atama yok</strong>
+                <p>Atamaya hazir durumunda lead bulunmuyor. Lead Havuzu ekraninda durumu guncellendiginde burasi otomatik degisir.</p>
+            </div>
+        }
+
+        @if (assignedLeads.Any())
+        {
+            <div class="note-box" style="margin-top:18px;">
+                <strong>Halihazirda atanmis leadler</strong>
+                @foreach (var lead in assignedLeads.Take(5))
+                {
+                    <p>@lead.Code · @lead.DisplayName · @(lead.AssignedEmployeeId.HasValue ? employees.FirstOrDefault(x => x.Id == lead.AssignedEmployeeId.Value)?.FullName ?? "-" : "-")</p>
+                }
+                @if (assignedLeads.Count > 5)
+                {
+                    <p class="muted">+ @(assignedLeads.Count - 5) kayit daha</p>
+                }
+            </div>
+        }
+    </div>
+    <div class="panel">
+        <div class="section-title"><h3>Hizli atama</h3><span class="pill">ana akis</span></div>
+        @if (Model.Any())
+        {
+            var firstLead = Model.First();
+            <form method="post" asp-action="Assign">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="leadId" value="@firstLead.Id" />
+                <div class="form-grid two">
+                    <div class="field">
+                        <label>Lead</label>
+                        <input value="@firstLead.Code · @firstLead.DisplayName" readonly />
+                    </div>
+                    <div class="field">
+                        <label>Saha Personeli</label>
+                        <select name="employeeId">
+                            @foreach (var employee in employees)
+                            {
+                                var openCount = assignedLeads.Count(x => x.AssignedEmployeeId == employee.Id && (x.Status == InsuranceManagement.Web.Domain.LeadStatus.Assigned || x.Status == InsuranceManagement.Web.Domain.LeadStatus.VisitScheduled));
+                                <option value="@employee.Id">@employee.FullName · @openCount acik is</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Termin Tarihi</label>
+                        <input type="date" name="scheduledVisitDate" value="@DateTime.Today.AddDays(3).ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="field">
+                        <label>Oncelik</label>
+                        <select name="priority"><option>High</option><option selected>Medium</option><option>Low</option></select>
+                    </div>
+                </div>
+                <div class="field"><label>Atama Notu</label><input name="note" value="Bu hafta ziyaret planina alinacak" /></div>
+                <div class="page-actions"><button type="submit" class="btn primary">Atamayi Kaydet</button></div>
+            </form>
+        }
+        else
+        {
+            <div class="note-box">
+                <strong>Atanacak lead yok</strong>
+                <p>Bu form sadece <em>Atamaya Hazir</em> durumundaki lead varsa aktif olur.</p>
+            </div>
+        }
+        <div class="note-box"><strong>Kullanim karari</strong><p>Atama varsayilan olarak dropdown ile ilerler. Detay ihtiyacinda bu ekrandaki personel yukleri ve dashboard kullanilir.</p></div>
+    </div>
+</section>

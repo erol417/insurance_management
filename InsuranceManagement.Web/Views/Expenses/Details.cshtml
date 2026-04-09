@@ -1,0 +1,24 @@
+@model InsuranceManagement.Web.Domain.Expense
+@{
+    var employee = ViewBag.Employee as InsuranceManagement.Web.Domain.Employee;
+    ViewData["Title"] = "Masraf Detayi";
+    ViewData["Subtitle"] = "MVP'de onay akisina girmeden kayit ve raporlama odakli";
+}
+<div class="panel">
+    <div class="list">
+        <div class="list-item"><strong>Kod</strong><span>@Model.Code</span></div>
+        <div class="list-item"><strong>Personel</strong><span>@employee?.FullName</span></div>
+        <div class="list-item"><strong>Tarih</strong><span>@Model.ExpenseDate.ToString("dd.MM.yyyy")</span></div>
+        <div class="list-item"><strong>Tur</strong><span>@Model.ExpenseType.ToDisplayText()</span></div>
+        <div class="list-item"><strong>Tutar</strong><span>@Model.Amount.ToString("N0") TRY</span></div>
+    </div>
+    <div class="note-box"><strong>Not</strong><p>@Model.Notes</p></div>
+</div>
+<div class="page-actions">
+    <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
+    <form asp-action="Delete" method="post" class="inline-form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="submit" class="btn secondary">Sil</button>
+    </form>
+</div>

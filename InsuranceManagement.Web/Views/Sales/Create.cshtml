@@ -1,0 +1,41 @@
+@model InsuranceManagement.Web.ViewModels.SaleFormViewModel
+@{
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    var accounts = ViewBag.Accounts as List<InsuranceManagement.Web.Domain.Account> ?? [];
+    var activities = ViewBag.Activities as List<InsuranceManagement.Web.Domain.Activity> ?? [];
+    ViewData["Title"] = "Yeni Satis";
+    ViewData["Subtitle"] = "Urun tipine gore ilgili finansal alanlarin girildigi satis formu";
+}
+<div class="panel">
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="validation-summary-errors"></div>
+        <div class="form-grid three">
+            <div class="field"><label asp-for="SaleDate"></label><input asp-for="SaleDate" type="date" /></div>
+            <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
+            <div class="field"><label asp-for="AccountId"></label><select asp-for="AccountId">@foreach (var account in accounts){<option value="@account.Id">@account.DisplayName</option>}</select></div>
+            <div class="field"><label asp-for="ActivityId"></label><select asp-for="ActivityId"><option value="">Bagimsiz satis</option>@foreach (var activity in activities){<option value="@activity.Id">@activity.Code</option>}</select></div>
+            <div class="field">
+                <label asp-for="ProductType"></label>
+                <select asp-for="ProductType">
+                    <option value="Bes">BES</option>
+                    <option value="Life">Hayat</option>
+                    <option value="Health">Saglik</option>
+                    <option value="Travel">Seyahat</option>
+                    <option value="Other">Diger</option>
+                </select>
+            </div>
+            <div class="field"><label asp-for="SaleCount"></label><input asp-for="SaleCount" /></div>
+            <div class="field"><label asp-for="CollectionAmount"></label><input asp-for="CollectionAmount" /></div>
+            <div class="field"><label asp-for="ApeAmount"></label><input asp-for="ApeAmount" /></div>
+            <div class="field"><label asp-for="LumpSumAmount"></label><input asp-for="LumpSumAmount" /></div>
+            <div class="field"><label asp-for="MonthlyPaymentAmount"></label><input asp-for="MonthlyPaymentAmount" /></div>
+            <div class="field"><label asp-for="PremiumAmount"></label><input asp-for="PremiumAmount" /></div>
+            <div class="field"><label asp-for="ProductionAmount"></label><input asp-for="ProductionAmount" /></div>
+            <div class="field"><label asp-for="SaleAmount"></label><input asp-for="SaleAmount" /></div>
+        </div>
+        <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
+        <div class="note-box"><strong>Validation karari</strong><p>Secilen urune gore zorunlu alanlar degisir. BES icin tek tutar yerine tahsilat, APE, toplu para ve aylik odeme ayri tutulur.</p></div>
+        <div class="page-actions"><button type="submit" class="btn primary">Satisi Kaydet</button></div>
+    </form>
+</div>

@@ -1,0 +1,43 @@
+@model InsuranceManagement.Web.Domain.Lead
+@{
+    var employee = ViewBag.Employee as InsuranceManagement.Web.Domain.Employee;
+    var convertedAccount = ViewBag.ConvertedAccount as InsuranceManagement.Web.Domain.Account;
+    var convertedActivity = ViewBag.ConvertedActivity as InsuranceManagement.Web.Domain.Activity;
+    ViewData["Title"] = "Lead Detayi";
+    ViewData["Subtitle"] = "Lead durumu, atama ve donusum izlemesi";
+}
+<div class="panel">
+    <div class="list">
+        <div class="list-item"><strong>Kod</strong><span>@Model.Code</span></div>
+        <div class="list-item"><strong>Ad</strong><span>@Model.DisplayName</span></div>
+        <div class="list-item"><strong>Durum</strong><span class="status neutral">@Model.Status.ToDisplayText()</span></div>
+        <div class="list-item"><strong>Atanan</strong><span>@(employee?.FullName ?? "-")</span></div>
+        <div class="list-item"><strong>Sehir</strong><span>@Model.City / @Model.District</span></div>
+        <div class="list-item"><strong>Kontak</strong><span>@Model.ContactName · @Model.Phone</span></div>
+    </div>
+    <div class="note-box"><strong>Not</strong><p>@Model.Note</p></div>
+    @if (convertedAccount is not null)
+    {
+        <div class="note-box"><strong>Donusen Account</strong><p>@convertedAccount.Code · @convertedAccount.DisplayName</p></div>
+    }
+    @if (convertedActivity is not null)
+    {
+        <div class="note-box"><strong>Donusen Aktivite</strong><p>@convertedActivity.Code · @convertedActivity.Summary</p></div>
+    }
+    <div class="page-actions">
+        <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
+        @if (User.IsInRole("FieldSales") || User.IsInRole("Admin") || User.IsInRole("SalesManager"))
+        {
+            <form asp-action="StartVisit" method="post" class="inline-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn primary">Ziyaret Baslat</button>
+            </form>
+        }
+        <form asp-action="Delete" method="post" class="inline-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn secondary">Sil</button>
+        </form>
+    </div>
+</div>

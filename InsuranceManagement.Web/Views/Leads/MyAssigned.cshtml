@@ -1,0 +1,26 @@
+@model List<InsuranceManagement.Web.Domain.Lead>
+@{
+    ViewData["Title"] = "Atanan Leadlerim";
+    ViewData["Subtitle"] = "Saha personelinin acik is listesi";
+}
+<div class="panel">
+    <div class="list">
+        @foreach (var lead in Model)
+        {
+            <div class="list-item">
+                <div>
+                    <strong>@lead.Code · @lead.DisplayName</strong>
+                    <div class="muted">@lead.City · @lead.ContactName · @lead.ScheduledVisitDate?.ToString("dd.MM.yyyy")</div>
+                </div>
+                <div class="toolbar">
+                    <a class="btn" asp-action="Details" asp-route-id="@lead.Id">Detay</a>
+                    <form asp-action="StartVisit" method="post" class="inline-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@lead.Id" />
+                        <button type="submit" class="btn primary">Ziyaret Baslat</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

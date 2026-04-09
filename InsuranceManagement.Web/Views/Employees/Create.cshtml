@@ -1,0 +1,17 @@
+@model InsuranceManagement.Web.ViewModels.EmployeeFormViewModel
+@{
+    ViewData["Title"] = "Yeni Personel";
+    ViewData["Subtitle"] = "Yeni personel kaydi";
+}
+<div class="panel">
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="validation-summary-errors"></div>
+        <div class="form-grid three">
+            <div class="field"><label asp-for="FullName"></label><input asp-for="FullName" /></div>
+            <div class="field"><label asp-for="Region"></label><input asp-for="Region" /></div>
+            <div class="field"><label asp-for="City"></label><input asp-for="City" /></div>
+        </div>
+        <div class="page-actions"><button type="submit" class="btn primary">Personeli Kaydet</button></div>
+    </form>
+</div>

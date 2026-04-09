@@ -1,0 +1,21 @@
+@model IEnumerable<InsuranceManagement.Web.Domain.UserAccount>
+@{
+    ViewData["Title"] = "Kullanicilar";
+    ViewData["Subtitle"] = "Seed kullanicilar ve rol baglamlari";
+}
+<div class="panel">
+    <table class="table">
+        <thead><tr><th>Kullanici</th><th>Ad</th><th>Rol</th><th>Employee</th></tr></thead>
+        <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.UserName</td>
+                <td>@user.FullName</td>
+                <td>@user.Role.ToDisplayText()</td>
+                <td>@user.EmployeeId</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

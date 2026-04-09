@@ -1,0 +1,153 @@
+@model InsuranceManagement.Web.ViewModels.ExpensesIndexViewModel
+@{
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    var canManageAll = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SalesManager") || User.IsInRole("Operations");
+    var prevPage = Math.Max(1, Model.CurrentPage - 1);
+    var nextPage = Math.Min(Model.TotalPages, Model.CurrentPage + 1);
+    ViewData["Title"] = "Masraflar";
+    ViewData["Subtitle"] = "Personel bazli tarih ve tur odakli masraf kayitlari";
+}
+<div class="page-actions">
+    <button type="button" class="btn primary" onclick="toggleExpenseInsertRow()">Yeni Satir Ekle</button>
+    <button type="button" class="btn secondary" id="save-all-expenses-btn">Degisiklikleri Kaydet</button>
+    <button type="button" class="btn ghost" id="clear-expense-draft-btn">Taslagi Temizle</button>
+    <a class="btn secondary" asp-action="Create">Detayli Form</a>
+</div>
+<div class="panel" style="margin-top:18px;">
+    <div class="note-box">
+        <strong>Grid duzenleme</strong>
+        <p>Masraf satirlari bu ekranda hizli giris icin tablo uzerinden duzenlenir. Tum degisiklikler taslak olarak tutulur.</p>
+        <p>Kaydetmeden ayrilirsan sistem uyarir. Sayfalar arasinda gezsen de taslak korunur.</p>
+    </div>
+    <div class="table-scroll">
+        <table class="table compact-table">
+            <thead>
+                <tr>
+                    <th>Kod</th>
+                    <th>Tarih</th>
+                    <th>Personel</th>
+                    <th>Tur</th>
+                    <th>Tutar</th>
+                    <th>Not</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="expense-insert-row" class="inline-entry-row" style="display:none;">
+                    <td><span class="muted">Yeni</span></td>
+                    <td><input data-field="expenseDate" type="date" class="cell-input" value="@Model.NewExpense.ExpenseDate.ToString("yyyy-MM-dd")" /></td>
+                    <td>
+                        @if (canManageAll)
+                        {
+                            <select data-field="employeeId" class="cell-input cell-select">
+                                <option value="">Sec</option>
+                                @foreach (var employee in employees)
+                                {
+                                    <option value="@employee.Id">@employee.FullName</option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <input type="hidden" data-field="employeeId" value="@Model.NewExpense.EmployeeId" />
+                            <span class="pill">@employees.FirstOrDefault()?.FullName</span>
+                        }
+                    </td>
+                    <td>
+                        <select data-field="expenseType" class="cell-input cell-select">
+                            @foreach (InsuranceManagement.Web.Domain.ExpenseType type in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.ExpenseType)))
+                            {
+                                <option value="@type">@type.ToDisplayText()</option>
+                            }
+                        </select>
+                    </td>
+                    <td><input data-field="amount" type="number" step="0.01" min="0" class="cell-input" placeholder="0,00" /></td>
+                    <td><input data-field="notes" class="cell-input" placeholder="Not" /></td>
+                </tr>
+                @foreach (var expense in Model.Items)
+                {
+                    <tr data-expense-id="@expense.Id">
+                        <td><a asp-action="Details" asp-route-id="@expense.Id">@expense.Code</a></td>
+                        <td><input data-field="expenseDate" type="date" class="cell-input" value="@expense.ExpenseDate.ToString("yyyy-MM-dd")" /></td>
+                        <td>
+                            @if (canManageAll)
+                            {
+                                <select data-field="employeeId" class="cell-input cell-select">
+                                    <option value="">Sec</option>
+                                    @foreach (var employee in employees)
+                                    {
+                                        @if (expense.EmployeeId == employee.Id)
+                                        {
+                                            <option value="@employee.Id" selected>@employee.FullName</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@employee.Id">@employee.FullName</option>
+                                        }
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="hidden" data-field="employeeId" value="@expense.EmployeeId" />
+                                <span class="pill">@employees.FirstOrDefault(x => x.Id == expense.EmployeeId)?.FullName</span>
+                            }
+                        </td>
+                        <td>
+                            <select data-field="expenseType" class="cell-input cell-select">
+                                @foreach (InsuranceManagement.Web.Domain.ExpenseType type in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.ExpenseType)))
+                                {
+                                    @if (expense.ExpenseType == type)
+                                    {
+                                        <option value="@type" selected>@type.ToDisplayText()</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@type">@type.ToDisplayText()</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                        <td><input data-field="amount" type="number" step="0.01" min="0" class="cell-input" value="@expense.Amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" /></td>
+                        <td><input data-field="notes" class="cell-input" value="@expense.Notes" /></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="page-actions split-actions">
+        <div class="pager">
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" asp-action="Index" asp-route-page="@prevPage" asp-route-pageSize="@Model.PageSize">Onceki</a>
+            <span class="pill">Sayfa @Model.CurrentPage / @Model.TotalPages</span>
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" asp-action="Index" asp-route-page="@nextPage" asp-route-pageSize="@Model.PageSize">Sonraki</a>
+        </div>
+        <div class="muted">Toplam @Model.TotalCount kayit</div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_GridBulkSaveForm", new InsuranceManagement.Web.ViewModels.GridBulkSaveFormViewModel
+{
+    ActionName = "BulkSave",
+    FormId = "expense-bulk-save-form",
+    PayloadInputId = "expense-bulk-payload",
+    Page = Model.CurrentPage
+})
+
+@section Scripts {
+    <script>
+        function toggleExpenseInsertRow() {
+            InsuranceGridDraft.toggleRow("expense-insert-row");
+        }
+
+        InsuranceGridDraft.create({
+            storageKey: "expense-grid-draft-v1",
+            rowSelector: "tr[data-expense-id]",
+            rowIdAttribute: "data-expense-id",
+            insertRowId: "expense-insert-row",
+            saveButtonId: "save-all-expenses-btn",
+            clearButtonId: "clear-expense-draft-btn",
+            formId: "expense-bulk-save-form",
+            payloadInputId: "expense-bulk-payload",
+            clearOnLoad: @(((TempData["ClearGridDraftKey"] as string) == "expense-grid-draft-v1").ToString().ToLowerInvariant())
+        });
+    </script>
+}

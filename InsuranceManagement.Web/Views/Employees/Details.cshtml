@@ -1,0 +1,18 @@
+@model InsuranceManagement.Web.Domain.Employee
+@{
+    ViewData["Title"] = "Personel Detayi";
+    ViewData["Subtitle"] = "Yuk, performans ve operasyonel ozet";
+}
+<div class="grid cards-4">
+    <div class="panel metric"><span class="tag">Acik Lead</span><div class="value">@ViewBag.OpenLeads</div></div>
+    <div class="panel metric"><span class="tag">Aktivite</span><div class="value">@ViewBag.Activities</div></div>
+    <div class="panel metric"><span class="tag">Satis</span><div class="value">@ViewBag.Sales</div></div>
+    <div class="panel metric"><span class="tag">Masraf</span><div class="value">@(((decimal)ViewBag.Expenses).ToString("N0"))</div></div>
+</div>
+<div class="panel" style="margin-top:18px;">
+    <div class="list">
+        <div class="list-item"><strong>Ad</strong><span>@Model.FullName</span></div>
+        <div class="list-item"><strong>Bolge</strong><span>@Model.Region</span></div>
+        <div class="list-item"><strong>Sehir</strong><span>@Model.City</span></div>
+    </div>
+</div>

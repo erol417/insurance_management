@@ -1,0 +1,42 @@
+@model InsuranceManagement.Web.ViewModels.AccountFormViewModel
+@{
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    var duplicateWarnings = ViewBag.DuplicateWarnings as IEnumerable<string> ?? [];
+    ViewData["Title"] = "Yeni Musteri";
+    ViewData["Subtitle"] = "Ortak account modeli ile yeni musteri/firma olusturma";
+}
+<div class="panel">
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="validation-summary-errors"></div>
+        @if (duplicateWarnings.Any())
+        {
+            <div class="note-box warning">
+                <strong>Benzer kayit uyarilari</strong>
+                @foreach (var warning in duplicateWarnings)
+                {
+                    <p>@warning</p>
+                }
+            </div>
+        }
+        <div class="form-grid three">
+            <div class="field">
+                <label asp-for="AccountType"></label>
+                <select asp-for="AccountType">
+                    <option value="Corporate">Kurumsal</option>
+                    <option value="Individual">Bireysel</option>
+                </select>
+            </div>
+            <div class="field"><label asp-for="DisplayName"></label><input asp-for="DisplayName" /></div>
+            <div class="field"><label asp-for="City"></label><input asp-for="City" /></div>
+            <div class="field"><label asp-for="District"></label><input asp-for="District" /></div>
+            <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" /></div>
+            <div class="field"><label asp-for="Email"></label><input asp-for="Email" /></div>
+            <div class="field"><label asp-for="TaxNumber"></label><input asp-for="TaxNumber" /></div>
+            <div class="field"><label asp-for="OwnerEmployeeId"></label><select asp-for="OwnerEmployeeId"><option value="">Seciniz</option>@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
+            <div class="field"><label asp-for="Status"></label><input asp-for="Status" /></div>
+        </div>
+        <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
+        <div class="page-actions"><button type="submit" class="btn primary">Musteriyi Kaydet</button></div>
+    </form>
+</div>

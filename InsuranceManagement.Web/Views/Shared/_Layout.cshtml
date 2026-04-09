@@ -1,0 +1,64 @@
+@using InsuranceManagement.Web.ViewModels
+@{
+    var shell = ViewBag.AppShell as AppShellViewModel ?? new AppShellViewModel();
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Sigorta Operasyon</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-badge"></div>
+                <h1>Sigorta Operasyon</h1>
+                <p>@(shell.CurrentRole?.ToDisplayText() ?? "MVP Platformu")</p>
+            </div>
+            @foreach (var group in shell.Groups)
+            {
+                <div class="nav-group">
+                    <div class="nav-title">@group.Title</div>
+                    @foreach (var item in group.Items)
+                    {
+                        var activeClass = controller == item.Controller && action == item.Action ? "active" : string.Empty;
+                        <a class="nav-link @activeClass" asp-controller="@item.Controller" asp-action="@item.Action">@item.Label</a>
+                    }
+                </div>
+            }
+        </aside>
+        <main class="main">
+            <div class="topbar">
+                <div class="headline">
+                    <h2>@ViewData["Title"]</h2>
+                    <p>@ViewData["Subtitle"]</p>
+                </div>
+                <div class="toolbar">
+                    <span class="btn secondary">@shell.CurrentUserName</span>
+                    <form asp-controller="Auth" asp-action="Logout" method="post" class="inline-form">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn primary">Cikis</button>
+                    </form>
+                </div>
+            </div>
+            @if (TempData["Flash"] is string flash)
+            {
+                <div class="flash">@flash</div>
+            }
+            @if (TempData["Warning"] is string warning)
+            {
+                <div class="note-box" style="margin-bottom:16px;"><strong>Uyari</strong><p>@warning</p></div>
+            }
+            @RenderBody()
+        </main>
+    </div>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/gridDraft.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
