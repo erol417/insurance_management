@@ -5,7 +5,7 @@ namespace InsuranceManagement.Web.Services;
 
 public interface IActivityService
 {
-    List<Activity> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false);
+    List<Activity> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false, DateTime? startDate = null, DateTime? endDate = null, string? status = null);
     Activity? GetById(int id, int? filterEmployeeId = null);
     Activity Create(Activity activity);
     Activity? Update(int id, Activity updated);

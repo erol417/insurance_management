@@ -22,46 +22,54 @@
 <partial name="_DashboardTabs" />
 
 <section class="metric-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
-    <div class="metric-card">
-        <div class="metric-icon" style="background: #e0e7ff; color: #4338ca;">
-            <i data-lucide="activity"></i>
+    <a asp-controller="Activities" asp-action="Index" asp-route-start='@Model.StartDate.ToString("yyyy-MM-dd")' asp-route-end='@Model.EndDate.ToString("yyyy-MM-dd")' asp-route-employeeId="@Model.EmployeeId" class="metric-card-link">
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #e0e7ff; color: #4338ca;">
+                <i data-lucide="activity"></i>
+            </div>
+            <div class="metric-body">
+                <div class="label">Toplam Aktivite</div>
+                <div class="value">@Model.TotalActivities.ToString("N0")</div>
+                <div class="sub">planlananlar haric</div>
+            </div>
         </div>
-        <div class="metric-body">
-            <div class="label">Toplam Aktivite</div>
-            <div class="value">@Model.TotalActivities.ToString("N0")</div>
-            <div class="sub">planlananlar haric</div>
+    </a>
+    <a asp-controller="Activities" asp-action="Index" asp-route-start='@Model.StartDate.ToString("yyyy-MM-dd")' asp-route-end='@Model.EndDate.ToString("yyyy-MM-dd")' asp-route-employeeId="@Model.EmployeeId" asp-route-status="CONTACTED" class="metric-card-link">
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #dcfce7; color: #15803d;">
+                <i data-lucide="phone-outgoing"></i>
+            </div>
+            <div class="metric-body">
+                <div class="label">Gorusulen</div>
+                <div class="value">@Model.ContactedActivities.ToString("N0")</div>
+                <div class="sub">kurulan temas</div>
+            </div>
         </div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-icon" style="background: #dcfce7; color: #15803d;">
-            <i data-lucide="phone-outgoing"></i>
+    </a>
+    <a asp-controller="Sales" asp-action="Index" asp-route-start='@Model.StartDate.ToString("yyyy-MM-dd")' asp-route-end='@Model.EndDate.ToString("yyyy-MM-dd")' asp-route-employeeId="@Model.EmployeeId" asp-route-productTypeId="@Model.ProductTypeId" class="metric-card-link">
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #fef9c3; color: #a16207;">
+                <i data-lucide="shopping-cart"></i>
+            </div>
+            <div class="metric-body">
+                <div class="label">Satis Adedi</div>
+                <div class="value">@Model.TotalSalesCount.ToString("N0")</div>
+                <div class="sub">toplam police</div>
+            </div>
         </div>
-        <div class="metric-body">
-            <div class="label">Gorusulen</div>
-            <div class="value">@Model.ContactedActivities.ToString("N0")</div>
-            <div class="sub">kurulan temas</div>
+    </a>
+    <a asp-controller="Sales" asp-action="Index" asp-route-start='@Model.StartDate.ToString("yyyy-MM-dd")' asp-route-end='@Model.EndDate.ToString("yyyy-MM-dd")' asp-route-employeeId="@Model.EmployeeId" asp-route-productTypeId="1" class="metric-card-link">
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #fae8ff; color: #a21caf;">
+                <i data-lucide="landmark"></i>
+            </div>
+            <div class="metric-body">
+                <div class="label">BES Tahsilat</div>
+                <div class="value">₺@Model.TotalBesCollection.ToString("N0")</div>
+                <div class="sub">banknot/birikim</div>
+            </div>
         </div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-icon" style="background: #fef9c3; color: #a16207;">
-            <i data-lucide="shopping-cart"></i>
-        </div>
-        <div class="metric-body">
-            <div class="label">Satis Adedi</div>
-            <div class="value">@Model.TotalSalesCount.ToString("N0")</div>
-            <div class="sub">toplam police</div>
-        </div>
-    </div>
-    <div class="metric-card">
-        <div class="metric-icon" style="background: #fae8ff; color: #a21caf;">
-            <i data-lucide="landmark"></i>
-        </div>
-        <div class="metric-body">
-            <div class="label">BES Tahsilat</div>
-            <div class="value">₺@Model.TotalBesCollection.ToString("N0")</div>
-            <div class="sub">banknot/birikim</div>
-        </div>
-    </div>
+    </a>
     <div class="metric-card">
         <div class="metric-icon" style="background: #f1f5f9; color: #475569;">
             <i data-lucide="percent"></i>
@@ -72,17 +80,26 @@
             <div class="sub">aktivite/satis</div>
         </div>
     </div>
-    <div class="metric-card">
-        <div class="metric-icon" style="background: #fee2e2; color: #b91c1c;">
-            <i data-lucide="wallet"></i>
+    <a asp-controller="Expenses" asp-action="Index" asp-route-start='@Model.StartDate.ToString("yyyy-MM-dd")' asp-route-end='@Model.EndDate.ToString("yyyy-MM-dd")' asp-route-employeeId="@Model.EmployeeId" class="metric-card-link">
+        <div class="metric-card">
+            <div class="metric-icon" style="background: #fee2e2; color: #b91c1c;">
+                <i data-lucide="wallet"></i>
+            </div>
+            <div class="metric-body">
+                <div class="label">Toplam Masraf</div>
+                <div class="value">₺@Model.TotalExpenses.ToString("N0")</div>
+                <div class="sub">operasyonel gider</div>
+            </div>
         </div>
-        <div class="metric-body">
-            <div class="label">Toplam Masraf</div>
-            <div class="value">₺@Model.TotalExpenses.ToString("N0")</div>
-            <div class="sub">operasyonel gider</div>
-        </div>
-    </div>
+    </a>
 </section>
+
+<style>
+    .metric-card-link { text-decoration: none; color: inherit; display: block; border-radius: 12px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+    .metric-card-link:hover { transform: translateY(-5px); box-shadow: 0 12px 20px -10px rgba(0,0,0,0.15); }
+    .metric-card-link:hover .metric-card { border-color: var(--brand-soft); background: white; }
+    .metric-card { cursor: pointer; border: 1px solid transparent; }
+</style>
 
 <section class="panel">
     <div class="panel-title">

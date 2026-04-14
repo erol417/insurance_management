@@ -18,7 +18,7 @@ public class ExpensesController : AppController
         _expenseService = expenseService;
     }
 
-    public IActionResult Index(string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true, int page = 1, int pageSize = 10)
+    public IActionResult Index(string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true, int page = 1, int pageSize = 10, DateTime? start = null, DateTime? end = null, int? expenseTypeId = null)
     {
         BuildShell();
         var currentEmployeeId = CurrentEmployeeScopeId();
@@ -34,7 +34,7 @@ public class ExpensesController : AppController
             : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.ExpenseTypes = Db.ExpenseTypes.OrderBy(x => x.DisplayOrder).ToList();
 
-        var items = _expenseService.GetAll(page, pageSize, out var totalCount, searchTerm, employeeId, filterEmployeeId, sortBy, isDescending);
+        var items = _expenseService.GetAll(page, pageSize, out var totalCount, searchTerm, employeeId, filterEmployeeId, sortBy, isDescending, start, end, expenseTypeId);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
         var currentPage = page;
 

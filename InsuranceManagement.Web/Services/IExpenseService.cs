@@ -5,7 +5,7 @@ namespace InsuranceManagement.Web.Services;
 
 public interface IExpenseService
 {
-    List<Expense> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false);
+    List<Expense> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false, DateTime? startDate = null, DateTime? endDate = null, int? expenseTypeId = null);
     Expense? GetById(int id, int? filterEmployeeId = null);
     Expense Create(Expense expense);
     Expense? Update(int id, Expense updated);

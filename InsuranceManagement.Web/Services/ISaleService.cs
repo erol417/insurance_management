@@ -5,7 +5,7 @@ namespace InsuranceManagement.Web.Services;
 
 public interface ISaleService
 {
-    List<Sale> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false);
+    List<Sale> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false, DateTime? startDate = null, DateTime? endDate = null, int? productTypeId = null);
     Sale? GetById(int id, int? filterEmployeeId = null);
     Sale Create(Sale sale);
     Sale? Update(int id, Sale updated);

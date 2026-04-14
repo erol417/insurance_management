@@ -19,7 +19,7 @@ public class ActivitiesController : AppController
         _activityService = activityService;
     }
 
-    public IActionResult Index(int page = 1, int pageSize = 10, string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true)
+    public IActionResult Index(int page = 1, int pageSize = 10, string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true, DateTime? start = null, DateTime? end = null, string? status = null)
     {
         BuildShell();
         var currentEmployeeId = CurrentEmployeeScopeId();
@@ -50,7 +50,7 @@ public class ActivitiesController : AppController
             .OrderBy(x => x.ActivityDate)
             .ToList();
 
-        var items = _activityService.GetAll(page, pageSize, out var totalCount, searchTerm, filterEmployeeId, CurrentEmployeeScopeId(), sortBy, isDescending);
+        var items = _activityService.GetAll(page, pageSize, out var totalCount, searchTerm, null, filterEmployeeId, sortBy, isDescending, start, end, status);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
         var currentPage = page;
 

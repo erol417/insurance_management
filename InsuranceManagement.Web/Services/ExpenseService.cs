@@ -21,7 +21,7 @@ public class ExpenseService : IExpenseService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public List<Expense> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false)
+    public List<Expense> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false, DateTime? startDate = null, DateTime? endDate = null, int? expenseTypeId = null)
     {
         var query = _db.Expenses
             .Include(x => x.Employee)
@@ -42,6 +42,21 @@ public class ExpenseService : IExpenseService
         if (filterEmployeeId.HasValue)
         {
             query = query.Where(x => x.EmployeeId == filterEmployeeId.Value);
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(x => x.ExpenseDate >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(x => x.ExpenseDate <= endDate.Value);
+        }
+
+        if (expenseTypeId.HasValue)
+        {
+            query = query.Where(x => x.ExpenseTypeId == expenseTypeId.Value);
         }
 
         if (!string.IsNullOrEmpty(sortBy))

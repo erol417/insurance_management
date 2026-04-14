@@ -19,7 +19,7 @@ public class SalesController : AppController
         _saleService = saleService;
     }
 
-    public IActionResult Index(int page = 1, int pageSize = 10, string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true)
+    public IActionResult Index(int page = 1, int pageSize = 10, string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true, DateTime? start = null, DateTime? end = null, int? productTypeId = null)
     {
         BuildShell();
         var currentEmployeeId = CurrentEmployeeScopeId();
@@ -43,7 +43,7 @@ public class SalesController : AppController
         ViewBag.IsDescending = isDescending;
 
         var filterEmployeeIdField = CurrentEmployeeScopeId();
-        var items = _saleService.GetAll(page, pageSize, out var totalCount, searchTerm, filterEmployeeId, filterEmployeeIdField, sortBy, isDescending);
+        var items = _saleService.GetAll(page, pageSize, out var totalCount, searchTerm, null, filterEmployeeId, sortBy, isDescending, start, end, productTypeId);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
         var currentPage = page;
 

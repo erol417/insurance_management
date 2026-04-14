@@ -21,7 +21,7 @@ public class SaleService : ISaleService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public List<Sale> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false)
+    public List<Sale> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false, DateTime? startDate = null, DateTime? endDate = null, int? productTypeId = null)
     {
         var query = _db.Sales
             .Include(x => x.Employee)
@@ -42,6 +42,21 @@ public class SaleService : ISaleService
         if (filterEmployeeId.HasValue)
         {
             query = query.Where(x => x.EmployeeId == filterEmployeeId.Value);
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(x => x.SaleDate >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(x => x.SaleDate <= endDate.Value);
+        }
+
+        if (productTypeId.HasValue)
+        {
+            query = query.Where(x => x.ProductTypeId == productTypeId.Value);
         }
 
         if (!string.IsNullOrEmpty(sortBy))

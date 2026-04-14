@@ -21,7 +21,7 @@ public class ActivityService : IActivityService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public List<Activity> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false)
+    public List<Activity> GetAll(int page, int pageSize, out int totalCount, string? searchTerm = null, int? employeeId = null, int? filterEmployeeId = null, string? sortBy = null, bool isDescending = false, DateTime? startDate = null, DateTime? endDate = null, string? status = null)
     {
         var query = _db.Activities
             .Include(x => x.Employee)
@@ -45,6 +45,21 @@ public class ActivityService : IActivityService
         if (filterEmployeeId.HasValue)
         {
             query = query.Where(x => x.EmployeeId == filterEmployeeId.Value);
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(x => x.ActivityDate >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(x => x.ActivityDate <= endDate.Value);
+        }
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            query = query.Where(x => x.ContactStatusType != null && x.ContactStatusType.Code == status);
         }
 
         if (!string.IsNullOrEmpty(sortBy))
