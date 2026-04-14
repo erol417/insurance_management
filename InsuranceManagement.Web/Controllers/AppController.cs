@@ -37,27 +37,20 @@ public abstract class AppController : Controller
     protected void BuildShell()
     {
         var role = User.GetRoleType();
+        if (role == null) return;
+
         ViewBag.AppShell = new AppShellViewModel
         {
             CurrentUserName = User.Identity?.Name ?? "Kullanici",
             CurrentRole = role,
-            Groups = BuildNavigation(role)
+            Groups = BuildNavigation(role.Value, User.GetEmployeeId())
         };
     }
 
     protected void QueueAudit(string module, string actionType, string entityCode, string detail)
     {
-        var nextId = (Db.AuditLogs.Max(x => (int?)x.Id) ?? 0) + 1;
-        Db.AuditLogs.Add(new AuditLog
-        {
-            Id = nextId,
-            CreatedAt = DateTime.Now,
-            UserName = User.Identity?.Name ?? "system",
-            Module = module,
-            ActionType = actionType,
-            EntityCode = entityCode,
-            Detail = detail
-        });
+        var auditService = HttpContext.RequestServices.GetRequiredService<InsuranceManagement.Web.Services.IAuditService>();
+        auditService.Log(module, actionType, entityCode, detail);
     }
 
     protected void MarkGridDraftCleared(string draftKey)
@@ -87,65 +80,124 @@ public abstract class AppController : Controller
         return User.GetRoleType() == RoleType.FieldSales ? User.GetEmployeeId() : null;
     }
 
-    private static List<NavGroupVm> BuildNavigation(RoleType? role)
+    protected bool CanAccessPermission(string key)
     {
-        var groups = new List<NavGroupVm>
-        {
-            new()
-            {
-                Title = "Gosterge Panelleri",
-                Items =
-                [
-                    new NavItemVm { Label = "Yonetici Ozeti", Controller = "Dashboard", Action = "Executive" },
-                    new NavItemVm { Label = "Personel Performansi", Controller = "Dashboard", Action = "Performance" },
-                    new NavItemVm { Label = "Urun Kirilimi", Controller = "Dashboard", Action = "Products" },
-                    new NavItemVm { Label = "Masraf Analizi", Controller = "Dashboard", Action = "Expenses" }
-                ]
-            }
-        };
+        var role = User.GetRoleType();
+        if (role == null) return false;
 
-        if (role is RoleType.Admin or RoleType.Manager or RoleType.SalesManager or RoleType.CallCenter or RoleType.FieldSales)
+        // Sahici Admin her zaman yetkilidir (Master Key)
+        if (role == RoleType.Admin) return true;
+
+        var perms = Db.RolePermissions.Where(x => x.Role == role).ToList();
+        return !perms.Any() || perms.Any(x => x.ModuleKey == key && x.IsAllowed);
+    }
+
+    protected virtual List<NavGroupVm> BuildNavigation(RoleType role, int? currentEmpId)
+    {
+        var groups = new List<NavGroupVm>();
+
+        // Dashboard
+        if (CanAccessPermission("Dashboard"))
+        {
+            var dashboardItems = new List<NavItemVm>();
+            if (role is RoleType.Admin or RoleType.Manager or RoleType.SalesManager)
+            {
+                dashboardItems.Add(new NavItemVm { Label = "Yonetici Ozeti", Controller = "Dashboard", Action = "Executive" });
+            }
+            if (role == RoleType.FieldSales && currentEmpId.HasValue)
+            {
+                dashboardItems.Add(new NavItemVm { Label = "Performansim", Controller = "Dashboard", Action = "Performance", RouteValues = new { employeeId = currentEmpId } });
+            }
+            if (role == RoleType.CallCenter)
+            {
+                dashboardItems.Add(new NavItemVm { Label = "Lead Ozeti", Controller = "Dashboard", Action = "Executive" });
+            }
+            
+            if (dashboardItems.Any())
+                groups.Add(new NavGroupVm { Title = "Gosterge Panelleri", Items = dashboardItems });
+        }
+
+        // Leads
+        if (CanAccessPermission("Leads"))
+        {
+            var leadItems = new List<NavItemVm>();
+            leadItems.Add(new NavItemVm { Label = "Lead Havuzu", Controller = "Leads", Action = "Index" });
+            
+            if (role is RoleType.Admin or RoleType.Manager or RoleType.SalesManager)
+            {
+                leadItems.Add(new NavItemVm { Label = "Atamalar", Controller = "Leads", Action = "Assignments" });
+            }
+            
+            if (role == RoleType.FieldSales)
+            {
+                leadItems.Add(new NavItemVm { Label = "Atanan Leadlerim", Controller = "Leads", Action = "MyAssigned" });
+            }
+
+            groups.Add(new NavGroupVm { Title = "Lead Akisi", Items = leadItems });
+        }
+
+        // Operation
+        var operationItems = new List<NavItemVm>();
+        if (CanAccessPermission("Employees") && role is RoleType.Admin or RoleType.Manager or RoleType.SalesManager or RoleType.Operations)
+        {
+            operationItems.Add(new NavItemVm { Label = "Personeller", Controller = "Employees", Action = "Index" });
+        }
+        
+        if (CanAccessPermission("Accounts"))
+        {
+            operationItems.Add(new NavItemVm { Label = "Musteriler", Controller = "Accounts", Action = "Index" });
+        }
+
+        if (CanAccessPermission("Activities"))
+        {
+            operationItems.Add(new NavItemVm { Label = "Aktiviteler", Controller = "Activities", Action = "Index" });
+        }
+        
+        if (CanAccessPermission("Sales"))
+        {
+            operationItems.Add(new NavItemVm { Label = "Satislar", Controller = "Sales", Action = "Index" });
+        }
+        
+        if (CanAccessPermission("Expenses"))
+        {
+            operationItems.Add(new NavItemVm { Label = "Masraflar", Controller = "Expenses", Action = "Index" });
+        }
+
+        if (operationItems.Any())
+        {
+            groups.Add(new NavGroupVm { Title = "Operasyonel Kayitlar", Items = operationItems });
+        }
+
+        // Personal
+        if (currentEmpId.HasValue)
         {
             groups.Add(new NavGroupVm
             {
-                Title = "Lead Akisi",
-                Items =
-                [
-                    new NavItemVm { Label = "Lead Havuzu", Controller = "Leads", Action = "Index" },
-                    new NavItemVm { Label = "Atamalar", Controller = "Leads", Action = "Assignments" },
-                    new NavItemVm { Label = "Atanan Leadlerim", Controller = "Leads", Action = "MyAssigned" }
-                ]
+                Title = "Kisisel",
+                Items = [ new NavItemVm { Label = "Profilim / Ajandam", Controller = "Employees", Action = "Details", RouteValues = new { id = currentEmpId.Value } } ]
             });
         }
 
-        groups.Add(new NavGroupVm
+        // Admin / Management Group
+        var adminItems = new List<NavItemVm>();
+        
+        if (role == RoleType.Admin && CanAccessPermission("Admin"))
         {
-            Title = "Operasyon",
-            Items =
-            [
-                new NavItemVm { Label = "Personeller", Controller = "Employees", Action = "Index" },
-                new NavItemVm { Label = "Musteriler", Controller = "Accounts", Action = "Index" },
-                new NavItemVm { Label = "Aktiviteler", Controller = "Activities", Action = "Index" },
-                new NavItemVm { Label = "Satislar", Controller = "Sales", Action = "Index" },
-                new NavItemVm { Label = "Masraflar", Controller = "Expenses", Action = "Index" }
-            ]
-        });
+            adminItems.Add(new NavItemVm { Label = "Kullanicilar", Controller = "Admin", Action = "Users" });
+            adminItems.Add(new NavItemVm { Label = "Roller ve Yetkiler", Controller = "Admin", Action = "Roles" });
+            adminItems.Add(new NavItemVm { Label = "Referans Veriler", Controller = "Admin", Action = "ReferenceData" });
+            adminItems.Add(new NavItemVm { Label = "Audit Kayitlari", Controller = "Admin", Action = "Audit" });
+        }
+        
+        if (CanAccessPermission("Imports"))
+        {
+            adminItems.Add(new NavItemVm { Label = "Veri Aktarımı", Controller = "Imports", Action = "Upload" });
+            adminItems.Add(new NavItemVm { Label = "Aktarım Geçmişi", Controller = "Imports", Action = "History" });
+        }
 
-        if (role is RoleType.Admin or RoleType.Manager or RoleType.Operations)
+        if (adminItems.Any())
         {
-            groups.Add(new NavGroupVm
-            {
-                Title = "Yonetim",
-                Items =
-                [
-                    new NavItemVm { Label = "Kullanicilar", Controller = "Admin", Action = "Users" },
-                    new NavItemVm { Label = "Rol Matrisi", Controller = "Admin", Action = "Roles" },
-                    new NavItemVm { Label = "Referans Veriler", Controller = "Admin", Action = "ReferenceData" },
-                    new NavItemVm { Label = "Audit Kayitlari", Controller = "Admin", Action = "Audit" },
-                    new NavItemVm { Label = "Import Yukleme", Controller = "Imports", Action = "Upload" },
-                    new NavItemVm { Label = "Import Gecmisi", Controller = "Imports", Action = "History" }
-                ]
-            });
+            groups.Add(new NavGroupVm { Title = "Yonetim", Items = adminItems });
         }
 
         return groups;

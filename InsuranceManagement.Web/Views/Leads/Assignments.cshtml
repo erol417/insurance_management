@@ -2,93 +2,199 @@
 @{
     var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
     var assignedLeads = ViewBag.AssignedLeads as List<InsuranceManagement.Web.Domain.Lead> ?? [];
-    ViewData["Title"] = "Lead Atama";
-    ViewData["Subtitle"] = "Dropdown ile hizli atama, detay gerekiyorsa kart bazli inceleme";
+    ViewData["Title"] = "Lead Atama (Kuyruk)";
+    ViewData["Subtitle"] = "Atama bekleyen adayları hızlıca saha personeline yönlendirin.";
 }
-<section class="grid equal-2">
+
+<style>
+    .assignment-container { display: grid; grid-template-columns: 450px 1fr; gap: 24px; animation: fadeIn 0.4s ease-out; }
+    .lead-list { display: flex; flex-direction: column; gap: 12px; max-height: 70vh; overflow-y: auto; padding-right: 8px; }
+    .lead-card { 
+        background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; 
+        cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+    }
+    .lead-card:hover { border-color: var(--primary); transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .lead-card.active { border-color: var(--primary); background: rgba(var(--primary-rgb, 143, 89, 21), 0.03); border-width: 2px; }
+    .lead-card.active::before { 
+        content: ''; position: absolute; left: -8px; top: 50%; transform: translateY(-50%); 
+        width: 4px; height: 32px; background: var(--primary); border-radius: 4px; 
+    }
+    
+    .lead-card .code { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 4px; display: block; }
+    .lead-card .name { font-size: 15px; font-weight: 600; color: var(--text); }
+    .lead-card .meta { font-size: 13px; color: #777; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+    
+    .assignment-form-pnl { position: sticky; top: 24px; }
+    .employee-badge { font-size: 12px; background: #f0f0f0; padding: 2px 8px; border-radius: 100px; color: #555; }
+    
+    .assigned-mini-pnl { margin-top: 24px; background: rgba(0,0,0,0.01); border-radius: 12px; padding: 20px; border: 1px dashed #ddd; }
+    .assigned-mini-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .assigned-mini-item:last-child { border: none; }
+
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<div class="assignment-container">
+    <!-- LEFT: QUEUE -->
     <div class="panel">
-        <div class="section-title"><h3>Atama bekleyen leadler</h3><span class="pill">queue</span></div>
+        <div class="section-title" style="margin-bottom: 24px;">
+            <h3>Atama Bekleyenler</h3>
+            <span class="pill">@Model.Count() Aday</span>
+        </div>
+
         @if (Model.Any())
         {
-            <div class="list">
+            <div class="lead-list" id="queue-list">
                 @foreach (var lead in Model)
                 {
-                    <div class="list-item">
-                        <div>
-                            <strong>@lead.Code · @lead.DisplayName</strong>
-                            <div class="muted">@lead.City · @lead.Source · @lead.Note</div>
+                    <div class="lead-card @(lead == Model.First() ? "active" : "")" 
+                         onclick="selectLead(this)"
+                         data-id="@lead.Id" 
+                         data-code="@lead.Code" 
+                         data-name="@lead.DisplayName"
+                         data-note="@lead.Note">
+                        <span class="code">@lead.Code</span>
+                        <div class="name">@lead.DisplayName</div>
+                        <div class="meta">
+                            <span>@lead.City</span>
+                            <span class="dot">•</span>
+                            <span>@lead.LeadSourceType.Name</span>
+                            <span class="dot">•</span>
+                            <span class="status @(lead.LeadStatusTypeId == 2 ? "warn" : "info")" style="font-size: 11px; padding: 1px 6px;">
+                                @lead.LeadStatusType.Name
+                            </span>
                         </div>
-                        <span class="status warn">@lead.Status.ToDisplayText()</span>
                     </div>
                 }
             </div>
         }
         else
         {
-            <div class="note-box">
-                <strong>Bekleyen atama yok</strong>
-                <p>Atamaya hazir durumunda lead bulunmuyor. Lead Havuzu ekraninda durumu guncellendiginde burasi otomatik degisir.</p>
+            <div class="note-box" style="padding: 40px; text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 16px;">✨</div>
+                <strong>Tebrikler! Kuyruk Boş.</strong>
+                <p>Atanmayı bekleyen aday bulunmuyor. Yeni adaylar düştüğünde burada listelenecektir.</p>
             </div>
         }
 
         @if (assignedLeads.Any())
         {
-            <div class="note-box" style="margin-top:18px;">
-                <strong>Halihazirda atanmis leadler</strong>
+            <div class="assigned-mini-pnl">
+                <h4 style="font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    Son Atananlar
+                </h4>
                 @foreach (var lead in assignedLeads.Take(5))
                 {
-                    <p>@lead.Code · @lead.DisplayName · @(lead.AssignedEmployeeId.HasValue ? employees.FirstOrDefault(x => x.Id == lead.AssignedEmployeeId.Value)?.FullName ?? "-" : "-")</p>
-                }
-                @if (assignedLeads.Count > 5)
-                {
-                    <p class="muted">+ @(assignedLeads.Count - 5) kayit daha</p>
+                    <div class="assigned-mini-item">
+                        <span style="font-size: 13px;">@lead.DisplayName</span>
+                        <span class="employee-badge">@(lead.AssignedEmployeeId.HasValue ? employees.FirstOrDefault(x => x.Id == lead.AssignedEmployeeId.Value)?.FullName ?? "-" : "-")</span>
+                    </div>
                 }
             </div>
         }
     </div>
-    <div class="panel">
-        <div class="section-title"><h3>Hizli atama</h3><span class="pill">ana akis</span></div>
+
+    <!-- RIGHT: FORM -->
+    <div class="panel assignment-form-pnl">
+        <div class="section-title">
+            <h3>Hızlı Atama Formu</h3>
+            <span class="pill primary">Aktif İşlem</span>
+        </div>
+
         @if (Model.Any())
         {
             var firstLead = Model.First();
-            <form method="post" asp-action="Assign">
+            <form method="post" asp-action="Assign" id="assignForm" class="stunning-form">
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="leadId" value="@firstLead.Id" />
+                <input type="hidden" name="leadId" id="form-lead-id" value="@firstLead.Id" />
+                
                 <div class="form-grid two">
-                    <div class="field">
-                        <label>Lead</label>
-                        <input value="@firstLead.Code · @firstLead.DisplayName" readonly />
+                    <div class="field" style="grid-column: span 2;">
+                        <label>Seçili Aday</label>
+                        <input id="form-lead-display" value="@firstLead.Code · @firstLead.DisplayName" readonly 
+                               style="background: #fdfdfd; font-weight: 600; border-color: var(--primary); border-style: dashed;" />
                     </div>
+
                     <div class="field">
-                        <label>Saha Personeli</label>
-                        <select name="employeeId">
+                        <label>Saha Personeli Ataması</label>
+                        <select name="employeeId" required>
+                            <option value="">Personel Seçiniz...</option>
                             @foreach (var employee in employees)
                             {
-                                var openCount = assignedLeads.Count(x => x.AssignedEmployeeId == employee.Id && (x.Status == InsuranceManagement.Web.Domain.LeadStatus.Assigned || x.Status == InsuranceManagement.Web.Domain.LeadStatus.VisitScheduled));
-                                <option value="@employee.Id">@employee.FullName · @openCount acik is</option>
+                                var openCount = assignedLeads.Count(x => x.AssignedEmployeeId == employee.Id);
+                                <option value="@employee.Id">@employee.FullName (@openCount aktif iş)</option>
                             }
                         </select>
                     </div>
+
                     <div class="field">
-                        <label>Termin Tarihi</label>
-                        <input type="date" name="scheduledVisitDate" value="@DateTime.Today.AddDays(3).ToString("yyyy-MM-dd")" />
+                        <label>Öngörülen Ziyaret Tarihi</label>
+                        <input type="date" name="scheduledVisitDate" value="@DateTime.Today.AddDays(2).ToString("yyyy-MM-dd")" />
                     </div>
+
                     <div class="field">
-                        <label>Oncelik</label>
-                        <select name="priority"><option>High</option><option selected>Medium</option><option>Low</option></select>
+                        <label>Öncelik Seviyesi</label>
+                        <select name="priority">
+                            @foreach (var p in Enum.GetValues<InsuranceManagement.Web.Domain.LeadPriority>())
+                            {
+                                <option value="@((int)p)" selected="@(p == InsuranceManagement.Web.Domain.LeadPriority.Medium)">@p</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label>Atama Notu (Personele Not)</label>
+                        <input name="note" id="form-lead-note" value="@firstLead.Note" placeholder="Personel için kısa talimat giriniz..." />
                     </div>
                 </div>
-                <div class="field"><label>Atama Notu</label><input name="note" value="Bu hafta ziyaret planina alinacak" /></div>
-                <div class="page-actions"><button type="submit" class="btn primary">Atamayi Kaydet</button></div>
+
+                <div class="page-actions" style="margin-top: 32px;">
+                    <button type="submit" class="btn primary" style="width: 100%; height: 50px; font-size: 16px; font-weight: 600;">
+                        Atamayı Tamamla ve Kaydet
+                    </button>
+                </div>
             </form>
         }
         else
         {
-            <div class="note-box">
-                <strong>Atanacak lead yok</strong>
-                <p>Bu form sadece <em>Atamaya Hazir</em> durumundaki lead varsa aktif olur.</p>
+            <div class="note-box" style="padding: 40px; text-align: center; border-style: dashed;">
+                <p class="muted">Atanacak aday seçildiğinde form burada aktif olur.</p>
             </div>
         }
-        <div class="note-box"><strong>Kullanim karari</strong><p>Atama varsayilan olarak dropdown ile ilerler. Detay ihtiyacinda bu ekrandaki personel yukleri ve dashboard kullanilir.</p></div>
+
+        <div class="note-box" style="margin-top: 32px; font-size: 12px; line-height: 1.6;">
+            <strong style="display:block; margin-bottom:4px;">💡 İpucu</strong>
+            Soldaki listeden bir adaya tıkladığınızda yukarıdaki form o adaya göre otomatik güncellenir. 
+            Hızlı atama için seri şekilde personeli seçip kaydedebilirsiniz.
+        </div>
     </div>
-</section>
+</div>
+
+<script>
+    function selectLead(element) {
+        // Remove active class from all cards
+        document.querySelectorAll('.lead-card').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked card
+        element.classList.add('active');
+        
+        // Update Form Fields
+        const leadId = element.getAttribute('data-id');
+        const leadCode = element.getAttribute('data-code');
+        const leadName = element.getAttribute('data-name');
+        const leadNote = element.getAttribute('data-note');
+        
+        document.getElementById('form-lead-id').value = leadId;
+        document.getElementById('form-lead-display').value = `${leadCode} · ${leadName}`;
+        document.getElementById('form-lead-note').value = leadNote || 'Bu hafta ziyaret planına alınacak';
+
+        // Soft animation highlight on update
+        const displayInput = document.getElementById('form-lead-display');
+        displayInput.style.backgroundColor = '#fff9e6';
+        setTimeout(() => {
+            displayInput.style.backgroundColor = '#fdfdfd';
+        }, 300);
+    }
+</script>
+

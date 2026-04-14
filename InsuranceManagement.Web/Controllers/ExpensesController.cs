@@ -1,62 +1,65 @@
 using InsuranceManagement.Web.Data;
 using InsuranceManagement.Web.Domain;
 using InsuranceManagement.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace InsuranceManagement.Web.Controllers;
 
+[Authorize(Roles = "Admin,Manager,SalesManager,Operations,FieldSales")]
 public class ExpensesController : AppController
 {
-    public ExpensesController(AppDbContext db) : base(db)
+    private readonly InsuranceManagement.Web.Services.IExpenseService _expenseService;
+
+    public ExpensesController(AppDbContext db, InsuranceManagement.Web.Services.IExpenseService expenseService) : base(db)
     {
+        _expenseService = expenseService;
     }
 
-    public IActionResult Index(int page = 1, int pageSize = 10)
+    public IActionResult Index(string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true, int page = 1, int pageSize = 10)
     {
         BuildShell();
-        var itemsQuery = Db.Expenses.AsQueryable();
         var currentEmployeeId = CurrentEmployeeScopeId();
-        if (!HasGlobalEmployeeAccess() && currentEmployeeId.HasValue)
-        {
-            itemsQuery = itemsQuery.Where(x => x.EmployeeId == currentEmployeeId.Value);
-        }
+        int? filterEmployeeId = CurrentEmployeeScopeId();
+
+        ViewBag.SearchTerm = searchTerm;
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.SortBy = sortBy;
+        ViewBag.IsDescending = isDescending;
 
         ViewBag.Employees = HasGlobalEmployeeAccess()
             ? Db.Employees.OrderBy(x => x.FullName).ToList()
             : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
+        ViewBag.ExpenseTypes = Db.ExpenseTypes.OrderBy(x => x.DisplayOrder).ToList();
 
-        var totalCount = itemsQuery.Count();
+        var items = _expenseService.GetAll(page, pageSize, out var totalCount, searchTerm, employeeId, filterEmployeeId, sortBy, isDescending);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-        var currentPage = Math.Min(Math.Max(page, 1), totalPages);
+        var currentPage = page;
 
         return View(new ExpensesIndexViewModel
         {
             NewExpense = new ExpenseInlineEditViewModel
             {
                 ExpenseDate = DateTime.Today,
-                EmployeeId = currentEmployeeId ?? Db.Employees.OrderBy(x => x.Id).Select(x => x.Id).FirstOrDefault()
+                EmployeeId = currentEmployeeId ?? Db.Employees.OrderBy(x => x.Id).Select(x => x.Id).FirstOrDefault(),
+                ExpenseTypeId = 1 // Default: Travel
             },
             CurrentPage = currentPage,
             PageSize = pageSize,
             TotalCount = totalCount,
             TotalPages = totalPages,
-            Items = itemsQuery
-                .OrderByDescending(x => x.ExpenseDate)
-                .ThenByDescending(x => x.Id)
-                .Skip((currentPage - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new ExpenseInlineEditViewModel
-                {
-                    Id = x.Id,
-                    Code = x.Code,
-                    ExpenseDate = x.ExpenseDate,
-                    EmployeeId = x.EmployeeId,
-                    ExpenseType = x.ExpenseType,
-                    Amount = x.Amount,
-                    Notes = x.Notes
-                })
-                .ToList()
+            Items = items.Select(x => new ExpenseInlineEditViewModel
+            {
+                Id = x.Id,
+                Code = x.Code,
+                ExpenseDate = x.ExpenseDate,
+                EmployeeId = x.EmployeeId,
+                ExpenseTypeId = x.ExpenseTypeId,
+                Amount = x.Amount,
+                Notes = x.Notes
+            }).ToList()
         });
     }
 
@@ -121,7 +124,7 @@ public class ExpensesController : AppController
 
                 expense.ExpenseDate = formModel.ExpenseDate;
                 expense.EmployeeId = formModel.EmployeeId;
-                expense.ExpenseType = formModel.ExpenseType;
+                expense.ExpenseTypeId = formModel.ExpenseTypeId;
                 expense.Amount = formModel.Amount;
                 expense.Notes = formModel.Notes;
                 QueueAudit("Expense", "Update", expense.Code, $"{expense.Code} masraf kaydi toplu grid kaydi ile guncellendi.");
@@ -129,13 +132,19 @@ public class ExpensesController : AppController
             }
             else
             {
+                if (!CanSeeEmployeeData(formModel.EmployeeId))
+                {
+                    errors.Add($"{formModel.EmployeeId} id'li personel adina kayit yetkiniz yok.");
+                    continue;
+                }
+
                 var expense = new Expense
                 {
                     Id = nextId,
                     Code = $"EXP-{nextId}",
                     ExpenseDate = formModel.ExpenseDate,
                     EmployeeId = formModel.EmployeeId,
-                    ExpenseType = formModel.ExpenseType,
+                    ExpenseTypeId = formModel.ExpenseTypeId,
                     Amount = formModel.Amount,
                     Notes = formModel.Notes
                 };
@@ -161,51 +170,73 @@ public class ExpensesController : AppController
     public IActionResult Details(int id)
     {
         BuildShell();
-        var expense = Db.Expenses.FirstOrDefault(x => x.Id == id);
+        var expense = _expenseService.GetById(id, CurrentEmployeeScopeId());
         if (expense is null || !CanSeeEmployeeData(expense.EmployeeId))
         {
             return NotFound();
         }
 
-        ViewBag.Employee = Db.Employees.FirstOrDefault(x => x.Id == expense.EmployeeId);
+        ViewBag.Employee = expense.Employee;
         return View(expense);
     }
 
+    [Authorize(Roles = "Admin,Manager,Operations,FieldSales")]
     [HttpGet]
     public IActionResult Create()
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
-        return View(new ExpenseFormViewModel());
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).ToList();
+
+        ViewBag.ExpenseTypes = Db.ExpenseTypes.OrderBy(x => x.DisplayOrder).ToList();
+        return View(new ExpenseFormViewModel { EmployeeId = currentEmployeeId ?? 0 });
     }
 
+    [Authorize(Roles = "Admin,Manager,Operations,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(ExpenseFormViewModel model)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).ToList();
+
+        ViewBag.ExpenseTypes = Db.ExpenseTypes.OrderBy(x => x.DisplayOrder).ToList();
+
+        if (!CanSeeEmployeeData(model.EmployeeId))
+        {
+            ModelState.AddModelError("EmployeeId", "Sadece kendi adiniza masraf girebilirsiniz.");
+        }
+
+        var expense = new Expense
+        {
+            ExpenseDate = model.ExpenseDate,
+            EmployeeId = model.EmployeeId,
+            ExpenseTypeId = model.ExpenseTypeId,
+            Amount = model.Amount,
+            Notes = model.Notes ?? string.Empty
+        };
+
+        var (isValid, errors) = _expenseService.Validate(expense);
+        if (!isValid)
+        {
+            foreach (var err in errors)
+            {
+                ModelState.AddModelError(err.Key, err.Value);
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var id = (Db.Expenses.Max(x => (int?)x.Id) ?? 100) + 1;
-        var expense = new Expense
-        {
-            Id = id,
-            Code = $"EXP-{id}",
-            ExpenseDate = model.ExpenseDate,
-            EmployeeId = model.EmployeeId,
-            ExpenseType = model.ExpenseType,
-            Amount = model.Amount,
-            Notes = model.Notes
-        };
-        Db.Expenses.Add(expense);
-        QueueAudit("Expense", "Create", expense.Code, $"{expense.ExpenseType} masraf kaydi olusturuldu.");
-
-        Db.SaveChanges();
-        TempData["Flash"] = "Masraf kaydi olusturuldu.";
+        _expenseService.Create(expense);
+        TempData["Success"] = "Masraf kaydi olusturuldu.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -224,13 +255,18 @@ public class ExpensesController : AppController
             return NotFound();
         }
 
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).ToList();
+
+        ViewBag.ExpenseTypes = Db.ExpenseTypes.OrderBy(x => x.DisplayOrder).ToList();
         return View(new ExpenseFormViewModel
         {
             Id = expense.Id,
             ExpenseDate = expense.ExpenseDate,
             EmployeeId = expense.EmployeeId,
-            ExpenseType = expense.ExpenseType,
+            ExpenseTypeId = expense.ExpenseTypeId,
             Amount = expense.Amount,
             Notes = expense.Notes
         });
@@ -241,54 +277,60 @@ public class ExpensesController : AppController
     public IActionResult Edit(int id, ExpenseFormViewModel model)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).ToList();
+        ViewBag.ExpenseTypes = Db.ExpenseTypes.OrderBy(x => x.DisplayOrder).ToList();
+
+        var tempExpense = new Expense
+        {
+            Id = id,
+            ExpenseDate = model.ExpenseDate,
+            EmployeeId = model.EmployeeId,
+            ExpenseTypeId = model.ExpenseTypeId,
+            Amount = model.Amount,
+            Notes = model.Notes ?? string.Empty
+        };
+
+        var (isValid, errors) = _expenseService.Validate(tempExpense);
+        if (!isValid)
+        {
+            foreach (var err in errors)
+            {
+                ModelState.AddModelError(err.Key, err.Value);
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var expense = Db.Expenses.FirstOrDefault(x => x.Id == id);
-        if (expense is null)
+        var existing = _expenseService.GetById(id, CurrentEmployeeScopeId());
+        if (existing is null || !CanSeeEmployeeData(existing.EmployeeId))
         {
             return NotFound();
         }
 
-        if (!CanSeeEmployeeData(expense.EmployeeId))
-        {
-            return NotFound();
-        }
-
-        expense.ExpenseDate = model.ExpenseDate;
-        expense.EmployeeId = model.EmployeeId;
-        expense.ExpenseType = model.ExpenseType;
-        expense.Amount = model.Amount;
-        expense.Notes = model.Notes;
-        QueueAudit("Expense", "Update", expense.Code, $"{expense.Code} masraf kaydi guncellendi.");
-        Db.SaveChanges();
-
-        TempData["Flash"] = "Masraf kaydi guncellendi.";
+        _expenseService.Update(id, tempExpense);
+        TempData["Success"] = "Masraf kaydi guncellendi.";
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
-        var expense = Db.Expenses.FirstOrDefault(x => x.Id == id);
-        if (expense is null)
+        var existing = _expenseService.GetById(id, CurrentEmployeeScopeId());
+        if (existing is null)
         {
             return NotFound();
         }
-
-        if (!CanSeeEmployeeData(expense.EmployeeId))
-        {
-            return NotFound();
-        }
-
-        QueueAudit("Expense", "Delete", expense.Code, $"{expense.Code} masraf kaydi silindi.");
-        Db.Expenses.Remove(expense);
-        Db.SaveChanges();
-        TempData["Flash"] = "Masraf kaydi silindi.";
+        
+        _expenseService.Delete(id);
+        TempData["Success"] = "Masraf kaydi silindi.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -299,7 +341,7 @@ public class ExpensesController : AppController
             Id = model.Id,
             ExpenseDate = model.ExpenseDate == default ? DateTime.Today : model.ExpenseDate,
             EmployeeId = canManageAll ? model.EmployeeId : currentEmployeeId ?? model.EmployeeId,
-            ExpenseType = model.ExpenseType,
+            ExpenseTypeId = model.ExpenseTypeId,
             Amount = model.Amount,
             Notes = model.Notes
         };

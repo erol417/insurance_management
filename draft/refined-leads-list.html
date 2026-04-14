@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refined Leads List Draft</title>
+  <link rel="stylesheet" href="./refined-enterprise.css">
+</head>
+<body>
+  <div class="enterprise-shell">
+    <header class="topnav">
+      <div class="topnav-left">
+        <div class="brand-lockup">
+          <div class="brand-icon"></div>
+          <div class="brand-title">InsureFlow <span>Enterprise</span></div>
+        </div>
+        <nav class="mainnav">
+          <a href="./refined-dashboard.html">Dashboard</a>
+          <a class="active" href="./refined-leads-list.html">Leads</a>
+          <a>Policies</a>
+          <a>Claims</a>
+          <a>Reports</a>
+        </nav>
+      </div>
+      <div class="topnav-right">
+        <input class="search" value="Search leads..." />
+        <div class="user-lockup">
+          <div class="avatar"></div>
+          <div>Jane Doe</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="page-inner">
+        <div class="page-header">
+          <div class="breadcrumb">Leads / Management</div>
+          <h1>Lead Management List</h1>
+          <p>Daha premium ve ortalanmis bir duzende filtreler ve tablo tek merkezde toplanir. Sol rail yerine ust navigasyon korunur.</p>
+        </div>
+
+        <section class="panel">
+          <div class="list-toolbar">
+            <select class="select"><option>New</option></select>
+            <select class="select"><option>All Assignees</option></select>
+            <select class="select"><option>Last 7 Days</option></select>
+            <input class="text-input" value="Search leads..." />
+          </div>
+
+          <div class="list-table">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width:46px;"><div class="checkbox"></div></th>
+                  <th>Lead Name</th>
+                  <th>Company</th>
+                  <th>Policy Type</th>
+                  <th>Status</th>
+                  <th>Assignee</th>
+                  <th>Last Activity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div class="checkbox"></div></td>
+                  <td>Alex Johnson</td>
+                  <td>Acme Corp.</td>
+                  <td>Commercial Auto</td>
+                  <td><span class="status-pill status-new">New</span></td>
+                  <td>Sarah Lee</td>
+                  <td>Today at 10:30 AM</td>
+                </tr>
+                <tr>
+                  <td><div class="checkbox"></div></td>
+                  <td>Maria Garcia</td>
+                  <td>Tech Solutions</td>
+                  <td>Cyber Liability</td>
+                  <td><span class="status-pill status-contacted">Contacted</span></td>
+                  <td>John Smith</td>
+                  <td>Yesterday at 4:15 PM</td>
+                </tr>
+                <tr>
+                  <td><div class="checkbox"></div></td>
+                  <td>David Chen</td>
+                  <td>Apex Logistics</td>
+                  <td>Workers' Comp</td>
+                  <td><span class="status-pill status-qualified">Qualified</span></td>
+                  <td>Me</td>
+                  <td>Oct 25, 2023</td>
+                </tr>
+                <tr>
+                  <td><div class="checkbox"></div></td>
+                  <td>Emily Davis</td>
+                  <td>Greenwood Health</td>
+                  <td>Group Health</td>
+                  <td><span class="status-pill status-converted">Converted</span></td>
+                  <td>Sarah Lee</td>
+                  <td>Oct 24, 2023</td>
+                </tr>
+                <tr>
+                  <td><div class="checkbox"></div></td>
+                  <td>Michael Brown</td>
+                  <td>Retail Hub</td>
+                  <td>General Liability</td>
+                  <td><span class="status-pill status-lost">Lost</span></td>
+                  <td>John Smith</td>
+                  <td>Oct 23, 2023</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pagination">
+              <div>Showing 1-20 of 150 leads</div>
+              <div class="inline-actions">
+                <span>1</span><span>2</span><span>3</span><span>...</span><span>8</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

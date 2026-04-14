@@ -1,0 +1,85 @@
+@model InsuranceManagement.Web.ViewModels.EmployeeFormViewModel
+@{
+    ViewData["Title"] = "Personel Duzenle";
+    ViewData["Subtitle"] = "Personel ve hesap bilgilerini guncelle";
+}
+
+<div class="form-layout">
+    <div class="layout-main">
+        <section class="section-block">
+            <h3>Personel Bilgileri</h3>
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="validation-summary-errors"></div>
+                <div class="form-grid three">
+                    <div class="field"><label asp-for="FullName">Ad Soyad</label><input asp-for="FullName" /></div>
+                    <div class="field"><label asp-for="Region">Bolge</label><input asp-for="Region" /></div>
+                    <div class="field"><label asp-for="City">Sehir</label><input asp-for="City" /></div>
+                </div>
+
+                <section class="section-block" style="margin-top:20px; box-shadow:none;">
+                    <div class="section-title">
+                        <h3>Sistem Girisi ve Yetkilendirme</h3>
+                        <label style="display:flex; cursor:pointer; align-items:center;">
+                            <input type="checkbox" asp-for="HasLogin" onchange="document.getElementById('login-fields').style.display = this.checked ? 'grid' : 'none'" style="width: 20px; height: 20px; cursor: pointer; margin: 0;" />
+                        </label>
+                    </div>
+                    <p class="muted" style="margin-top:0;">Bu personele sisteme giris yapabilmesi icin kullanici adi, sifre ve rol tanimlamak istiyorsaniz aktif edin.</p>
+                    <div id="login-fields" class="form-grid three" style="display: @(Model.HasLogin ? "grid" : "none"); margin-top: 20px;">
+                        <div class="field"><label asp-for="UserName">Kullanici Adi</label><input asp-for="UserName" placeholder="ornek.kullanici" /></div>
+                        <div class="field">
+                            <label asp-for="Password">Sifre</label>
+                            <input asp-for="Password" type="password" placeholder="Degistirmek icin doldurun" />
+                        </div>
+                        <div class="field">
+                            <label asp-for="Role">Yetki Rolu</label>
+                            <select asp-for="Role">
+                                <option value="">Seciniz...</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Manager">Yonetici</option>
+                                <option value="SalesManager">Satis Muduru</option>
+                                <option value="FieldSales">Saha Satis</option>
+                                <option value="CallCenter">Cagri Merkezi</option>
+                                <option value="Operations">Operasyon</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="page-actions">
+                    <button type="submit" class="btn primary">Degisiklikleri Kaydet</button>
+                    <a asp-action="Index" class="btn">Iptal</a>
+                </div>
+            </form>
+        </section>
+    </div>
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <h3>Baglamsal Aksiyonlar ve Rehber</h3>
+        </section>
+        <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Hizli Aksiyonlar</h4>
+            <div class="action-buttons">
+                <button class="btn primary" type="button">Performans Ozeti</button>
+                <button class="btn primary" type="button">Rol Kontrolu</button>
+            </div>
+        </section>
+        <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Duzenleme Rehberi</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong>Rol uyumu</strong>
+                    <div>Kullanici rolu ile personelin operasyonel gorevi uyumlu olmali; aksi halde nav ve yetki akislarinda tutarsizlik olur.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sifre degisimi</strong>
+                    <div>Sifre alani bos birakilirsa mevcut sifre korunur; sadece degisim gerekiyorsa doldurulmalidir.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sonraki adim</strong>
+                    <div>Duzenleme sonrasi acik atamalar, aktivite sahipligi ve musteri eslesmeleri tekrar kontrol edilebilir.</div>
+                </div>
+            </div>
+        </section>
+    </aside>
+</div>

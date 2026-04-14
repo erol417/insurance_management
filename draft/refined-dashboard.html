@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refined Dashboard Draft</title>
+  <link rel="stylesheet" href="./refined-enterprise.css">
+</head>
+<body>
+  <div class="enterprise-shell">
+    <header class="topnav">
+      <div class="topnav-left">
+        <div class="brand-lockup">
+          <div class="brand-icon"></div>
+          <div class="brand-title">InsureFlow <span>Enterprise</span></div>
+        </div>
+        <nav class="mainnav">
+          <a class="active" href="./refined-dashboard.html">Dashboard</a>
+          <a href="./refined-leads-list.html">Leads</a>
+          <a>Policies</a>
+          <a>Claims</a>
+          <a>Reports</a>
+        </nav>
+      </div>
+      <div class="topnav-right">
+        <input class="search" value="Search" />
+        <button class="icon-btn"></button>
+        <div class="user-lockup">
+          <div class="avatar"></div>
+          <div>Jane Doe</div>
+        </div>
+      </div>
+    </header>
+    <main class="page">
+      <div class="page-inner">
+        <div class="page-header">
+          <div class="breadcrumb">Home / Dashboard</div>
+          <h1>Executive Dashboard</h1>
+          <p>Personel performansi, urun bazli satis, tahsilat ve masraf/uretim dengesini tek merkezden izlemek icin daha rapor agirlikli bir panel.</p>
+        </div>
+
+        <div class="premium-strip">
+          <div>
+            <strong>Nisan Yonetici Ozeti</strong>
+            <span>En yuksek BES tahsilati Elif Kara ekibinde. Kocaeli saha grubunda olumsuz ziyaret orani bu ay yukselmis.</span>
+          </div>
+          <div class="inline-actions">
+            <button class="btn">Aylik PDF</button>
+            <button class="btn primary">Detayli Rapor</button>
+          </div>
+        </div>
+
+        <section class="metric-grid">
+          <div class="metric-card">
+            <div class="label">Toplam Lead</div>
+            <div class="value">1,254</div>
+            <div class="sub">Son 30 gun: +12%</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Aktif Atama</div>
+            <div class="value">487</div>
+            <div class="sub">Sahada acik is</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Aylik Tahsilat</div>
+            <div class="value">₺8.2M</div>
+            <div class="sub">Tahsil edilen prim</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">BES Fonu</div>
+            <div class="value">₺2.1M</div>
+            <div class="sub">BES kaynakli birikim</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Aylik Uretim ve Tahsilat Trendi</h2>
+          </div>
+          <div class="line-chart"></div>
+        </section>
+
+        <section class="chart-grid-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h3>Sigorta Tipine Gore Satis</h3>
+            </div>
+            <div class="mini-chart bars"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">
+              <h3>BES, Hayat, Kasko Dagilimi</h3>
+            </div>
+            <div class="mini-chart donut"></div>
+          </div>
+        </section>
+
+        <section class="chart-grid-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h3>Personel Ziyaret Sonuclari</h3>
+            </div>
+            <table class="kpi-table">
+              <thead><tr><th>Personel</th><th>Olumlu Ziyaret</th><th>Olumsuz Ziyaret</th><th>Donusum</th></tr></thead>
+              <tbody>
+                <tr><td>Elif Kara</td><td>34</td><td>8</td><td>%28</td></tr>
+                <tr><td>Ahmet Yilmaz</td><td>29</td><td>14</td><td>%21</td></tr>
+                <tr><td>Murat Demir</td><td>18</td><td>11</td><td>%16</td></tr>
+                <tr><td>Zeynep Aslan</td><td>22</td><td>6</td><td>%31</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <div class="panel-title">
+              <h3>Personel Masraf ve Uretim</h3>
+            </div>
+            <table class="kpi-table">
+              <thead><tr><th>Personel</th><th>Aylik Masraf</th><th>Uretim</th><th>Verim</th></tr></thead>
+              <tbody>
+                <tr><td>Elif Kara</td><td>₺82.000</td><td>₺1.74M</td><td>21.2x</td></tr>
+                <tr><td>Ahmet Yilmaz</td><td>₺91.000</td><td>₺1.38M</td><td>15.1x</td></tr>
+                <tr><td>Murat Demir</td><td>₺77.000</td><td>₺940K</td><td>12.2x</td></tr>
+                <tr><td>Zeynep Aslan</td><td>₺73.000</td><td>₺1.21M</td><td>16.5x</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Urun Bazli Aylik Satis ve Tahsilat Detayi</h2>
+          </div>
+          <div class="table-wrap">
+            <table class="activity-table">
+              <thead>
+                <tr><th>Sigorta Tipi</th><th>Satis Adedi</th><th>Aylik Tahsilat</th><th>BES Fonu</th><th>Not</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>BES</td><td>188</td><td>₺2.4M</td><td>₺2.1M</td><td>Fon buyuklugu en hizli artan urun</td></tr>
+                <tr><td>Hayat</td><td>121</td><td>₺1.3M</td><td>-</td><td>Kurumsal paketlerde yukselis var</td></tr>
+                <tr><td>Kasko</td><td>97</td><td>₺1.8M</td><td>-</td><td>Yenileme agirlikli portfoy</td></tr>
+                <tr><td>Saglik</td><td>76</td><td>₺1.1M</td><td>-</td><td>Tamamlayici saglikta artis suruyor</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

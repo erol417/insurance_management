@@ -1,0 +1,103 @@
+@model InsuranceManagement.Web.ViewModels.ImportPreviewViewModel
+@{
+    ViewData["Title"] = "Import Onizleme";
+    ViewData["Subtitle"] = Model.ModuleName.ToUpper() + " verilerini sisteme aktarmadan once kontrol edin.";
+}
+
+<div class="premium-strip">
+    <div>
+        <strong>@Model.ModuleName.ToUpper() Import Analizi</strong>
+        <span>Toplam @Model.TotalRows satir analiz edildi. @Model.ValidRows gecerli, @Model.InvalidRows hatali.</span>
+    </div>
+    <div class="inline-actions">
+        <a class="btn ghost" asp-action="Upload">Iptal Et ve Yeni Yukle</a>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="section-title">
+        <h3>Veri Onizleme</h3>
+        @if (Model.ValidRows > 0)
+        {
+            <form asp-action="CommitImport" method="post" class="inline-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.BatchId" />
+                <button type="submit" class="btn primary">
+                    <i data-lucide="check-circle"></i>
+                    @Model.ValidRows Gecerli Satiri Iceri Aktar
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (Model.InvalidRows > 0)
+    {
+        <div class="alert warn" style="margin-bottom: 20px;">
+            <i data-lucide="alert-triangle"></i>
+            <div>
+                <strong>Dikkat:</strong> @Model.InvalidRows satirda hata bulundu ve bu satirlar aktarilmayacak. 
+                Lutfen asagidaki kirmizi isaretli alanlari kontrol edin.
+            </div>
+        </div>
+    }
+
+    <div class="table-scroll">
+        <table class="data-table compact-table">
+            <thead>
+                <tr>
+                    <th style="width:50px;">#</th>
+                    @foreach (var col in Model.Columns)
+                    {
+                        <th>@col</th>
+                    }
+                    <th>Durum / Hatalar</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr class="@(row.CanImport ? "" : "row-error")">
+                        <td>@row.RowNumber</td>
+                        @foreach (var col in Model.Columns)
+                        {
+                            <td>@row.Data.GetValueOrDefault(col)</td>
+                        }
+                        <td>
+                            @if (row.CanImport)
+                            {
+                                <span class="status ok">Gecerli</span>
+                            }
+                            else
+                            {
+                                <div class="error-list">
+                                    @foreach (var err in row.Errors)
+                                    {
+                                        <span class="error-msg">@err</span>
+                                    }
+                                </div>
+                            }
+                            
+                            @if (row.Warnings.Any())
+                            {
+                                <div class="warning-list">
+                                    @foreach (var warn in row.Warnings)
+                                    {
+                                        <span class="warning-msg">@warn</span>
+                                    }
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .row-error { background-color: rgba(255, 0, 0, 0.05) !important; }
+    .error-list { display: flex; flex-direction: column; gap: 2px; }
+    .error-msg { color: #d93025; font-size: 11px; font-weight: 500; }
+    .warning-msg { color: #f29900; font-size: 11px; }
+    .inline-form { display: inline-block; }
+</style>

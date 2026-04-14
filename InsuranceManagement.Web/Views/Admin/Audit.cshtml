@@ -1,32 +1,66 @@
 @model List<InsuranceManagement.Web.Domain.AuditLog>
 @{
+    var rows = Model ?? [];
     ViewData["Title"] = "Audit Kayitlari";
     ViewData["Subtitle"] = "Kritik create, update, delete ve atama izleri";
 }
-<div class="panel">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Tarih</th>
-                <th>Kullanici</th>
-                <th>Modul</th>
-                <th>Islem</th>
-                <th>Kayit</th>
-                <th>Detay</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var row in Model)
-        {
-            <tr>
-                <td>@row.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
-                <td>@row.UserName</td>
-                <td>@row.Module</td>
-                <td>@row.ActionType</td>
-                <td>@row.EntityCode</td>
-                <td>@row.Detail</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+
+<div class="premium-strip">
+    <div>
+        <strong>Audit ve Islem Gecmisi</strong>
+        <span>Kritik kayit hareketlerini moduller bazinda izle, veri kalitesi ve guvenlik akislarini kontrol et.</span>
+    </div>
+    <div class="inline-actions">
+        <span class="pill">@rows.Count kayit</span>
+    </div>
 </div>
+
+<section class="section-block">
+    <div class="metric-grid three">
+        <article class="metric-card">
+            <span class="metric-label">Toplam Log</span>
+            <strong>@rows.Count</strong>
+            <small>gosterilen kayit</small>
+        </article>
+        <article class="metric-card">
+            <span class="metric-label">Modul Cesidi</span>
+            <strong>@rows.Select(x => x.Module).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().Count()</strong>
+            <small>etkilenen alanlar</small>
+        </article>
+        <article class="metric-card">
+            <span class="metric-label">Kullanici Cesidi</span>
+            <strong>@rows.Select(x => x.UserName).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().Count()</strong>
+            <small>islem yapan aktorler</small>
+        </article>
+    </div>
+</section>
+
+<section class="section-block">
+    <div class="table-scroll">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>Kullanici</th>
+                    <th>Modul</th>
+                    <th>Islem</th>
+                    <th>Kayit</th>
+                    <th>Detay</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>@row.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@row.UserName</td>
+                        <td>@row.Module</td>
+                        <td>@row.ActionType</td>
+                        <td>@row.EntityCode</td>
+                        <td>@row.Detail</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

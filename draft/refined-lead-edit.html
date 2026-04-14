@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refined Lead Edit Draft</title>
+  <link rel="stylesheet" href="./refined-enterprise.css">
+</head>
+<body>
+  <div class="enterprise-shell">
+    <header class="topnav">
+      <div class="topnav-left">
+        <div class="brand-lockup">
+          <div class="brand-icon"></div>
+          <div class="brand-title">InsureFlow <span>Enterprise</span></div>
+        </div>
+        <nav class="mainnav">
+          <a>Dashboard</a>
+          <a class="active" href="./refined-leads-list.html">Leads</a>
+          <a>Policies</a>
+          <a>Claims</a>
+          <a>Reports</a>
+        </nav>
+      </div>
+      <div class="topnav-right">
+        <div class="user-lockup">
+          <div class="avatar"></div>
+          <div>Jane Doe</div>
+        </div>
+      </div>
+    </header>
+    <main class="page two-col">
+      <div class="page-inner" style="display:grid;grid-template-columns:minmax(0,1fr) 324px;gap:28px;max-width:1200px;">
+        <div>
+          <div class="page-header">
+            <h1>Edit Lead Profile: John Smith</h1>
+          </div>
+
+          <div class="layout-main">
+            <section class="section-block">
+              <h3>Personal Info</h3>
+              <div class="form-grid-3">
+                <div class="field"><label>First Name</label><input value="John" /><div class="hint">Date of Birth: 04/15/1980</div></div>
+                <div class="field"><label>Last Name</label><input value="Smith" /></div>
+                <div class="field"><label>Phone Number</label><input value="(555) 123-4567" /></div>
+              </div>
+              <div class="form-grid-2" style="margin-top:16px;">
+                <div class="field"><label>Email Address</label><input value="john.smith@email.com" /></div>
+                <div class="field"><label>Address</label><input value="123 Maple Ave, Suite 4B, Springfield, IL 62704" /></div>
+              </div>
+            </section>
+
+            <section class="section-block">
+              <h3>Insurance Needs</h3>
+              <div class="form-grid-2">
+                <div class="field"><label>Policy Type</label><select><option>Commercial General Liability</option></select></div>
+                <div class="field"><label>Desired Coverage Start Date</label><input value="08/01/2024" /></div>
+              </div>
+              <div class="field" style="margin-top:16px;">
+                <label>Coverage Details & Notes</label>
+                <textarea>Coverage details & notes, just click here...</textarea>
+              </div>
+            </section>
+
+            <section class="section-block">
+              <h3>Documents</h3>
+              <div class="upload-box">
+                <div style="text-align:center;color:var(--muted);">Upload Files</div>
+                <div class="upload-files">
+                  <div class="file-chip"><span>Previous_Policy_Dec.pdf</span><span>⌄</span></div>
+                  <div class="file-chip"><span>Business_License.jpg</span><span>⌄</span></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <aside class="side-stack">
+          <section class="side-panel soft">
+            <h3>Contextual Actions & Timeline</h3>
+          </section>
+          <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Quick Actions</h4>
+            <div class="action-buttons">
+              <button class="btn primary">Call Lead</button>
+              <button class="btn primary">Send Email</button>
+            </div>
+          </section>
+          <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Recent Notes</h4>
+            <div class="timeline">
+              <div class="timeline-item">
+                <strong>July 25, 2024 - Jane Doe</strong>
+                <div>Initial discovery call. Interested in comprehensive package. Follow-up scheduled.</div>
+                <div class="hint" style="margin-top:6px;color:var(--muted);">3 hours ago</div>
+              </div>
+              <div class="timeline-item">
+                <strong>July 24, 2024 - System</strong>
+                <div>Lead profile created via web form.</div>
+                <div class="hint" style="margin-top:6px;color:var(--muted);">3 hours ago</div>
+              </div>
+              <div class="timeline-item">
+                <strong>July 23, 2024 - Marketing Team</strong>
+                <div>Lead source attribution updated to "Webinar".</div>
+                <div class="hint" style="margin-top:6px;color:var(--muted);">3 hours ago</div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+    <div class="sticky-footer">
+      <button class="btn">Cancel</button>
+      <button class="btn primary">Save</button>
+    </div>
+  </div>
+</body>
+</html>

@@ -2,25 +2,32 @@ using InsuranceManagement.Web.Data;
 using InsuranceManagement.Web.Domain;
 using InsuranceManagement.Web.Extensions;
 using InsuranceManagement.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace InsuranceManagement.Web.Controllers;
 
+[Authorize(Roles = "Admin,Manager,SalesManager,Operations,FieldSales")]
 public class ActivitiesController : AppController
 {
-    public ActivitiesController(AppDbContext db) : base(db)
+    private readonly InsuranceManagement.Web.Services.IActivityService _activityService;
+
+    public ActivitiesController(AppDbContext db, InsuranceManagement.Web.Services.IActivityService activityService) : base(db)
     {
+        _activityService = activityService;
     }
 
-    public IActionResult Index(int page = 1, int pageSize = 10)
+    public IActionResult Index(int page = 1, int pageSize = 10, string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true)
     {
         BuildShell();
-        var itemsQuery = Db.Activities.AsQueryable();
         var currentEmployeeId = CurrentEmployeeScopeId();
+        
+        int? filterEmployeeId = employeeId;
         if (!HasGlobalEmployeeAccess() && currentEmployeeId.HasValue)
         {
-            itemsQuery = itemsQuery.Where(x => x.EmployeeId == currentEmployeeId.Value);
+            filterEmployeeId = currentEmployeeId.Value;
         }
 
         ViewBag.Employees = HasGlobalEmployeeAccess()
@@ -28,41 +35,49 @@ public class ActivitiesController : AppController
             : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.OrderBy(x => x.DisplayName).ToList();
         ViewBag.Leads = Db.Leads.OrderByDescending(x => x.CreatedAt).Take(200).ToList();
+        ViewBag.ContactStatusTypes = Db.ActivityContactStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        ViewBag.OutcomeStatusTypes = Db.ActivityOutcomeStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        
+        ViewBag.SearchTerm = searchTerm;
+        ViewBag.EmployeeId = filterEmployeeId;
+        ViewBag.SortBy = sortBy;
+        ViewBag.IsDescending = isDescending;
 
-        var totalCount = itemsQuery.Count();
+        ViewBag.PlannedActivities = Db.Activities
+            .Include(x => x.Account)
+            .Include(x => x.Employee)
+            .Where(x => x.ContactStatusTypeId == 3 && (!filterEmployeeId.HasValue || x.EmployeeId == filterEmployeeId))
+            .OrderBy(x => x.ActivityDate)
+            .ToList();
+
+        var items = _activityService.GetAll(page, pageSize, out var totalCount, searchTerm, filterEmployeeId, CurrentEmployeeScopeId(), sortBy, isDescending);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-        var currentPage = Math.Min(Math.Max(page, 1), totalPages);
+        var currentPage = page;
 
         return View(new ActivitiesIndexViewModel
         {
-            NewActivity = new ActivityInlineEditViewModel
-            {
-                ActivityDate = DateTime.Today,
-                EmployeeId = currentEmployeeId ?? Db.Employees.OrderBy(x => x.Id).Select(x => x.Id).FirstOrDefault()
+            NewActivity = new ActivityInlineEditViewModel 
+            { 
+               ActivityDate = DateTime.Today,
+               EmployeeId = currentEmployeeId ?? 0
             },
             CurrentPage = currentPage,
             PageSize = pageSize,
             TotalCount = totalCount,
             TotalPages = totalPages,
-            Items = itemsQuery
-                .OrderByDescending(x => x.ActivityDate)
-                .ThenByDescending(x => x.Id)
-                .Skip((currentPage - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new ActivityInlineEditViewModel
-                {
-                    Id = x.Id,
-                    Code = x.Code,
-                    ActivityDate = x.ActivityDate,
-                    EmployeeId = x.EmployeeId,
-                    AccountId = x.AccountId,
-                    LeadId = x.LeadId,
-                    ContactName = x.ContactName,
-                    ContactStatus = x.ContactStatus,
-                    OutcomeStatus = x.OutcomeStatus,
-                    Summary = x.Summary
-                })
-                .ToList()
+            Items = items.Select(x => new ActivityInlineEditViewModel
+            {
+                Id = x.Id,
+                Code = x.Code,
+                ActivityDate = x.ActivityDate,
+                EmployeeId = x.EmployeeId,
+                AccountId = x.AccountId,
+                LeadId = x.LeadId,
+                ContactName = x.ContactName,
+                ContactStatusTypeId = x.ContactStatusTypeId,
+                OutcomeStatusTypeId = x.OutcomeStatusTypeId ?? 0,
+                Summary = x.Summary
+            }).ToList()
         });
     }
 
@@ -130,8 +145,8 @@ public class ActivitiesController : AppController
                 activity.AccountId = formModel.AccountId;
                 activity.LeadId = formModel.LeadId;
                 activity.ContactName = formModel.ContactName;
-                activity.ContactStatus = formModel.ContactStatus;
-                activity.OutcomeStatus = formModel.OutcomeStatus;
+                activity.ContactStatusTypeId = formModel.ContactStatusTypeId;
+                activity.OutcomeStatusTypeId = formModel.OutcomeStatusTypeId;
                 activity.Summary = formModel.Summary;
                 QueueAudit("Activity", "Update", activity.Code, $"{activity.Code} aktivitesi toplu grid kaydi ile guncellendi.");
                 updatedCount++;
@@ -147,8 +162,8 @@ public class ActivitiesController : AppController
                     AccountId = formModel.AccountId,
                     LeadId = formModel.LeadId,
                     ContactName = formModel.ContactName,
-                    ContactStatus = formModel.ContactStatus,
-                    OutcomeStatus = formModel.OutcomeStatus,
+                    ContactStatusTypeId = formModel.ContactStatusTypeId,
+                    OutcomeStatusTypeId = formModel.OutcomeStatusTypeId,
                     Summary = formModel.Summary
                 };
                 Db.Activities.Add(activity);
@@ -173,46 +188,70 @@ public class ActivitiesController : AppController
     public IActionResult Details(int id)
     {
         BuildShell();
-        var activity = Db.Activities.FirstOrDefault(x => x.Id == id);
+        var activity = _activityService.GetById(id, CurrentEmployeeScopeId());
         if (activity is null || !CanSeeEmployeeData(activity.EmployeeId))
         {
             return NotFound();
         }
 
-        ViewBag.Employee = Db.Employees.FirstOrDefault(x => x.Id == activity.EmployeeId);
-        ViewBag.Account = Db.Accounts.FirstOrDefault(x => x.Id == activity.AccountId);
-        ViewBag.Sales = Db.Sales.Where(x => x.ActivityId == id).ToList();
+        ViewBag.Employee = activity.Employee;
+        ViewBag.Account = activity.Account;
+        ViewBag.Sales = Db.Sales.Include(x => x.InsuranceProductType).Where(x => x.ActivityId == id).ToList();
         return View(activity);
     }
 
+    [Authorize(Roles = "Admin,Operations,FieldSales")]
     [HttpGet]
     public IActionResult Create()
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.ToList();
+        ViewBag.ContactStatusTypes = Db.ActivityContactStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        ViewBag.OutcomeStatusTypes = Db.ActivityOutcomeStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
         var employeeId = User.GetEmployeeId();
         ViewBag.Leads = Db.Leads.Where(x => x.AssignedEmployeeId == employeeId || User.IsInRole("Admin") || User.IsInRole("SalesManager")).ToList();
         return View(new ActivityFormViewModel { EmployeeId = employeeId ?? Db.Employees.OrderBy(x => x.Id).First().Id });
     }
 
+    [Authorize(Roles = "Admin,Operations,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(ActivityFormViewModel model)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.ToList();
         ViewBag.Leads = Db.Leads.ToList();
+        ViewBag.ContactStatusTypes = Db.ActivityContactStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        ViewBag.OutcomeStatusTypes = Db.ActivityOutcomeStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
 
-        if (model.ContactStatus == ContactStatus.Contacted && model.OutcomeStatus is null)
+        var activity = new Activity
         {
-            ModelState.AddModelError(nameof(model.OutcomeStatus), "Gorusuldu ise sonuc secilmelidir.");
-        }
+            ActivityDate = model.ActivityDate,
+            EmployeeId = model.EmployeeId,
+            AccountId = model.AccountId,
+            LeadId = model.LeadId,
+            ContactName = model.ContactName ?? string.Empty,
+            ContactStatusTypeId = model.ContactStatusTypeId,
+            OutcomeStatusTypeId = model.OutcomeStatusTypeId,
+            Summary = model.Summary ?? string.Empty
+        };
 
-        if (model.ContactStatus == ContactStatus.NotContacted)
+        var (isValid, errors) = _activityService.Validate(activity);
+        
+        if (!isValid)
         {
-            model.OutcomeStatus = null;
+            foreach (var error in errors)
+            {
+                ModelState.AddModelError(error.Key, error.Value);
+            }
         }
 
         if (!ModelState.IsValid)
@@ -220,28 +259,12 @@ public class ActivitiesController : AppController
             return View(model);
         }
 
-        var id = (Db.Activities.Max(x => (int?)x.Id) ?? 100) + 1;
-        var activity = new Activity
-        {
-            Id = id,
-            Code = $"ACT-{id}",
-            ActivityDate = model.ActivityDate,
-            EmployeeId = model.EmployeeId,
-            AccountId = model.AccountId,
-            LeadId = model.LeadId,
-            ContactName = model.ContactName,
-            ContactStatus = model.ContactStatus,
-            OutcomeStatus = model.OutcomeStatus,
-            Summary = model.Summary
-        };
-        Db.Activities.Add(activity);
-        QueueAudit("Activity", "Create", activity.Code, $"Aktivite olusturuldu. Musteri #{activity.AccountId}, personel #{activity.EmployeeId}.");
-
-        Db.SaveChanges();
-        TempData["Flash"] = "Aktivite kaydi olusturuldu.";
+        _activityService.Create(activity);
+        TempData["Success"] = "Aktivite kaydi olusturuldu.";
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = "Admin,Operations,FieldSales")]
     [HttpGet]
     public IActionResult Edit(int id)
     {
@@ -257,9 +280,14 @@ public class ActivitiesController : AppController
             return NotFound();
         }
 
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.ToList();
         ViewBag.Leads = Db.Leads.ToList();
+        ViewBag.ContactStatusTypes = Db.ActivityContactStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        ViewBag.OutcomeStatusTypes = Db.ActivityOutcomeStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
         return View(new ActivityFormViewModel
         {
             Id = activity.Id,
@@ -268,29 +296,48 @@ public class ActivitiesController : AppController
             AccountId = activity.AccountId,
             LeadId = activity.LeadId,
             ContactName = activity.ContactName,
-            ContactStatus = activity.ContactStatus,
-            OutcomeStatus = activity.OutcomeStatus,
+            ContactStatusTypeId = activity.ContactStatusTypeId,
+            OutcomeStatusTypeId = activity.OutcomeStatusTypeId,
             Summary = activity.Summary
         });
     }
 
+    [Authorize(Roles = "Admin,Operations,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Edit(int id, ActivityFormViewModel model)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.ToList();
         ViewBag.Leads = Db.Leads.ToList();
+        ViewBag.ContactStatusTypes = Db.ActivityContactStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        ViewBag.OutcomeStatusTypes = Db.ActivityOutcomeStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
 
-        if (model.ContactStatus == ContactStatus.Contacted && model.OutcomeStatus is null)
+        var tempActivity = new Activity
         {
-            ModelState.AddModelError(nameof(model.OutcomeStatus), "Gorusuldu ise sonuc secilmelidir.");
-        }
+            Id = id,
+            ActivityDate = model.ActivityDate,
+            EmployeeId = model.EmployeeId,
+            AccountId = model.AccountId,
+            LeadId = model.LeadId,
+            ContactName = model.ContactName ?? string.Empty,
+            ContactStatusTypeId = model.ContactStatusTypeId,
+            OutcomeStatusTypeId = model.OutcomeStatusTypeId,
+            Summary = model.Summary ?? string.Empty
+        };
 
-        if (model.ContactStatus == ContactStatus.NotContacted)
+        var (isValid, errors) = _activityService.Validate(tempActivity);
+        
+        if (!isValid)
         {
-            model.OutcomeStatus = null;
+            foreach (var error in errors)
+            {
+                ModelState.AddModelError(error.Key, error.Value);
+            }
         }
 
         if (!ModelState.IsValid)
@@ -298,51 +345,43 @@ public class ActivitiesController : AppController
             return View(model);
         }
 
-        var activity = Db.Activities.FirstOrDefault(x => x.Id == id);
-        if (activity is null)
+        var existing = _activityService.GetById(id, CurrentEmployeeScopeId());
+        if (existing is null)
         {
             return NotFound();
         }
 
-        if (!CanSeeEmployeeData(activity.EmployeeId))
+        var updated = _activityService.Update(id, tempActivity);
+        if (updated == null)
         {
             return NotFound();
         }
 
-        activity.ActivityDate = model.ActivityDate;
-        activity.EmployeeId = model.EmployeeId;
-        activity.AccountId = model.AccountId;
-        activity.LeadId = model.LeadId;
-        activity.ContactName = model.ContactName;
-        activity.ContactStatus = model.ContactStatus;
-        activity.OutcomeStatus = model.OutcomeStatus;
-        activity.Summary = model.Summary;
-        QueueAudit("Activity", "Update", activity.Code, $"{activity.Code} aktivitesi guncellendi.");
-        Db.SaveChanges();
-
-        TempData["Flash"] = "Aktivite kaydi guncellendi.";
+        TempData["Success"] = "Aktivite kaydi guncellendi.";
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Roles = "Admin,Operations")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
-        var activity = Db.Activities.FirstOrDefault(x => x.Id == id);
-        if (activity is null)
+        var existing = _activityService.GetById(id, CurrentEmployeeScopeId());
+        if (existing is null)
         {
             return NotFound();
         }
 
-        if (!CanSeeEmployeeData(activity.EmployeeId))
+        var success = _activityService.Delete(id);
+        if (success)
         {
-            return NotFound();
+            TempData["Success"] = "Aktivite silindi.";
         }
-
-        QueueAudit("Activity", "Delete", activity.Code, $"{activity.Code} aktivitesi silindi.");
-        Db.Activities.Remove(activity);
-        Db.SaveChanges();
-        TempData["Flash"] = "Aktivite kaydi silindi.";
+        else
+        {
+            TempData["Warning"] = "Silme islemi basarisiz oldu.";
+        }
+        
         return RedirectToAction(nameof(Index));
     }
 
@@ -356,8 +395,8 @@ public class ActivitiesController : AppController
             AccountId = model.AccountId,
             LeadId = model.LeadId,
             ContactName = model.ContactName,
-            ContactStatus = model.ContactStatus,
-            OutcomeStatus = model.OutcomeStatus,
+            ContactStatusTypeId = model.ContactStatusTypeId,
+            OutcomeStatusTypeId = model.OutcomeStatusTypeId,
             Summary = model.Summary
         };
     }
@@ -386,14 +425,14 @@ public class ActivitiesController : AppController
             errors.Add("Ozet zorunludur.");
         }
 
-        if (model.ContactStatus == ContactStatus.Contacted && model.OutcomeStatus is null)
+        if (model.ContactStatusTypeId == 1 && model.OutcomeStatusTypeId is null)
         {
             errors.Add("Gorusuldu ise sonuc secilmelidir.");
         }
 
-        if (model.ContactStatus == ContactStatus.NotContacted)
+        if (model.ContactStatusTypeId == 2)
         {
-            model.OutcomeStatus = null;
+            model.OutcomeStatusTypeId = null;
         }
 
         return errors;

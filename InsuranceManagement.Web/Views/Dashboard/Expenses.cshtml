@@ -1,25 +1,82 @@
 @model InsuranceManagement.Web.ViewModels.ExpenseDashboardViewModel
 @{
     ViewData["Title"] = "Masraf Analizi";
-    ViewData["Subtitle"] = "Masraf toplamlarini ve dagilimini izler";
+    ViewData["Subtitle"] = "Masraf toplamlarini, dagilimini ve satis basina maliyeti izler";
 }
-<section class="grid cards-3">
-    <div class="panel metric"><span class="tag">Toplam Masraf</span><div class="value">@Model.TotalExpense.ToString("N0")</div></div>
-    <div class="panel metric"><span class="tag">Satis Basina Masraf</span><div class="value">@Model.CostPerSale.ToString("N0")</div></div>
-    <div class="panel metric"><span class="tag">MVP</span><div class="value">Onaysiz</div><div class="muted">kayit ve raporlama</div></div>
+
+<section class="premium-strip">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div class="brand-icon-new" style="width:48px; height:48px; border-radius:12px; background:var(--danger-soft); color:var(--danger);">
+            <i data-lucide="wallet"></i>
+        </div>
+        <div>
+            <strong>Masraf Kontrol Merkezi</strong>
+            <span>@Model.StartDate.ToShortDateString() - @Model.EndDate.ToShortDateString() dönemi operasyonel gider analizi.</span>
+        </div>
+    </div>
+    <partial name="_DashboardFilter" model="Model" />
 </section>
-<div class="panel" style="margin-top:18px;">
-    <table class="table">
-        <thead><tr><th>Masraf Turu</th><th>Kayit</th><th>Toplam</th></tr></thead>
-        <tbody>
-        @foreach (var row in Model.Rows)
-        {
-            <tr>
-                <td>@row.ExpenseType</td>
-                <td>@row.Count</td>
-                <td>@row.Total.ToString("N0") TRY</td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
+
+<partial name="_DashboardTabs" />
+
+<section class="metric-grid">
+    <div class="metric-card">
+        <div class="label">Toplam Masraf</div>
+        <div class="value">@Model.TotalExpense.ToString("N0") TRY</div>
+        <div class="sub">tum giderlerin toplami</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Satis Basina Masraf</div>
+        <div class="value">@Model.CostPerSale.ToString("N0") TRY</div>
+        <div class="sub">verimlilik gostergesi</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Masraf Turu</div>
+        <div class="value">@Model.Rows.Count</div>
+        <div class="sub">kategorize edilmis gider</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Toplam Kayit</div>
+        <div class="value">@Model.Rows.Sum(x => x.Count)</div>
+        <div class="sub">masraf hareketi</div>
+    </div>
+</section>
+
+<section class="chart-grid-2">
+    <div class="panel">
+        <div class="panel-title">
+            <h3>Masraf Dagilimi</h3>
+            <span class="pill">kategori bazli</span>
+        </div>
+        <div class="mini-chart bars"></div>
+    </div>
+    <div class="panel">
+        <div class="panel-title">
+            <h3>Masraf Payi</h3>
+            <span class="pill">oran analizi</span>
+        </div>
+        <div class="mini-chart donut"></div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-title">
+        <h2>Masraf Turu Detayi</h2>
+        <span class="pill">kategori tablosu</span>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead><tr><th>Masraf Turu</th><th>Kayit</th><th>Toplam</th></tr></thead>
+            <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td>@row.ExpenseType</td>
+                    <td>@row.Count</td>
+                    <td>@row.Total.ToString("N0") TRY</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

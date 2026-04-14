@@ -6,27 +6,14 @@ public static class DisplayTextExtensions
 {
     public static string ToDisplayText(this RoleType role) => role switch
     {
-        RoleType.Admin => "Yonetici",
-        RoleType.Manager => "Genel Mudur",
+        RoleType.Admin => "Admin",
+        RoleType.Manager => "Mudur",
         RoleType.SalesManager => "Satis Muduru",
         RoleType.Operations => "Operasyon",
-        RoleType.FieldSales => "Saha Personeli",
-        RoleType.CallCenter => "Call Center",
+        RoleType.FieldSales => "Saha Satis",
+        RoleType.CallCenter => "Cagri Merkezi",
+        RoleType.SystemSpecialist => "Sistem Uzmanı (Personel Harici)",
         _ => role.ToString()
-    };
-
-    public static string ToDisplayText(this LeadStatus status) => status switch
-    {
-        LeadStatus.New => "Yeni",
-        LeadStatus.Researched => "Arastirildi",
-        LeadStatus.ContactFound => "Kontak Bulundu",
-        LeadStatus.ReadyForAssignment => "Atamaya Hazir",
-        LeadStatus.Assigned => "Atandi",
-        LeadStatus.VisitScheduled => "Ziyaret Planlandi",
-        LeadStatus.Visited => "Ziyaret Edildi",
-        LeadStatus.ConvertedToActivity => "Aktiviteye Donustu",
-        LeadStatus.Disqualified => "Elenmis",
-        _ => status.ToString()
     };
 
     public static string ToDisplayText(this AccountType type) => type switch
@@ -36,38 +23,22 @@ public static class DisplayTextExtensions
         _ => type.ToString()
     };
 
-    public static string ToDisplayText(this ContactStatus status) => status switch
+    public static string ToDisplayText(this string? value)
     {
-        ContactStatus.Contacted => "Gorusuldu",
-        ContactStatus.NotContacted => "Gorusulmedi",
-        _ => status.ToString()
-    };
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "-";
+        }
 
-    public static string ToDisplayText(this OutcomeStatus status) => status switch
-    {
-        OutcomeStatus.Positive => "Olumlu",
-        OutcomeStatus.Negative => "Olumsuz",
-        OutcomeStatus.Postponed => "Ertelendi",
-        OutcomeStatus.SaleClosed => "Satis Oldu",
-        _ => status.ToString()
-    };
-
-    public static string ToDisplayText(this ProductType type) => type switch
-    {
-        ProductType.Bes => "BES",
-        ProductType.Life => "Hayat",
-        ProductType.Health => "Saglik",
-        ProductType.Travel => "Seyahat",
-        ProductType.Other => "Diger",
-        _ => type.ToString()
-    };
-
-    public static string ToDisplayText(this ExpenseType type) => type switch
-    {
-        ExpenseType.Travel => "Yol",
-        ExpenseType.Meal => "Yemek",
-        ExpenseType.Accommodation => "Konaklama",
-        ExpenseType.Other => "Diger",
-        _ => type.ToString()
-    };
+        return value.Trim() switch
+        {
+            "Active" => "Aktif",
+            "Inactive" => "Pasif",
+            "Passive" => "Pasif",
+            "Imported" => "Ice aktarildi",
+            "ImportedWithWarnings" => "Uyarilarla ice aktarildi",
+            "Pending" => "Beklemede",
+            _ => value
+        };
+    }
 }

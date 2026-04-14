@@ -38,8 +38,8 @@ public class AuthController : Controller
             return View(model);
         }
 
-        var user = _db.Users.FirstOrDefault(x => x.UserName == model.UserName && x.Password == model.Password);
-        if (user is null)
+        var user = _db.Users.FirstOrDefault(x => x.UserName == model.UserName);
+        if (user is null || !BCrypt.Net.BCrypt.Verify(model.Password, user.PasswordHash))
         {
             ModelState.AddModelError(string.Empty, "Kullanici adi veya sifre hatali.");
             return View(model);
@@ -47,14 +47,14 @@ public class AuthController : Controller
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.FullName),
+            new("UserId", user.Id.ToString()),
+            new("FullName", user.FullName),
             new(ClaimTypes.Role, user.Role.ToString())
         };
 
         if (user.EmployeeId.HasValue)
         {
-            claims.Add(new Claim("employeeId", user.EmployeeId.Value.ToString()));
+            claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
         }
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

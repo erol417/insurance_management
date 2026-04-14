@@ -7,27 +7,112 @@
     ViewData["Title"] = "Masraflar";
     ViewData["Subtitle"] = "Personel bazli tarih ve tur odakli masraf kayitlari";
 }
-<div class="page-actions">
-    <button type="button" class="btn primary" onclick="toggleExpenseInsertRow()">Yeni Satir Ekle</button>
+
+<div class="premium-strip">
+    <div>
+        <strong>Masraf Yonetim Merkezi</strong>
+        <span>Yol, yemek, konaklama ve diger giderleri personel bazli olarak tablo uzerinden hizli yonet.</span>
+    </div>
+    <div class="inline-actions">
+        <a class="btn primary" asp-action="Create">Detayli Form</a>
+    </div>
+</div>
+
+<div class="panel filters-bar">
+    <form method="get" class="filters-inline">
+        <div class="filter-group">
+            <i data-lucide="search"></i>
+            <input type="text" name="searchTerm" placeholder="Masraf Notu veya Kod..." value="@ViewBag.SearchTerm" />
+        </div>
+        
+        @if (canManageAll)
+        {
+            <select name="employeeId" class="filter-select">
+                <option value="">-- Personel --</option>
+                @foreach (var emp in employees)
+                {
+                    <option value="@emp.Id" selected="@(ViewBag.EmployeeId == emp.Id)">@emp.FullName</option>
+                }
+            </select>
+        }
+
+        <div class="filter-actions">
+            <button type="submit" class="btn primary btn-icon-only" title="Filtrele">
+                <i data-lucide="filter"></i>
+            </button>
+            <a asp-action="Index" class="btn ghost btn-icon-only" title="Temizle">
+                <i data-lucide="rotate-ccw"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="page-actions" style="margin-bottom:14px;">
+    <button type="button" class="btn" onclick="toggleExpenseInsertRow()">Yeni Satir Ekle</button>
     <button type="button" class="btn secondary" id="save-all-expenses-btn">Degisiklikleri Kaydet</button>
     <button type="button" class="btn ghost" id="clear-expense-draft-btn">Taslagi Temizle</button>
-    <a class="btn secondary" asp-action="Create">Detayli Form</a>
 </div>
-<div class="panel" style="margin-top:18px;">
+
+<div class="panel">
     <div class="note-box">
         <strong>Grid duzenleme</strong>
         <p>Masraf satirlari bu ekranda hizli giris icin tablo uzerinden duzenlenir. Tum degisiklikler taslak olarak tutulur.</p>
-        <p>Kaydetmeden ayrilirsan sistem uyarir. Sayfalar arasinda gezsen de taslak korunur.</p>
+        <p>Masraf tipi ve tutar alanlari ayni akis icinde guncellenir; operasyon ve yonetim ekipleri icin hizli kontrol ekranidir.</p>
     </div>
     <div class="table-scroll">
-        <table class="table compact-table">
+        <table class="data-table compact-table">
             <thead>
                 <tr>
-                    <th>Kod</th>
-                    <th>Tarih</th>
-                    <th>Personel</th>
-                    <th>Tur</th>
-                    <th>Tutar</th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "code" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="code" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "code" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Kod @if(ViewBag.SortBy == "code") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "date" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="date" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "date" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Tarih @if(ViewBag.SortBy == "date") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "employee" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="employee" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "employee" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Personel @if(ViewBag.SortBy == "employee") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "type" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="type" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "type" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Tur @if(ViewBag.SortBy == "type") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "amount" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="amount" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "amount" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Tutar @if(ViewBag.SortBy == "amount") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
                     <th>Not</th>
                 </tr>
             </thead>
@@ -53,10 +138,10 @@
                         }
                     </td>
                     <td>
-                        <select data-field="expenseType" class="cell-input cell-select">
-                            @foreach (InsuranceManagement.Web.Domain.ExpenseType type in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.ExpenseType)))
+                        <select data-field="expenseTypeId" class="cell-input cell-select">
+                            @foreach (var type in (List<InsuranceManagement.Web.Domain.ExpenseReferenceType>)ViewBag.ExpenseTypes)
                             {
-                                <option value="@type">@type.ToDisplayText()</option>
+                                <option value="@type.Id">@type.Name</option>
                             }
                         </select>
                     </td>
@@ -93,32 +178,48 @@
                             }
                         </td>
                         <td>
-                            <select data-field="expenseType" class="cell-input cell-select">
-                                @foreach (InsuranceManagement.Web.Domain.ExpenseType type in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.ExpenseType)))
+                            <select data-field="expenseTypeId" class="cell-input cell-select">
+                                @foreach (var type in (List<InsuranceManagement.Web.Domain.ExpenseReferenceType>)ViewBag.ExpenseTypes)
                                 {
-                                    @if (expense.ExpenseType == type)
-                                    {
-                                        <option value="@type" selected>@type.ToDisplayText()</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@type">@type.ToDisplayText()</option>
-                                    }
+                                    <option value="@type.Id" selected="@(expense.ExpenseTypeId == type.Id)">@type.Name</option>
                                 }
                             </select>
                         </td>
-                        <td><input data-field="amount" type="number" step="0.01" min="0" class="cell-input" value="@expense.Amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" /></td>
+                        <td><input data-field="amount" type="number" step="0.01" min="0" class="cell-input" value="@(expense.Amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))" /></td>
                         <td><input data-field="notes" class="cell-input" value="@expense.Notes" /></td>
                     </tr>
                 }
             </tbody>
+            <tfoot>
+                <tr class="summary-row">
+                    <td colspan="4" style="text-align:right;"><strong>Sayfa Toplami:</strong></td>
+                    <td><strong>@Model.Items.Sum(x => x.Amount).ToString("N2") TL</strong></td>
+                    <td></td>
+                </tr>
+            </tfoot>
         </table>
     </div>
-    <div class="page-actions split-actions">
+    <div class="page-actions split-actions" style="margin-top:16px;">
         <div class="pager">
-            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" asp-action="Index" asp-route-page="@prevPage" asp-route-pageSize="@Model.PageSize">Onceki</a>
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" 
+               asp-action="Index" 
+               asp-route-page="@prevPage" 
+               asp-route-pageSize="@Model.PageSize"
+               asp-route-searchTerm="@ViewBag.SearchTerm"
+               asp-route-employeeId="@ViewBag.EmployeeId"
+               asp-route-sortBy="@ViewBag.SortBy"
+               asp-route-isDescending="@ViewBag.IsDescending">Onceki</a>
+            
             <span class="pill">Sayfa @Model.CurrentPage / @Model.TotalPages</span>
-            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" asp-action="Index" asp-route-page="@nextPage" asp-route-pageSize="@Model.PageSize">Sonraki</a>
+            
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" 
+               asp-action="Index" 
+               asp-route-page="@nextPage" 
+               asp-route-pageSize="@Model.PageSize"
+               asp-route-searchTerm="@ViewBag.SearchTerm"
+               asp-route-employeeId="@ViewBag.EmployeeId"
+               asp-route-sortBy="@ViewBag.SortBy"
+               asp-route-isDescending="@ViewBag.IsDescending">Sonraki</a>
         </div>
         <div class="muted">Toplam @Model.TotalCount kayit</div>
     </div>

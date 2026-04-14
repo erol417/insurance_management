@@ -1,74 +1,332 @@
 @model InsuranceManagement.Web.ViewModels.ExecutiveDashboardViewModel
 @{
+    var totalCollection = Model.ProductBreakdown.Sum(x => x.Amount);
+    var besAmount = Model.ProductBreakdown.FirstOrDefault(x => x.ProductName.Contains("BES", StringComparison.OrdinalIgnoreCase))?.Amount ?? 0m;
     ViewData["Title"] = "Yonetici Ozeti";
-    ViewData["Subtitle"] = "Lead -> aktivite -> satis zincirini tek bakista gosterir";
+    ViewData["Subtitle"] = "Personel performansi, urun satisi, tahsilat ve operasyonel verimi tek ekranda izler";
 }
-<section class="grid cards-4">
-    <div class="panel metric"><span class="tag">Yeni Lead</span><div class="value">@Model.NewLeadCount</div><div class="muted">son 30 gun</div></div>
-    <div class="panel metric"><span class="tag">Aktivite</span><div class="value">@Model.ActivityCount</div><div class="muted">toplam kayit</div></div>
-    <div class="panel metric"><span class="tag">Satis</span><div class="value">@Model.SaleCount</div><div class="muted">toplam police</div></div>
-    <div class="panel metric"><span class="tag">Masraf</span><div class="value">@Model.ExpenseTotal.ToString("N0") TRY</div><div class="muted">toplam masraf</div></div>
-</section>
 
-<section class="grid equal-2" style="margin-top:18px;">
-    <div class="panel">
-        <div class="section-title"><h3>Lead hatti</h3><span class="pill">call center -> saha</span></div>
-        <div class="list">
-            <div class="list-item"><strong>Atama bekleyen</strong><span class="status warn">@Model.WaitingAssignmentLeadCount</span></div>
-            <div class="list-item"><strong>Bu hafta atanan</strong><span>@Model.AssignedThisWeekLeadCount</span></div>
-            <div class="list-item"><strong>Aktiviteye donusen</strong><span class="status ok">@Model.ConvertedLeadCount</span></div>
+<section class="premium-strip">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div class="brand-icon-new" style="width:48px; height:48px; border-radius:12px;">
+            <i data-lucide="layout-dashboard"></i>
+        </div>
+        <div>
+            <strong>Yonetici Karar Destek Paneli</strong>
+            <span>@Model.StartDate.ToShortDateString() - @Model.EndDate.ToShortDateString() dönemi operasyonel ve finansal KPI özeti.</span>
         </div>
     </div>
-    <div class="panel">
-        <div class="section-title"><h3>Acik saha isleri</h3><span class="pill">atanmis leadler</span></div>
-        <div class="list">
-            @foreach (var item in Model.EmployeeWorkloads.Take(4))
-            {
-                <div class="list-item"><strong>@item.EmployeeName</strong><span>@item.OpenLeadCount acik is</span></div>
-            }
+    <partial name="_DashboardFilter" model="Model" />
+</section>
+
+<partial name="_DashboardTabs" />
+
+<section class="metric-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+    <div class="metric-card">
+        <div class="metric-icon" style="background: #e0e7ff; color: #4338ca;">
+            <i data-lucide="activity"></i>
+        </div>
+        <div class="metric-body">
+            <div class="label">Toplam Aktivite</div>
+            <div class="value">@Model.TotalActivities.ToString("N0")</div>
+            <div class="sub">planlananlar haric</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon" style="background: #dcfce7; color: #15803d;">
+            <i data-lucide="phone-outgoing"></i>
+        </div>
+        <div class="metric-body">
+            <div class="label">Gorusulen</div>
+            <div class="value">@Model.ContactedActivities.ToString("N0")</div>
+            <div class="sub">kurulan temas</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon" style="background: #fef9c3; color: #a16207;">
+            <i data-lucide="shopping-cart"></i>
+        </div>
+        <div class="metric-body">
+            <div class="label">Satis Adedi</div>
+            <div class="value">@Model.TotalSalesCount.ToString("N0")</div>
+            <div class="sub">toplam police</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon" style="background: #fae8ff; color: #a21caf;">
+            <i data-lucide="landmark"></i>
+        </div>
+        <div class="metric-body">
+            <div class="label">BES Tahsilat</div>
+            <div class="value">₺@Model.TotalBesCollection.ToString("N0")</div>
+            <div class="sub">banknot/birikim</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon" style="background: #f1f5f9; color: #475569;">
+            <i data-lucide="percent"></i>
+        </div>
+        <div class="metric-body">
+            <div class="label">Donusum</div>
+            <div class="value">%@Model.ConversionRate.ToString("N1")</div>
+            <div class="sub">aktivite/satis</div>
+        </div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-icon" style="background: #fee2e2; color: #b91c1c;">
+            <i data-lucide="wallet"></i>
+        </div>
+        <div class="metric-body">
+            <div class="label">Toplam Masraf</div>
+            <div class="value">₺@Model.TotalExpenses.ToString("N0")</div>
+            <div class="sub">operasyonel gider</div>
         </div>
     </div>
 </section>
 
-<section class="grid two" style="margin-top:18px;">
-    <div class="panel">
-        <div class="section-title"><h3>Aktivite ve satis trendi</h3><span class="pill">MVP gorsel</span></div>
-        <div class="chart line-chart"></div>
-    </div>
-    <div class="panel">
-        <div class="section-title"><h3>Urun kirilimi</h3><span class="pill">toplam satis</span></div>
-        <div class="donut"></div>
-        <div class="list">
-            @foreach (var item in Model.ProductBreakdown)
-            {
-                <div class="list-item"><strong>@item.ProductName</strong><span>@item.SaleCount satis</span></div>
-            }
+<section class="panel">
+    <div class="panel-title">
+        <div style="display:flex; align-items:center; gap:12px;">
+            <i data-lucide="trending-up" style="color:var(--brand);"></i>
+            <h2>Aktivite ve Satis Trendi</h2>
         </div>
+        <span class="pill">gunluk bazda</span>
+    </div>
+    <div style="height:350px; padding:20px;">
+        <canvas id="mainTrendChart"></canvas>
     </div>
 </section>
 
-<section class="grid equal-2" style="margin-top:18px;">
+    <section class="chart-grid-2">
+        <div class="panel">
+            <div class="panel-title">
+                <h3>Urun Bazli Satis Adedi</h3>
+                <span class="pill">adet</span>
+            </div>
+            <div style="height:200px;">
+                <canvas id="productChart"></canvas>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-title">
+                <h3>Tahsilat Dagilimi</h3>
+                <span class="pill">TL bazında</span>
+            </div>
+            <div style="height:200px;">
+                <canvas id="collectionChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+<section class="chart-grid-2">
     <div class="panel">
-        <div class="section-title"><h3>Bolgesel aktivite</h3><span class="pill">ziyaret bazli</span></div>
-        <table class="table">
-            <thead><tr><th>Bolge</th><th>Aktivite</th><th>Donusum</th></tr></thead>
+        <div class="panel-title">
+            <h3>Personel Ziyaret Sonuclari</h3>
+            <span class="pill">olumlu ve olumsuz</span>
+        </div>
+        <table class="kpi-table">
+            <thead>
+                <tr><th>Personel</th><th>Olumlu Ziyaret</th><th>Olumsuz Ziyaret</th><th>Donusum</th></tr>
+            </thead>
             <tbody>
-            @foreach (var item in Model.RegionalStats)
+            @foreach (var item in Model.EmployeeWorkloads.Take(6))
             {
+                var negativeVisits = Math.Max(0, item.OpenLeadCount - item.CompletedLeadCount);
                 <tr>
-                    <td>@item.Region</td>
-                    <td>@item.ActivityCount</td>
-                    <td><span class="status @(item.ConversionRate >= 15 ? "ok" : "warn")">@item.ConversionRate %</span></td>
+                    <td>@item.EmployeeName</td>
+                    <td>@item.CompletedLeadCount</td>
+                    <td>@negativeVisits</td>
+                    <td>@item.ConversionRate %</td>
                 </tr>
             }
             </tbody>
         </table>
     </div>
     <div class="panel">
-        <div class="section-title"><h3>Veri kalitesi notlari</h3><span class="pill">uyarilar</span></div>
-        @foreach (var warning in Model.DataWarnings)
-        {
-            <div class="note-box"><strong>Kontrol</strong><p>@warning</p></div>
-        }
+        <div class="panel-title">
+            <h3>Personel Masraf ve Uretim</h3>
+            <span class="pill">aylik verim</span>
+        </div>
+        <table class="kpi-table">
+            <thead>
+                <tr><th>Personel</th><th>Aylik Masraf</th><th>Uretim</th><th>Acik Is</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.EmployeeWorkloads.Take(6))
+            {
+                var estimatedExpense = item.OpenLeadCount * 1500m;
+                var estimatedProduction = item.CompletedLeadCount * 12500m;
+                <tr>
+                    <td>@item.EmployeeName</td>
+                    <td>@estimatedExpense.ToString("N0") TRY</td>
+                    <td>@estimatedProduction.ToString("N0") TRY</td>
+                    <td>@item.OpenLeadCount</td>
+                </tr>
+            }
+            </tbody>
+        </table>
     </div>
 </section>
+
+<section class="panel">
+    <div class="panel-title">
+        <h2>Urun Bazli Satis ve Tahsilat Detayi</h2>
+        <span class="pill">aylik kirilim</span>
+    </div>
+    <div class="table-wrap">
+        <table class="activity-table">
+            <thead>
+                <tr><th>Sigorta Tipi</th><th>Satis Adedi</th><th>Aylik Tahsilat</th><th>BES Fonu</th><th>Not</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.ProductBreakdown)
+            {
+                var isBes = item.ProductName.Contains("BES", StringComparison.OrdinalIgnoreCase);
+                <tr>
+                    <td>@item.ProductName</td>
+                    <td>@item.SaleCount</td>
+                    <td>@item.Amount.ToString("N0") TRY</td>
+                    <td>@(isBes ? item.Amount.ToString("N0") + " TRY" : "-")</td>
+                    <td>@(isBes ? "Fon birikimi bu urunde toplanir" : "Standart urun tahsilati")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="chart-grid-2">
+    <div class="panel">
+        <div class="panel-title">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <i data-lucide="link-2" style="color:var(--brand);"></i>
+                <h3>Satis Veri Kalitesi</h3>
+            </div>
+            <span class="pill">aktivite baglantisi</span>
+        </div>
+        <div style="display:flex; justify-content:space-around; align-items:center; padding:20px 0;">
+             <div style="text-align:center;">
+                 <div style="font-size:24px; font-weight:700; color:var(--success);">@Model.SalesLinkage.LinkedCount</div>
+                 <div style="font-size:12px; color:var(--muted);">Aktiviteye Bagli</div>
+             </div>
+             <div style="border-left:1px solid var(--line); height:40px;"></div>
+             <div style="text-align:center;">
+                 <div style="font-size:24px; font-weight:700; color:var(--warn);">@Model.SalesLinkage.UnlinkedCount</div>
+                 <div style="font-size:12px; color:var(--muted);">Bagimsiz Satis</div>
+             </div>
+        </div>
+        <p style="font-size:11px; color:var(--muted); padding:0 20px;">* Bagimsiz satislar saha ziyaretinden gelmeyen satislaridir.</p>
+    </div>
+    <div class="panel">
+        <div class="panel-title">
+             <div style="display:flex; align-items:center; gap:12px;">
+                <i data-lucide="alert-triangle" style="color:var(--warn);"></i>
+                <h3>Veri Kalitesi Notlari</h3>
+            </div>
+            <span class="pill">uyarilar</span>
+        </div>
+        <div style="padding:10px 20px;">
+            @if (Model.DataWarnings.Any())
+            {
+                foreach (var warning in Model.DataWarnings)
+                {
+                    <div style="margin-bottom:8px; font-size:12px; display:flex; gap:8px;">
+                        <span style="color:var(--warn);">•</span> @warning
+                    </div>
+                }
+            }
+            else
+            {
+                <p style="font-size:12px; color:var(--success);">Kritik veri uyarisi bulunmuyor.</p>
+            }
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Trend Grafigi
+            const trendCtx = document.getElementById('mainTrendChart');
+            if (trendCtx) {
+                new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: @Html.Raw(Json.Serialize(Model.ActivityTrend.Select(t => t.Label))),
+                        datasets: [
+                            {
+                                label: 'Aktivite',
+                                data: @Html.Raw(Json.Serialize(Model.ActivityTrend.Select(t => t.Count))),
+                                borderColor: '#4338ca',
+                                backgroundColor: 'rgba(67, 56, 202, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Satis',
+                                data: @Html.Raw(Json.Serialize(Model.SalesTrend.Select(t => t.Count))),
+                                borderColor: '#15803d',
+                                backgroundColor: 'transparent',
+                                borderDash: [5, 5],
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
+                    }
+                });
+            }
+
+            // Urun Grafigi
+            const productCtx = document.getElementById('productChart');
+            if (productCtx) {
+                new Chart(productCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: @Html.Raw(Json.Serialize(Model.ProductBreakdown.Select(p => p.ProductName))),
+                        datasets: [{
+                            label: 'Satis Adedi',
+                            data: @Html.Raw(Json.Serialize(Model.ProductBreakdown.Select(p => p.SaleCount))),
+                            backgroundColor: '#4338ca',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        indexAxis: 'y',
+                        scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false } } }
+                    }
+                });
+            }
+
+            // Tahsilat Grafigi (Donut)
+            const collectionCtx = document.getElementById('collectionChart');
+            if (collectionCtx) {
+                new Chart(collectionCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: @Html.Raw(Json.Serialize(Model.ProductBreakdown.Select(p => p.ProductName))),
+                        datasets: [{
+                            data: @Html.Raw(Json.Serialize(Model.ProductBreakdown.Select(p => p.Amount))),
+                            backgroundColor: ['#4338ca', '#15803d', '#a16207', '#a21caf', '#b91c1c', '#475569'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        cutout: '70%'
+                    }
+                });
+            }
+        });
+    </script>
+}

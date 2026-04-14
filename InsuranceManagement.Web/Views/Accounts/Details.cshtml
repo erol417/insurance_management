@@ -3,47 +3,173 @@
     var owner = ViewBag.Owner as InsuranceManagement.Web.Domain.Employee;
     var activities = ViewBag.Activities as List<InsuranceManagement.Web.Domain.Activity> ?? [];
     var sales = ViewBag.Sales as List<InsuranceManagement.Web.Domain.Sale> ?? [];
+    var totalCollection = sales.Sum(x => x.CollectionAmount ?? 0m);
+    var totalProduction = sales.Sum(x => x.ProductionAmount ?? 0m);
     ViewData["Title"] = "Musteri Detayi";
     ViewData["Subtitle"] = "Hesap gecmisi ve bagli kayitlar";
 }
-<div class="grid equal-2">
-    <div class="panel">
-        <div class="list">
-            <div class="list-item"><strong>Kod</strong><span>@Model.Code</span></div>
-            <div class="list-item"><strong>Ad</strong><span>@Model.DisplayName</span></div>
-            <div class="list-item"><strong>Tip</strong><span>@Model.AccountType.ToDisplayText()</span></div>
-            <div class="list-item"><strong>Sorumlu</strong><span>@(owner?.FullName ?? "-")</span></div>
-            <div class="list-item"><strong>Sehir</strong><span>@Model.City / @Model.District</span></div>
-        </div>
-        <div class="note-box"><strong>Not</strong><p>@Model.Notes</p></div>
+
+<div class="detail-shell">
+    <div class="layout-main">
+        <section class="section-block">
+            <div class="section-title">
+                <h3>Musteri Ozeti</h3>
+                <span class="pill">@Model.AccountType.ToDisplayText()</span>
+            </div>
+            <div class="metric-grid four">
+                <article class="metric-card">
+                    <span class="metric-label">Musteri Kodu</span>
+                    <strong>@Model.Code</strong>
+                    <small>tekil hesap referansi</small>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Sorumlu</span>
+                    <strong>@(owner?.FullName ?? "-")</strong>
+                    <small>sahiplik bilgisi</small>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Toplam Tahsilat</span>
+                    <strong>@totalCollection.ToString("N0") TRY</strong>
+                    <small>bagli satis kayitlari</small>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Toplam Uretim</span>
+                    <strong>@totalProduction.ToString("N0") TRY</strong>
+                    <small>portfoy katkisi</small>
+                </article>
+            </div>
+        </section>
+
+        <section class="section-block">
+            <div class="section-title">
+                <h3>Iletisim ve Konum</h3>
+                <span class="pill">@Model.Status.ToDisplayText()</span>
+            </div>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span>Ad / Unvan</span>
+                    <strong>@Model.DisplayName</strong>
+                </div>
+                <div class="detail-item">
+                    <span>Telefon</span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.Phone) ? "-" : Model.Phone)</strong>
+                </div>
+                <div class="detail-item">
+                    <span>E-posta</span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.Email) ? "-" : Model.Email)</strong>
+                </div>
+                <div class="detail-item">
+                    <span>Vergi No</span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.TaxNumber) ? "-" : Model.TaxNumber)</strong>
+                </div>
+                <div class="detail-item">
+                    <span>Sehir</span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.City) ? "-" : Model.City)</strong>
+                </div>
+                <div class="detail-item">
+                    <span>Ilce</span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.District) ? "-" : Model.District)</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-block">
+            <div class="section-title">
+                <h3>Bagli Satislar</h3>
+                <span class="pill">@sales.Count kayit</span>
+            </div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Kod</th>
+                            <th>Urun</th>
+                            <th>Tarih</th>
+                            <th>Tahsilat</th>
+                            <th>Uretim</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sale in sales)
+                        {
+                            <tr>
+                                <td>@sale.Code</td>
+                                <td>@(sale.InsuranceProductType?.Name ?? "-")</td>
+                                <td>@sale.SaleDate.ToString("dd.MM.yyyy")</td>
+                                <td>@((sale.CollectionAmount ?? 0m).ToString("N0")) TRY</td>
+                                <td>@((sale.ProductionAmount ?? 0m).ToString("N0")) TRY</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section-block">
+            <div class="section-title">
+                <h3>Aktivite Gecmisi</h3>
+                <span class="pill">@activities.Count kayit</span>
+            </div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Aktivite</th>
+                            <th>Tarih</th>
+                            <th>Temas</th>
+                            <th>Sonuc</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var activity in activities)
+                        {
+                            <tr>
+                                <td>@activity.Code</td>
+                                <td>@activity.ActivityDate.ToString("dd.MM.yyyy")</td>
+                                <td>@(activity.ContactStatusType?.Name ?? "-")</td>
+                                <td>@(activity.OutcomeStatusType?.Name ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
-    <div class="panel">
-        <div class="section-title"><h3>Bagli satislar</h3><span class="pill">@sales.Count kayit</span></div>
-        <div class="list">
-            @foreach (var sale in sales)
-            {
-                <div class="list-item"><strong>@sale.Code</strong><span>@sale.ProductType</span></div>
-            }
-        </div>
-    </div>
-</div>
-<div class="panel" style="margin-top:18px;">
-    <div class="section-title"><h3>Aktivite gecmisi</h3><span class="pill">@activities.Count kayit</span></div>
-    <table class="table">
-        <thead><tr><th>Aktivite</th><th>Tarih</th><th>Temas</th><th>Sonuc</th></tr></thead>
-        <tbody>
-        @foreach (var activity in activities)
-        {
-            <tr><td>@activity.Code</td><td>@activity.ActivityDate.ToString("dd.MM.yyyy")</td><td>@activity.ContactStatus</td><td>@activity.OutcomeStatus</td></tr>
-        }
-        </tbody>
-    </table>
-</div>
-<div class="page-actions">
-    <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
-    <form asp-action="Delete" method="post" class="inline-form">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" value="@Model.Id" />
-        <button type="submit" class="btn secondary">Sil</button>
-    </form>
+
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <h3>Baglamsal Aksiyonlar</h3>
+        </section>
+        <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Hizli Aksiyonlar</h4>
+            <div class="action-buttons">
+                <a class="btn primary" asp-action="Edit" asp-route-id="@Model.Id">Musteriyi Duzenle</a>
+                <a class="btn primary" asp-controller="Activities" asp-action="Create">Yeni Aktivite</a>
+            </div>
+        </section>
+        <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Kayit Notlari</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong>Durum</strong>
+                    <div>@Model.Status.ToDisplayText()</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Not</strong>
+                    <div>@(string.IsNullOrWhiteSpace(Model.Notes) ? "Not girilmemis." : Model.Notes)</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sonraki adim</strong>
+                    <div>Musteri portfoyu buyuyorsa yeni aktivite veya capraz satis akisi baslatilabilir.</div>
+                </div>
+            </div>
+        </section>
+        <section class="side-panel">
+            <form asp-action="Delete" method="post" class="inline-form" style="width:100%;" onsubmit="return confirm('Bu musteri kaydini silmek istediginizden emin misiniz?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn secondary" style="width:100%;">Kaydi Sil</button>
+            </form>
+        </section>
+    </aside>
 </div>

@@ -8,9 +8,17 @@ using System.Globalization;
 
 namespace InsuranceManagement.Web.Controllers;
 
-[Authorize(Roles = "Admin,Manager,Operations")]
+[Authorize]
 public class ImportsController : AppController
 {
+    public override void OnActionExecuting(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext context)
+    {
+        base.OnActionExecuting(context);
+        if (!CanAccessPermission("Imports"))
+        {
+            context.Result = Forbid();
+        }
+    }
     private static readonly string[] AllowedExtensions = [".xlsx", ".xls", ".csv"];
     private const long MaxFileSizeBytes = 15 * 1024 * 1024;
     private readonly IWebHostEnvironment _environment;
@@ -34,6 +42,11 @@ public class ImportsController : AppController
         BuildShell();
         ValidateFile(model.File);
 
+        if (string.IsNullOrWhiteSpace(model.ModuleName))
+        {
+            ModelState.AddModelError(nameof(ImportUploadViewModel.ModuleName), "Lutfen veri yuklenecek departmani seciniz.");
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -54,24 +67,20 @@ public class ImportsController : AppController
         var batch = new ImportBatch
         {
             Id = id,
+            ModuleName = model.ModuleName.ToLowerInvariant(),
             FileName = originalFileName,
             ImportedAt = DateTime.Now,
             ImportedBy = User.Identity?.Name ?? "unknown",
-            Status = string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase) ? "PreviewReady" : "Uploaded",
+            Status = "Uploaded",
             Notes = BuildImportNotes(model.Notes, model.File.Length, safeFileName)
         };
         Db.ImportBatches.Add(batch);
-        QueueAudit("Import", "Create", $"IMP-{batch.Id}", $"{batch.FileName} dosyasi yuklendi.");
+        QueueAudit("Import", "Create", $"IMP-{batch.Id}", $"{batch.ModuleName} departmani icin {batch.FileName} dosyasi yuklendi.");
 
         Db.SaveChanges();
-        TempData["Flash"] = "Import dosyasi yuklendi ve batch kaydi olusturuldu.";
-        if (string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            return RedirectToAction(nameof(PreviewLeadImport), new { id = batch.Id });
-        }
-
-        TempData["Warning"] = "Excel formatlari yuklenir, ancak toplu onizleme ve iceri alma su an yalnizca CSV sablonu ile aktif.";
-        return RedirectToAction(nameof(History));
+        TempData["Flash"] = $"{batch.ModuleName.ToUpper()} import dosyasi yuklendi. Simdi verileri onizleyin.";
+        
+        return RedirectToAction(nameof(Preview), new { id = batch.Id });
     }
 
     public IActionResult History()
@@ -84,21 +93,54 @@ public class ImportsController : AppController
     public IActionResult Template(string module = "lead")
     {
         var normalizedModule = (module ?? "lead").Trim().ToLowerInvariant();
-        if (normalizedModule != "lead")
+        var fileName = $"{normalizedModule}_import_template.xlsx";
+        var sheetName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(normalizedModule) + " Import";
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add(sheetName);
+        
+        string[] headers = normalizedModule switch
         {
-            TempData["Warning"] = "Su an yalnizca lead import sablonu hazir.";
-            return RedirectToAction(nameof(Upload));
+            "employee" => ["FullName", "Region", "City", "HasLogin", "UserName", "Password", "Role"],
+            "account" => ["Code", "AccountType", "DisplayName", "City", "District", "Phone", "Email", "TaxNumber", "Status", "OwnerEmployee"],
+            "activity" => ["ActivityDate", "Employee", "Account", "ContactName", "ContactStatus", "OutcomeStatus", "Summary"],
+            "sale" => ["SaleDate", "Employee", "Account", "ProductType", "CollectionAmount", "ApeAmount", "LumpSumAmount", "MonthlyPaymentAmount", "PremiumAmount", "ProductionAmount", "SaleCount", "Notes"],
+            "expense" => ["ExpenseDate", "Employee", "ExpenseType", "Amount", "Notes"],
+            _ => ["DisplayName", "City", "District", "ContactName", "Phone", "Email", "Source", "Status", "Priority", "Note", "AssignedEmployee"]
+        };
+
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var cell = ws.Cell(1, i + 1);
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
         }
 
-        var csv = string.Join(Environment.NewLine,
-        [
-            "DisplayName,City,District,ContactName,Phone,Email,Source,Status,Priority,Note,AssignedEmployee",
-            "\"Acme Dis Ticaret\",\"Istanbul\",\"Besiktas\",\"Merve Karahan\",\"05332223344\",\"merve@acme.com\",\"Call Center\",\"ReadyForAssignment\",\"High\",\"IK muduru kontagi alindi\",\"\"",
-            "\"Nova Lojistik\",\"Kocaeli\",\"Izmit\",\"Sinem Yalcin\",\"05328887766\",\"sinem@nova.com\",\"Referral\",\"New\",\"Medium\",\"Ilk geri donus bekleniyor\",\"\""
-        ]);
+        // Sample Data Row
+        if (normalizedModule == "lead")
+        {
+            ws.Cell(2, 1).Value = "Acme Holding";
+            ws.Cell(2, 2).Value = "Istanbul";
+            ws.Cell(2, 5).Value = "05332221100";
+            ws.Cell(2, 7).Value = "CALL_CENTER";
+            ws.Cell(2, 8).Value = "NEW";
+        }
+        else if (normalizedModule == "sale")
+        {
+            ws.Cell(2, 1).Value = DateTime.Today.ToString("yyyy-MM-dd");
+            ws.Cell(2, 2).Value = "Ahmet Yilmaz"; // Employee Name
+            ws.Cell(2, 3).Value = "Acme Holding"; // Account Name
+            ws.Cell(2, 4).Value = "BES";
+            ws.Cell(2, 5).Value = 1500.00;
+        }
 
-        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
-        return File(bytes, "text/csv", "lead_import_template.csv");
+        ws.Columns().AdjustToContents();
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        var content = stream.ToArray();
+        return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
     [HttpGet]
@@ -127,14 +169,11 @@ public class ImportsController : AppController
     }
 
     [HttpGet]
-    public IActionResult PreviewLeadImport(int id)
+    public IActionResult Preview(int id)
     {
         BuildShell();
         var batch = Db.ImportBatches.AsNoTracking().FirstOrDefault(x => x.Id == id);
-        if (batch is null)
-        {
-            return NotFound();
-        }
+        if (batch is null) return NotFound();
 
         var storedFile = GetStoredFilePath(id);
         if (storedFile is null)
@@ -143,25 +182,119 @@ public class ImportsController : AppController
             return RedirectToAction(nameof(History));
         }
 
-        if (!string.Equals(Path.GetExtension(storedFile), ".csv", StringComparison.OrdinalIgnoreCase))
+        var preview = BuildBatchPreview(batch, storedFile);
+        return View(preview);
+    }
+
+    private ImportPreviewViewModel BuildBatchPreview(ImportBatch batch, string storedFile)
+    {
+        var extension = Path.GetExtension(storedFile).ToLowerInvariant();
+        var rows = new List<ImportPreviewRowViewModel>();
+        var columns = GetColumnsForModule(batch.ModuleName);
+
+        if (extension == ".xlsx" || extension == ".xls")
         {
-            TempData["Warning"] = "Onizleme ve toplu import su an yalnizca CSV dosyalari icin destekleniyor.";
-            return RedirectToAction(nameof(History));
+            using var workbook = new ClosedXML.Excel.XLWorkbook(storedFile);
+            var ws = workbook.Worksheet(1);
+            var headerRow = ws.Row(1);
+            var headerMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            
+            var lastCol = headerRow.LastCellUsed()?.Address.ColumnNumber ?? 0;
+            for (int i = 1; i <= lastCol; i++)
+            {
+                var val = headerRow.Cell(i).GetString();
+                if (!string.IsNullOrWhiteSpace(val)) headerMap[val.Trim()] = i;
+            }
+
+            var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+            for (int i = 2; i <= lastRow; i++)
+            {
+                var rowData = ws.Row(i);
+                var row = new ImportPreviewRowViewModel { RowNumber = i };
+                foreach (var col in columns)
+                {
+                    row.Data[col] = GetExcelValue(rowData, headerMap, col);
+                }
+                ValidateRow(batch.ModuleName, row);
+                rows.Add(row);
+            }
+        }
+        else // CSV
+        {
+            var lines = System.IO.File.ReadAllLines(storedFile, System.Text.Encoding.UTF8);
+            if (lines.Length > 1)
+            {
+                var headers = ParseCsvLine(lines[0]);
+                var headerMap = headers.Select((name, index) => new { name = name.Trim(), index }).ToDictionary(x => x.name, x => x.index, StringComparer.OrdinalIgnoreCase);
+
+                for (var i = 1; i < lines.Length; i++)
+                {
+                    if (string.IsNullOrWhiteSpace(lines[i])) continue;
+                    var values = ParseCsvLine(lines[i]);
+                    var row = new ImportPreviewRowViewModel { RowNumber = i + 1 };
+                    foreach (var col in columns)
+                    {
+                        row.Data[col] = GetCsvValue(values, headerMap, col);
+                    }
+                    ValidateRow(batch.ModuleName, row);
+                    rows.Add(row);
+                }
+            }
         }
 
-        var preview = BuildLeadPreview(batch, storedFile);
-        return View(preview);
+        return new ImportPreviewViewModel
+        {
+            BatchId = batch.Id,
+            ModuleName = batch.ModuleName,
+            FileName = batch.FileName,
+            TotalRows = rows.Count,
+            ValidRows = rows.Count(x => x.CanImport),
+            InvalidRows = rows.Count(x => !x.CanImport),
+            Rows = rows,
+            Columns = columns
+        };
+    }
+
+    private List<string> GetColumnsForModule(string module)
+    {
+        return module switch
+        {
+            "employee" => ["FullName", "Region", "City", "HasLogin", "UserName", "Password", "Role"],
+            "account" => ["Code", "AccountType", "DisplayName", "City", "District", "Phone", "Email", "TaxNumber", "Status", "OwnerEmployee"],
+            "activity" => ["ActivityDate", "Employee", "Account", "ContactName", "ContactStatus", "OutcomeStatus", "Summary"],
+            "sale" => ["SaleDate", "Employee", "Account", "ProductType", "CollectionAmount", "ApeAmount", "LumpSumAmount", "MonthlyPaymentAmount", "PremiumAmount", "ProductionAmount", "SaleCount", "Notes"],
+            "expense" => ["ExpenseDate", "Employee", "ExpenseType", "Amount", "Notes"],
+            _ => ["DisplayName", "City", "District", "ContactName", "Phone", "Email", "Source", "Status", "Priority", "Note", "AssignedEmployee"]
+        };
+    }
+
+    private void ValidateRow(string module, ImportPreviewRowViewModel row)
+    {
+        // General checks
+        if (module == "lead" || module == "account")
+        {
+            if (string.IsNullOrWhiteSpace(row.Data.GetValueOrDefault("DisplayName"))) row.Errors.Add("DisplayName zorunlu.");
+            if (string.IsNullOrWhiteSpace(row.Data.GetValueOrDefault("City"))) row.Errors.Add("City zorunlu.");
+        }
+        else if (module == "employee")
+        {
+            if (string.IsNullOrWhiteSpace(row.Data.GetValueOrDefault("FullName"))) row.Errors.Add("FullName zorunlu.");
+            if (string.IsNullOrWhiteSpace(row.Data.GetValueOrDefault("Region"))) row.Errors.Add("Region zorunlu.");
+        }
+        else if (module == "sale" || module == "expense" || module == "activity")
+        {
+            if (string.IsNullOrWhiteSpace(row.Data.GetValueOrDefault("Employee"))) row.Errors.Add("Personel (Employee) zorunlu.");
+        }
+
+        // Add more deep validation logic if needed
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult CommitLeadImport(int id)
+    public IActionResult CommitImport(int id)
     {
         var batch = Db.ImportBatches.FirstOrDefault(x => x.Id == id);
-        if (batch is null)
-        {
-            return NotFound();
-        }
+        if (batch is null) return NotFound();
 
         var storedFile = GetStoredFilePath(id);
         if (storedFile is null)
@@ -170,52 +303,221 @@ public class ImportsController : AppController
             return RedirectToAction(nameof(History));
         }
 
-        var preview = BuildLeadPreview(batch, storedFile);
+        var preview = BuildBatchPreview(batch, storedFile);
         if (preview.ValidRows == 0)
         {
             TempData["Warning"] = "Ice aktarilabilecek gecerli satir bulunamadi.";
-            return RedirectToAction(nameof(PreviewLeadImport), new { id });
+            return RedirectToAction(nameof(Preview), new { id });
         }
 
+        // Module specific commit logic
+        try
+        {
+            switch (batch.ModuleName)
+            {
+                case "lead": CommitLeads(preview); break;
+                case "employee": CommitEmployees(preview); break;
+                case "account": CommitAccounts(preview); break;
+                case "activity": CommitActivities(preview); break;
+                case "sale": CommitSales(preview); break;
+                case "expense": CommitExpenses(preview); break;
+                default: 
+                    TempData["Warning"] = "Gecersiz modul."; 
+                    return RedirectToAction(nameof(Upload));
+            }
+
+            batch.Status = preview.InvalidRows > 0 ? "ImportedWithWarnings" : "Imported";
+            batch.Notes = $"{batch.Notes} | Iceri alinan satir: {preview.ValidRows} | Hatali satir: {preview.InvalidRows}";
+            QueueAudit("Import", "Commit", $"IMP-{batch.Id}", $"{preview.ValidRows} {batch.ModuleName} satiri toplu olarak iceri alindi.");
+            Db.SaveChanges();
+
+            TempData["Flash"] = $"{preview.ValidRows} {batch.ModuleName} satiri iceri alindi.";
+            return RedirectToAction("Index", CultureInfo.CurrentCulture.TextInfo.ToTitleCase(batch.ModuleName) + "s");
+        }
+        catch (Exception ex)
+        {
+            TempData["Warning"] = "Veritabani kaydi sirasinda hata olustu: " + ex.Message;
+            return RedirectToAction(nameof(Preview), new { id });
+        }
+    }
+
+    private void CommitLeads(ImportPreviewViewModel preview)
+    {
+        var statusTypes = Db.LeadStatusTypes.ToList();
+        var sourceTypes = Db.LeadSourceTypes.ToList();
         var nextId = (Db.Leads.Max(x => (int?)x.Id) ?? 100) + 1;
+
         foreach (var row in preview.Rows.Where(x => x.CanImport))
         {
-            var assignedEmployeeId = ResolveEmployeeId(row.AssignedEmployee);
-            var status = Enum.Parse<LeadStatus>(row.StatusText, true);
+            var assignedEmployeeId = ResolveEmployeeId(row.Data.GetValueOrDefault("AssignedEmployee"));
+            var statusTypeId = statusTypes.FirstOrDefault(x => string.Equals(x.Code, row.Data.GetValueOrDefault("Status"), StringComparison.OrdinalIgnoreCase))?.Id 
+                               ?? statusTypes.FirstOrDefault(x => x.Code == "NEW")?.Id ?? 1;
+            var sourceTypeId = sourceTypes.FirstOrDefault(x => string.Equals(x.Code, row.Data.GetValueOrDefault("Source"), StringComparison.OrdinalIgnoreCase))?.Id
+                               ?? sourceTypes.FirstOrDefault(x => x.Code == "CALL_CENTER")?.Id ?? 1;
+
             var lead = new Lead
             {
-                Id = nextId,
+                Id = nextId++,
                 Code = $"LD-{nextId}",
-                DisplayName = row.DisplayName,
-                City = row.City,
-                District = row.District,
-                ContactName = row.ContactName,
-                Phone = row.Phone,
-                Email = row.Email,
-                Source = string.IsNullOrWhiteSpace(row.Source) ? "Call Center" : row.Source,
-                Status = status,
-                Priority = string.IsNullOrWhiteSpace(row.Priority) ? "Medium" : row.Priority,
-                Note = row.Note,
-                AssignedEmployeeId = assignedEmployeeId,
-                CreatedAt = DateTime.Today
+                DisplayName = row.Data.GetValueOrDefault("DisplayName", ""),
+                City = row.Data.GetValueOrDefault("City", ""),
+                District = row.Data.GetValueOrDefault("District", ""),
+                ContactName = row.Data.GetValueOrDefault("ContactName", ""),
+                Phone = row.Data.GetValueOrDefault("Phone", ""),
+                Email = row.Data.GetValueOrDefault("Email", ""),
+                LeadSourceTypeId = sourceTypeId,
+                LeadStatusTypeId = statusTypeId,
+                Priority = Enum.TryParse<LeadPriority>(row.Data.GetValueOrDefault("Priority"), true, out var p) ? p : LeadPriority.Medium,
+                Note = row.Data.GetValueOrDefault("Note", ""),
+                AssignedEmployeeId = assignedEmployeeId
             };
-
             Db.Leads.Add(lead);
-            nextId++;
         }
+    }
 
-        batch.Status = preview.InvalidRows > 0 ? "ImportedWithWarnings" : "Imported";
-        batch.Notes = $"{batch.Notes} | Iceri alinan satir: {preview.ValidRows} | Hatali satir: {preview.InvalidRows}";
-        QueueAudit("Import", "Commit", $"IMP-{batch.Id}", $"{preview.ValidRows} lead satiri toplu olarak iceri alindi.");
-        Db.SaveChanges();
+    private void CommitEmployees(ImportPreviewViewModel preview)
+    {
+        var nextId = (Db.Employees.Max(x => (int?)x.Id) ?? 10) + 1;
+        var nextUserId = (Db.Users.Max(x => (int?)x.Id) ?? 10) + 1;
 
-        TempData["Flash"] = $"{preview.ValidRows} lead satiri iceri alindi.";
-        if (preview.InvalidRows > 0)
+        foreach (var row in preview.Rows.Where(x => x.CanImport))
         {
-            TempData["Warning"] = $"{preview.InvalidRows} satir hata nedeniyle atlandi.";
-        }
+            var emp = new Employee
+            {
+                Id = nextId++,
+                FullName = row.Data.GetValueOrDefault("FullName", ""),
+                Region = row.Data.GetValueOrDefault("Region", ""),
+                City = row.Data.GetValueOrDefault("City", ""),
+                IsActive = true
+            };
+            Db.Employees.Add(emp);
 
-        return RedirectToAction("Index", "Leads");
+            if (string.Equals(row.Data.GetValueOrDefault("HasLogin"), "true", StringComparison.OrdinalIgnoreCase) || 
+                !string.IsNullOrWhiteSpace(row.Data.GetValueOrDefault("UserName")))
+            {
+                var roleStr = row.Data.GetValueOrDefault("Role", "FieldSales");
+                var user = new UserAccount
+                {
+                    Id = nextUserId++,
+                    EmployeeId = emp.Id,
+                    FullName = emp.FullName,
+                    UserName = row.Data.GetValueOrDefault("UserName", emp.FullName.Replace(" ", ".").ToLower()),
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(row.Data.GetValueOrDefault("Password", "123456")),
+                    Role = Enum.TryParse<RoleType>(roleStr, true, out var r) ? r : RoleType.FieldSales
+                };
+                Db.Users.Add(user);
+            }
+        }
+    }
+
+    private void CommitAccounts(ImportPreviewViewModel preview)
+    {
+        var nextId = (Db.Accounts.Max(x => (int?)x.Id) ?? 100) + 1;
+        foreach (var row in preview.Rows.Where(x => x.CanImport))
+        {
+            var account = new Account
+            {
+                Id = nextId++,
+                Code = row.Data.GetValueOrDefault("Code", $"ACC-{nextId}"),
+                AccountType = Enum.TryParse<AccountType>(row.Data.GetValueOrDefault("AccountType"), true, out var at) ? at : AccountType.Corporate,
+                DisplayName = row.Data.GetValueOrDefault("DisplayName", ""),
+                City = row.Data.GetValueOrDefault("City", ""),
+                District = row.Data.GetValueOrDefault("District"),
+                Phone = row.Data.GetValueOrDefault("Phone"),
+                Email = row.Data.GetValueOrDefault("Email"),
+                TaxNumber = row.Data.GetValueOrDefault("TaxNumber"),
+                Status = row.Data.GetValueOrDefault("Status", "Active"),
+                OwnerEmployeeId = ResolveEmployeeId(row.Data.GetValueOrDefault("OwnerEmployee")),
+                Notes = row.Data.GetValueOrDefault("Notes", "")
+            };
+            Db.Accounts.Add(account);
+        }
+    }
+
+    private void CommitActivities(ImportPreviewViewModel preview)
+    {
+        var nextId = (Db.Activities.Max(x => (int?)x.Id) ?? 100) + 1;
+        foreach (var row in preview.Rows.Where(x => x.CanImport))
+        {
+            var activity = new Activity
+            {
+                Id = nextId++,
+                Code = $"ACT-{nextId}",
+                ActivityDate = DateTime.TryParse(row.Data.GetValueOrDefault("ActivityDate"), out var dt) ? dt : DateTime.Now,
+                EmployeeId = ResolveEmployeeId(row.Data.GetValueOrDefault("Employee")) ?? 0,
+                AccountId = ResolveAccountId(row.Data.GetValueOrDefault("Account")) ?? 0,
+                ContactName = row.Data.GetValueOrDefault("ContactName", ""),
+                ContactStatusTypeId = 1, // Default
+                Summary = row.Data.GetValueOrDefault("Summary", "")
+            };
+            Db.Activities.Add(activity);
+        }
+    }
+
+    private void CommitSales(ImportPreviewViewModel preview)
+    {
+        var nextId = (Db.Sales.Max(x => (int?)x.Id) ?? 100) + 1;
+        var pTypes = Db.InsuranceProductTypes.ToList();
+
+        foreach (var row in preview.Rows.Where(x => x.CanImport))
+        {
+            var sale = new Sale
+            {
+                Id = nextId++,
+                Code = $"SLS-{nextId}",
+                SaleDate = DateTime.TryParse(row.Data.GetValueOrDefault("SaleDate"), out var dt) ? dt : DateTime.Now,
+                EmployeeId = ResolveEmployeeId(row.Data.GetValueOrDefault("Employee")) ?? 0,
+                AccountId = ResolveAccountId(row.Data.GetValueOrDefault("Account")) ?? 0,
+                ProductTypeId = pTypes.FirstOrDefault(x => string.Equals(x.Name, row.Data.GetValueOrDefault("ProductType"), StringComparison.OrdinalIgnoreCase))?.Id ?? 1,
+                CollectionAmount = TryParseDecimal(row.Data.GetValueOrDefault("CollectionAmount")),
+                ApeAmount = TryParseDecimal(row.Data.GetValueOrDefault("ApeAmount")),
+                ProductionAmount = TryParseDecimal(row.Data.GetValueOrDefault("ProductionAmount")),
+                SaleAmount = TryParseDecimal(row.Data.GetValueOrDefault("SaleAmount")),
+                SaleCount = int.TryParse(row.Data.GetValueOrDefault("SaleCount"), out var sc) ? sc : 1,
+                Notes = row.Data.GetValueOrDefault("Notes", "")
+            };
+            Db.Sales.Add(sale);
+        }
+    }
+
+    private void CommitExpenses(ImportPreviewViewModel preview)
+    {
+        var nextId = (Db.Expenses.Max(x => (int?)x.Id) ?? 100) + 1;
+        var eTypes = Db.ExpenseTypes.ToList();
+
+        foreach (var row in preview.Rows.Where(x => x.CanImport))
+        {
+            var expense = new Expense
+            {
+                Id = nextId++,
+                Code = $"EXP-{nextId}",
+                ExpenseDate = DateTime.TryParse(row.Data.GetValueOrDefault("ExpenseDate"), out var dt) ? dt : DateTime.Now,
+                EmployeeId = ResolveEmployeeId(row.Data.GetValueOrDefault("Employee")) ?? 0,
+                ExpenseTypeId = eTypes.FirstOrDefault(x => string.Equals(x.Name, row.Data.GetValueOrDefault("ExpenseType"), StringComparison.OrdinalIgnoreCase))?.Id ?? 1,
+                Amount = TryParseDecimal(row.Data.GetValueOrDefault("Amount")) ?? 0,
+                Notes = row.Data.GetValueOrDefault("Notes", "")
+            };
+            Db.Expenses.Add(expense);
+        }
+    }
+
+    private int? ResolveEmployeeId(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        return Db.Employees.FirstOrDefault(x => x.FullName.ToLower() == name.Trim().ToLower())?.Id;
+    }
+
+    private int? ResolveAccountId(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        return Db.Accounts.FirstOrDefault(x => x.DisplayName.ToLower() == name.Trim().ToLower())?.Id;
+    }
+
+    private static decimal? TryParseDecimal(string? val)
+    {
+        if (decimal.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var result)) return result;
+        if (decimal.TryParse(val, NumberStyles.Any, CultureInfo.GetCultureInfo("tr-TR"), out result)) return result;
+        return null;
     }
 
     private void ValidateFile(IFormFile? file)
@@ -260,133 +562,13 @@ public class ImportsController : AppController
         return string.IsNullOrWhiteSpace(notes) ? details : $"{notes} | {details}";
     }
 
-    private LeadImportPreviewViewModel BuildLeadPreview(ImportBatch batch, string storedFile)
+    private static string GetExcelValue(ClosedXML.Excel.IXLRow row, Dictionary<string, int> headerMap, string col)
     {
-        var lines = System.IO.File.ReadAllLines(storedFile, System.Text.Encoding.UTF8);
-        var rows = new List<LeadImportPreviewRowViewModel>();
-        if (lines.Length <= 1)
+        if (headerMap.TryGetValue(col, out var index))
         {
-            return new LeadImportPreviewViewModel
-            {
-                BatchId = batch.Id,
-                FileName = batch.FileName
-            };
+            return row.Cell(index).GetString()?.Trim() ?? string.Empty;
         }
-
-        var headers = ParseCsvLine(lines[0]);
-        var headerMap = headers
-            .Select((name, index) => new { name = name.Trim(), index })
-            .ToDictionary(x => x.name, x => x.index, StringComparer.OrdinalIgnoreCase);
-
-        for (var i = 1; i < lines.Length; i++)
-        {
-            if (string.IsNullOrWhiteSpace(lines[i]))
-            {
-                continue;
-            }
-
-            var values = ParseCsvLine(lines[i]);
-            var row = new LeadImportPreviewRowViewModel
-            {
-                RowNumber = i + 1,
-                DisplayName = GetCsvValue(values, headerMap, "DisplayName"),
-                City = GetCsvValue(values, headerMap, "City"),
-                District = GetCsvValue(values, headerMap, "District"),
-                ContactName = GetCsvValue(values, headerMap, "ContactName"),
-                Phone = GetCsvValue(values, headerMap, "Phone"),
-                Email = GetCsvValue(values, headerMap, "Email"),
-                Source = GetCsvValue(values, headerMap, "Source"),
-                StatusText = GetCsvValue(values, headerMap, "Status"),
-                Priority = GetCsvValue(values, headerMap, "Priority"),
-                Note = GetCsvValue(values, headerMap, "Note"),
-                AssignedEmployee = GetCsvValue(values, headerMap, "AssignedEmployee")
-            };
-
-            ValidateLeadPreviewRow(row);
-            rows.Add(row);
-        }
-
-        return new LeadImportPreviewViewModel
-        {
-            BatchId = batch.Id,
-            FileName = batch.FileName,
-            TotalRows = rows.Count,
-            ValidRows = rows.Count(x => x.CanImport),
-            InvalidRows = rows.Count(x => !x.CanImport),
-            Rows = rows
-        };
-    }
-
-    private void ValidateLeadPreviewRow(LeadImportPreviewRowViewModel row)
-    {
-        if (string.IsNullOrWhiteSpace(row.DisplayName))
-        {
-            row.Errors.Add("DisplayName zorunlu.");
-        }
-
-        if (string.IsNullOrWhiteSpace(row.City))
-        {
-            row.Errors.Add("City zorunlu.");
-        }
-
-        if (string.IsNullOrWhiteSpace(row.Phone) && string.IsNullOrWhiteSpace(row.Email))
-        {
-            row.Errors.Add("Phone veya Email alanlarindan en az biri dolu olmali.");
-        }
-
-        if (string.IsNullOrWhiteSpace(row.StatusText))
-        {
-            row.StatusText = LeadStatus.New.ToString();
-        }
-        else if (!Enum.TryParse<LeadStatus>(row.StatusText, true, out _))
-        {
-            row.Errors.Add("Status alani gecersiz.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(row.AssignedEmployee) && !ResolveEmployeeId(row.AssignedEmployee).HasValue)
-        {
-            row.Errors.Add("AssignedEmployee sistemde bulunamadi.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(row.Phone))
-        {
-            if (Db.Leads.Any(x => x.Phone == row.Phone))
-            {
-                row.Errors.Add("Bu telefon ile mevcut bir lead kaydi var.");
-            }
-            else if (Db.Accounts.Any(x => x.Phone == row.Phone))
-            {
-                row.Warnings.Add("Bu telefon mevcut musteri kayitlarinda da bulunuyor.");
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(row.Email))
-        {
-            if (Db.Leads.Any(x => x.Email == row.Email))
-            {
-                row.Errors.Add("Bu e-posta ile mevcut bir lead kaydi var.");
-            }
-            else if (Db.Accounts.Any(x => x.Email == row.Email))
-            {
-                row.Warnings.Add("Bu e-posta mevcut musteri kayitlarinda da bulunuyor.");
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(row.DisplayName) && Db.Leads.Any(x => x.DisplayName == row.DisplayName))
-        {
-            row.Warnings.Add("Ayni isimle mevcut lead kaydi bulunuyor.");
-        }
-    }
-
-    private int? ResolveEmployeeId(string employeeName)
-    {
-        if (string.IsNullOrWhiteSpace(employeeName))
-        {
-            return null;
-        }
-
-        var employee = Db.Employees.FirstOrDefault(x => x.FullName.ToLower() == employeeName.Trim().ToLower());
-        return employee?.Id;
+        return string.Empty;
     }
 
     private static string GetCsvValue(List<string> values, Dictionary<string, int> headerMap, string columnName)

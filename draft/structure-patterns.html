@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Structural Patterns</title>
+  <link rel="stylesheet" href="./structure-patterns.css">
+</head>
+<body>
+  <div class="catalog">
+    <section class="hero-card hero-grid">
+      <div>
+        <span class="eyebrow">Structural Drafts</span>
+        <h1>Renk degil, ekran mimarisi karsilastirmasi</h1>
+        <p class="caption">Bu taslaklarda minimal renk dili sabit. Degisen sey kutularin formu, ekran bloklarinin yerlestirilmesi ve kullaniciyi yonlendiren araclarin yogunlugu.</p>
+        <div class="cta-row" style="margin-top:16px;">
+          <a class="btn" href="./pattern-command-center.html">Command Center</a>
+          <a class="btn-secondary" href="./pattern-workflow.html">Workflow</a>
+          <a class="btn-secondary" href="./pattern-data-grid-plus.html">Data Grid Plus</a>
+        </div>
+      </div>
+      <div class="surface-soft">
+        <h3>Neye bakmali?</h3>
+        <div class="card-list">
+          <div class="notice-card"><strong>Kutu sekli</strong><p>Daha yumusak mi, daha net mi, hiyerarsi kuruyor mu?</p></div>
+          <div class="notice-card"><strong>Yerlesim</strong><p>Kullanici neyi once goruyor, hangi blok onu ileri tasiyor?</p></div>
+          <div class="notice-card"><strong>Yonlendirme araclari</strong><p>Subnav, sticky actions, right rail, quick actions, stage bar yeterli mi?</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pattern-grid">
+      <article class="pattern-card">
+        <div class="pattern-preview">
+          <div class="preview-side"></div>
+          <div class="preview-main">
+            <div class="preview-topline"></div>
+            <div class="preview-row cols-3">
+              <div class="preview-block"></div>
+              <div class="preview-block"></div>
+              <div class="preview-block"></div>
+            </div>
+            <div class="preview-row cols-2">
+              <div class="preview-stack"></div>
+              <div class="preview-rail"></div>
+            </div>
+          </div>
+        </div>
+        <h3>Command Center</h3>
+        <p>Yonetici ve operasyon lideri icin. Yogun sinyal, cok sayida yonlendirme karti, sag rail ve sticky aksiyonlar var.</p>
+        <a class="btn" href="./pattern-command-center.html">Ac</a>
+      </article>
+
+      <article class="pattern-card">
+        <div class="pattern-preview">
+          <div class="preview-side"></div>
+          <div class="preview-main">
+            <div class="preview-topline"></div>
+            <div class="preview-pill"></div>
+            <div class="preview-row cols-3">
+              <div class="preview-block"></div>
+              <div class="preview-block"></div>
+              <div class="preview-block"></div>
+            </div>
+            <div class="preview-row cols-2">
+              <div class="preview-stack"></div>
+              <div class="preview-stack"></div>
+            </div>
+          </div>
+        </div>
+        <h3>Workflow</h3>
+        <p>Adim adim is yaptiran duzen. Surec cubugu, siradaki is, gorev odagi ve akis mantigi guclu.</p>
+        <a class="btn" href="./pattern-workflow.html">Ac</a>
+      </article>
+
+      <article class="pattern-card">
+        <div class="pattern-preview">
+          <div class="preview-side"></div>
+          <div class="preview-main">
+            <div class="preview-topline"></div>
+            <div class="preview-row cols-2">
+              <div class="preview-block"></div>
+              <div class="preview-block"></div>
+            </div>
+            <div class="preview-stack" style="min-height:108px;"></div>
+            <div class="preview-rail" style="min-height:72px;"></div>
+          </div>
+        </div>
+        <h3>Data Grid Plus</h3>
+        <p>Liste agirlikli ekranlar icin. Guclu filtre alani, tablo merkezli akis, hizli panel ve akilli sag rail var.</p>
+        <a class="btn" href="./pattern-data-grid-plus.html">Ac</a>
+      </article>
+    </section>
+  </div>
+</body>
+</html>

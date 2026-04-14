@@ -2,23 +2,70 @@
 @{
     var employee = ViewBag.Employee as InsuranceManagement.Web.Domain.Employee;
     ViewData["Title"] = "Masraf Detayi";
-    ViewData["Subtitle"] = "MVP'de onay akisina girmeden kayit ve raporlama odakli";
+    ViewData["Subtitle"] = "Kayit ve raporlama odakli masraf ozeti";
 }
-<div class="panel">
-    <div class="list">
-        <div class="list-item"><strong>Kod</strong><span>@Model.Code</span></div>
-        <div class="list-item"><strong>Personel</strong><span>@employee?.FullName</span></div>
-        <div class="list-item"><strong>Tarih</strong><span>@Model.ExpenseDate.ToString("dd.MM.yyyy")</span></div>
-        <div class="list-item"><strong>Tur</strong><span>@Model.ExpenseType.ToDisplayText()</span></div>
-        <div class="list-item"><strong>Tutar</strong><span>@Model.Amount.ToString("N0") TRY</span></div>
+
+<div class="detail-shell">
+    <div class="layout-main">
+        <section class="section-block">
+            <div class="section-title">
+                <h3>Masraf Ozeti</h3>
+                <span class="pill">detay kaydi</span>
+            </div>
+            <div class="metric-grid three">
+                <article class="metric-card">
+                    <span class="metric-label">Masraf Kodu</span>
+                    <strong>@Model.Code</strong>
+                    <small>tekil referans</small>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Tutar</span>
+                    <strong>@Model.Amount.ToString("N0") TRY</strong>
+                    <small>kaydedilen gider</small>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Personel</span>
+                    <strong>@(employee?.FullName ?? "-")</strong>
+                    <small>bagli kayit sahibi</small>
+                </article>
+            </div>
+        </section>
+
+        <section class="section-block">
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span>Tarih</span>
+                    <strong>@Model.ExpenseDate.ToString("dd.MM.yyyy")</strong>
+                </div>
+                <div class="detail-item">
+                    <span>Tur</span>
+                    <strong>@(Model.ExpenseTypeEntity?.Name ?? "-")</strong>
+                </div>
+                <div class="detail-item">
+                    <span>Not</span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.Notes) ? "-" : Model.Notes)</strong>
+                </div>
+            </div>
+        </section>
     </div>
-    <div class="note-box"><strong>Not</strong><p>@Model.Notes</p></div>
-</div>
-<div class="page-actions">
-    <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
-    <form asp-action="Delete" method="post" class="inline-form">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" value="@Model.Id" />
-        <button type="submit" class="btn secondary">Sil</button>
-    </form>
+
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <h3>Baglamsal Aksiyonlar</h3>
+        </section>
+        <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Hizli Aksiyonlar</h4>
+            <div class="action-buttons">
+                <a class="btn primary" asp-action="Edit" asp-route-id="@Model.Id">Masrafi Duzenle</a>
+                <a class="btn primary" asp-controller="Employees" asp-action="Index">Personellere Git</a>
+            </div>
+        </section>
+        <section class="side-panel">
+            <form asp-action="Delete" method="post" class="inline-form" style="width:100%;" onsubmit="return confirm('Bu masraf kaydini silmek istediginizden emin misiniz?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn secondary" style="width:100%;">Kaydi Sil</button>
+            </form>
+        </section>
+    </aside>
 </div>

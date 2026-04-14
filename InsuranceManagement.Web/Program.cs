@@ -1,9 +1,12 @@
 using InsuranceManagement.Web.Data;
-using InsuranceManagement.Web.Infrastructure;
+using InsuranceManagement.Web.Domain;
 using InsuranceManagement.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+
+// Fix for Npgsql 6.0+ DateTime issues
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,22 +16,23 @@ builder.Logging.AddDebug();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<AppDataStore>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<ILeadService, LeadService>();
+builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IExpenseService, ExpenseService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<DashboardService>();
-
-var provider = builder.Configuration["Persistence:Provider"] ?? "InMemory";
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Hard-enforce persistence settings before anything else reads them
+var provider = "Sqlite";
+builder.Configuration["Persistence:Provider"] = "Sqlite";
+builder.Configuration["ConnectionStrings:DefaultConnection"] = "Data Source=insurance.db";
+var connectionString = "Data Source=insurance.db";
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
-    {
-        options.UseNpgsql(connectionString);
-    }
-    else
-    {
-        options.UseInMemoryDatabase("insurance-management-mvp");
-    }
+    options.UseSqlite(connectionString);
 });
 
 var dataProtectionPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
@@ -54,13 +58,25 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
+    try 
     {
-        db.Database.Migrate();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
+        {
+            db.Database.Migrate();
+        }
+        else
+        {
+            db.Database.EnsureCreated();
+        }
+        
+        await DbSeeder.SeedAsync(db);
     }
-
-    await DbSeeder.SeedAsync(db);
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Veritabanı başlatılırken kritik bir hata oluştu.");
+    }
 }
 
 if (!app.Environment.IsDevelopment())

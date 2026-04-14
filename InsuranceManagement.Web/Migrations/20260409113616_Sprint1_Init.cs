@@ -4,10 +4,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace InsuranceManagement.Web.Data.Migrations
+namespace InsuranceManagement.Web.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Sprint1_Init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -28,7 +28,11 @@ namespace InsuranceManagement.Web.Data.Migrations
                     TaxNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     OwnerEmployeeId = table.Column<int>(type: "integer", nullable: true),
-                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false)
+                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -49,11 +53,33 @@ namespace InsuranceManagement.Web.Data.Migrations
                     ContactName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     ContactStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     OutcomeStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    Summary = table.Column<string>(type: "character varying(3000)", maxLength: 3000, nullable: false)
+                    Summary = table.Column<string>(type: "character varying(3000)", maxLength: 3000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_activities", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "audit_logs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UserName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Module = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ActionType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    EntityCode = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Detail = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_audit_logs", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -65,7 +91,11 @@ namespace InsuranceManagement.Web.Data.Migrations
                     FullName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Region = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     City = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -83,7 +113,11 @@ namespace InsuranceManagement.Web.Data.Migrations
                     EmployeeId = table.Column<int>(type: "integer", nullable: false),
                     ExpenseType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Amount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: false),
-                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false)
+                    Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -100,7 +134,11 @@ namespace InsuranceManagement.Web.Data.Migrations
                     ImportedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ImportedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     Status = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false)
+                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -125,10 +163,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                     Priority = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Note = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
                     AssignedEmployeeId = table.Column<int>(type: "integer", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ScheduledVisitDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ConvertedAccountId = table.Column<int>(type: "integer", nullable: true),
-                    ConvertedActivityId = table.Column<int>(type: "integer", nullable: true)
+                    ConvertedActivityId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -155,7 +196,11 @@ namespace InsuranceManagement.Web.Data.Migrations
                     ProductionAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
                     SaleAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
                     SaleCount = table.Column<int>(type: "integer", nullable: false),
-                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false)
+                    Notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -169,10 +214,14 @@ namespace InsuranceManagement.Web.Data.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    Password = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     FullName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Role = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    EmployeeId = table.Column<int>(type: "integer", nullable: true)
+                    EmployeeId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -188,6 +237,9 @@ namespace InsuranceManagement.Web.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "activities");
+
+            migrationBuilder.DropTable(
+                name: "audit_logs");
 
             migrationBuilder.DropTable(
                 name: "employees");

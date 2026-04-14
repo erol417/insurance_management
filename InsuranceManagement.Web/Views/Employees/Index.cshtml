@@ -1,22 +1,163 @@
-@model List<InsuranceManagement.Web.Domain.Employee>
+@model InsuranceManagement.Web.ViewModels.EmployeesIndexViewModel
+@using InsuranceManagement.Web.Domain
+@using InsuranceManagement.Web.ViewModels
 @{
-    ViewData["Title"] = "Personeller";
-    ViewData["Subtitle"] = "Saha ve operasyon personel kayitlari";
+    ViewData["Title"] = "Personel Yonetim Merkezi";
+    ViewData["Subtitle"] = "Ekip üyelerini, yetkilerini ve kullanıcı hesaplarını tek tablo üzerinden anlık yönet.";
+    var canManage = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("Operations");
 }
-<div class="page-actions">
-    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+
+<div class="premium-strip">
+    <div>
+        <strong>Personel Yonetim Merkezi</strong>
+        <span>Ekip üyelerini, yetkilerini ve kullanıcı hesaplarını tek tablo üzerinden anlık yönet.</span>
+    </div>
+    <div class="inline-actions">
+        @if (canManage)
+        {
+            <a class="btn primary" asp-action="Create">Detayli Form</a>
+        }
+    </div>
+</div>
+
+<div class="panel filters-bar">
+    <form method="get" class="filters-inline">
+        <div class="filter-group">
+            <i data-lucide="search"></i>
+            <input type="text" name="searchTerm" placeholder="Isim, bolge veya kullanici adi..." value="@ViewBag.SearchTerm" />
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn primary btn-icon-only" title="Filtrele">
+                <i data-lucide="filter"></i>
+            </button>
+            @if (!string.IsNullOrEmpty(ViewBag.SearchTerm))
+            {
+                <a asp-action="Index" class="btn ghost btn-icon-only" title="Temizle">
+                    <i data-lucide="rotate-ccw"></i>
+                </a>
+            }
+        </div>
+    </form>
+</div>
+
+<div class="page-actions" style="margin-bottom:14px;">
+    @if (canManage)
     {
-        <a class="btn primary" asp-action="Create">Yeni Personel</a>
+        <button type="button" class="btn" onclick="toggleEmployeeInsertRow()">Yeni Satir Ekle</button>
+        <button type="button" class="btn secondary" id="save-all-employees-btn">Degisiklikleri Kaydet</button>
+        <button type="button" class="btn ghost" id="clear-employee-draft-btn">Taslagi Temizle</button>
     }
 </div>
-<div class="panel" style="margin-top:18px;">
-    <table class="table">
-        <thead><tr><th>Ad</th><th>Bolge</th><th>Sehir</th></tr></thead>
-        <tbody>
-        @foreach (var employee in Model)
-        {
-            <tr><td><a asp-action="Details" asp-route-id="@employee.Id">@employee.FullName</a></td><td>@employee.Region</td><td>@employee.City</td></tr>
-        }
-        </tbody>
-    </table>
+
+<div class="panel">
+    <div class="note-box">
+        <strong>Hizli Duzenleme</strong>
+        <p>Personel bilgilerini ve giris yetkilerini tablo uzerinden anlik guncelleyebilirsiniz. Degisiklikler taslak olarak tutulur.</p>
+    </div>
+    <div class="table-scroll">
+        <table class="data-table compact-table employee-grid" id="draft-grid">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">ID</th>
+                    <th data-sort="name">Personel Ad Soyad</th>
+                    <th data-sort="region">Bolge</th>
+                    <th data-sort="city">Sehir</th>
+                    <th style="width: 100px; text-align:center;">Giris</th>
+                    <th>Kullanici Adi</th>
+                    <th>Rol</th>
+                    <th style="width: 100px; text-align:right;">Islemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @* Inline Insert Row *@
+                <tr id="employee-insert-row" class="inline-entry-row" style="display:none;">
+                    <td><span class="badge ghost">YENI</span></td>
+                    <td><input data-field="fullName" class="cell-input" placeholder="Ad Soyad" /></td>
+                    <td><input data-field="region" class="cell-input" placeholder="Bolge" /></td>
+                    <td><input data-field="city" class="cell-input" placeholder="Sehir" /></td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" data-field="hasLogin" onchange="toggleRowLoginFields(this)" />
+                    </td>
+                    <td><input data-field="userName" class="cell-input" placeholder="Kullanici Adi" disabled /></td>
+                    <td>
+                        <select data-field="role" class="cell-input cell-select" disabled>
+                            @foreach (var role in Enum.GetValues<RoleType>())
+                            {
+                                <option value="@((int)role)">@role.ToDisplayText()</option>
+                            }
+                        </select>
+                    </td>
+                    <td></td>
+                </tr>
+
+                @foreach (var item in Model.Items)
+                {
+                    <tr data-employee-id="@item.Id">
+                        <td>@item.Id</td>
+                        <td><input data-field="fullName" class="cell-input" value="@item.FullName" /></td>
+                        <td><input data-field="region" class="cell-input" value="@item.Region" /></td>
+                        <td><input data-field="city" class="cell-input" value="@item.City" /></td>
+                        <td style="text-align:center;">
+                            <input type="checkbox" data-field="hasLogin" @(item.HasLogin ? "checked" : "") onchange="toggleRowLoginFields(this)" />
+                        </td>
+                        <td><input data-field="userName" class="cell-input" value="@item.UserName" @(item.HasLogin ? "" : "disabled") /></td>
+                        <td>
+                            <select data-field="role" class="cell-input cell-select" @(item.HasLogin ? "" : "disabled")>
+                                @foreach (var role in Enum.GetValues<RoleType>())
+                                {
+                                    <option value="@((int)role)" selected="@(item.Role == role)">@role.ToDisplayText()</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <div class="action-group" style="justify-content: flex-end;">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn icon-btn" title="Detay"><i data-lucide="eye"></i></a>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn icon-btn" title="Duzenle"><i data-lucide="edit-3"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<partial name="_GridBulkSaveForm" model='new GridBulkSaveFormViewModel { ActionName = "BulkSave", FormId = "employee-bulk-save-form", PayloadInputId = "employee-bulk-payload" }' />
+
+@section Scripts {
+    <script>
+        function toggleEmployeeInsertRow() {
+            InsuranceGridDraft.toggleRow("employee-insert-row");
+        }
+
+        function toggleRowLoginFields(checkbox) {
+            const row = checkbox.closest('tr');
+            const userField = row.querySelector('[data-field="userName"]');
+            const roleField = row.querySelector('[data-field="role"]');
+            
+            if (checkbox.checked) {
+                userField.disabled = false;
+                roleField.disabled = false;
+            } else {
+                userField.disabled = true;
+                roleField.disabled = true;
+            }
+        }
+
+        @if (canManage)
+        {
+            <text>
+            InsuranceGridDraft.create({
+                storageKey: "employee-grid-draft-v1",
+                rowSelector: "tr[data-employee-id]",
+                rowIdAttribute: "data-employee-id",
+                insertRowId: "employee-insert-row",
+                saveButtonId: "save-all-employees-btn",
+                clearButtonId: "clear-employee-draft-btn",
+                formId: "employee-bulk-save-form",
+                payloadInputId: "employee-bulk-payload"
+            });
+            </text>
+        }
+    </script>
+}

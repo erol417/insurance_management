@@ -7,20 +7,8 @@ public enum RoleType
     SalesManager,
     Operations,
     FieldSales,
-    CallCenter
-}
-
-public enum LeadStatus
-{
-    New,
-    Researched,
-    ContactFound,
-    ReadyForAssignment,
-    Assigned,
-    VisitScheduled,
-    Visited,
-    ConvertedToActivity,
-    Disqualified
+    CallCenter,
+    SystemSpecialist
 }
 
 public enum AccountType
@@ -29,33 +17,19 @@ public enum AccountType
     Corporate
 }
 
-public enum ContactStatus
+public enum LeadPriority
 {
-    Contacted,
-    NotContacted
+    Low,
+    Medium,
+    High,
+    Urgent
 }
-
-public enum OutcomeStatus
+public enum LeadStatus
 {
-    Positive,
-    Negative,
-    Postponed,
-    SaleClosed
-}
-
-public enum ProductType
-{
-    Bes,
-    Life,
-    Health,
-    Travel,
-    Other
-}
-
-public enum ExpenseType
-{
-    Travel,
-    Meal,
-    Accommodation,
-    Other
+    New = 1,
+    ReadyForAssignment = 2,
+    Assigned = 3,
+    Visited = 4,
+    Converted = 5,
+    Disqualified = 9
 }

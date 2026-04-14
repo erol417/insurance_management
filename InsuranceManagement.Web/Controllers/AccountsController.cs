@@ -1,34 +1,49 @@
 using InsuranceManagement.Web.Data;
 using InsuranceManagement.Web.Domain;
 using InsuranceManagement.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace InsuranceManagement.Web.Controllers;
 
+[Authorize(Roles = "Admin,Manager,SalesManager,Operations,FieldSales")]
 public class AccountsController : AppController
 {
-    public AccountsController(AppDbContext db) : base(db)
+    private readonly InsuranceManagement.Web.Services.IAccountService _accountService;
+
+    public AccountsController(AppDbContext db, InsuranceManagement.Web.Services.IAccountService accountService) : base(db)
     {
+        _accountService = accountService;
     }
 
-    public IActionResult Index(int page = 1, int pageSize = 10)
+    public IActionResult Index(int page = 1, int pageSize = 10, string? searchTerm = null, string? status = null, string? sortBy = "displayname", bool isDescending = false)
     {
         BuildShell();
-        var accountsQuery = Db.Accounts.AsQueryable();
         var currentEmployeeId = CurrentEmployeeScopeId();
-        if (!HasGlobalEmployeeAccess() && currentEmployeeId.HasValue)
-        {
-            accountsQuery = accountsQuery.Where(x => !x.OwnerEmployeeId.HasValue || x.OwnerEmployeeId == currentEmployeeId.Value);
-        }
-
+        
         ViewBag.Employees = HasGlobalEmployeeAccess()
             ? Db.Employees.OrderBy(x => x.FullName).ToList()
             : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
+        
+        ViewBag.SearchTerm = searchTerm;
+        ViewBag.Status = status;
+        ViewBag.SortBy = sortBy;
+        ViewBag.IsDescending = isDescending;
 
-        var totalCount = accountsQuery.Count();
+        var filterEmployeeId = CurrentEmployeeScopeId();
+        var items = _accountService.GetAll(page, pageSize, out var totalCount, searchTerm, status, null, filterEmployeeId, sortBy, isDescending);
+        
+        // Final permission filtering if service doesn't handle it
+        if (!HasGlobalEmployeeAccess() && currentEmployeeId.HasValue)
+        {
+            items = items.Where(x => x.OwnerEmployeeId == currentEmployeeId.Value).ToList();
+            totalCount = items.Count; // This is a bit inefficient for big data but okay for now
+        }
+
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-        var currentPage = Math.Min(Math.Max(page, 1), totalPages);
+        var currentPage = page;
 
         return View(new AccountsIndexViewModel
         {
@@ -36,32 +51,27 @@ public class AccountsController : AppController
             {
                 AccountType = AccountType.Corporate,
                 OwnerEmployeeId = currentEmployeeId,
-                Status = "Active"
+                Status = "Aktif"
             },
             CurrentPage = currentPage,
             PageSize = pageSize,
             TotalCount = totalCount,
             TotalPages = totalPages,
-            Items = accountsQuery
-                .OrderByDescending(x => x.Id)
-                .Skip((currentPage - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new AccountInlineEditViewModel
-                {
-                    Id = x.Id,
-                    Code = x.Code,
-                    AccountType = x.AccountType,
-                    DisplayName = x.DisplayName,
-                    City = x.City,
-                    District = x.District,
-                    Phone = x.Phone,
-                    Email = x.Email,
-                    TaxNumber = x.TaxNumber,
-                    OwnerEmployeeId = x.OwnerEmployeeId,
-                    Status = x.Status,
-                    Notes = x.Notes
-                })
-                .ToList()
+            Items = items.Select(x => new AccountInlineEditViewModel
+            {
+                Id = x.Id,
+                Code = x.Code,
+                AccountType = x.AccountType,
+                DisplayName = x.DisplayName,
+                City = x.City,
+                District = x.District,
+                Phone = x.Phone,
+                Email = x.Email,
+                TaxNumber = x.TaxNumber,
+                Status = x.Status,
+                OwnerEmployeeId = x.OwnerEmployeeId ?? 0,
+                Notes = x.Notes
+            }).ToList()
         });
     }
 
@@ -125,7 +135,7 @@ public class AccountsController : AppController
                     continue;
                 }
 
-                warnings.AddRange(BuildDuplicateWarnings(formModel, item.Id).Select(x => $"{account.Code}: {x}"));
+                warnings.AddRange(_accountService.CheckDuplicate(formModel.DisplayName ?? string.Empty, formModel.Phone, formModel.Email, formModel.TaxNumber, item.Id).Select(x => $"{account.Code}: {x}"));
                 account.AccountType = formModel.AccountType;
                 account.DisplayName = formModel.DisplayName;
                 account.City = formModel.City;
@@ -141,7 +151,7 @@ public class AccountsController : AppController
             }
             else
             {
-                warnings.AddRange(BuildDuplicateWarnings(formModel, null).Select(x => $"Yeni Musteri: {x}"));
+                warnings.AddRange(_accountService.CheckDuplicate(formModel.DisplayName ?? string.Empty, formModel.Phone, formModel.Email, formModel.TaxNumber, null).Select(x => $"Yeni Musteri: {x}"));
                 var account = new Account
                 {
                     Id = nextId,
@@ -183,7 +193,7 @@ public class AccountsController : AppController
     public IActionResult Details(int id)
     {
         BuildShell();
-        var account = Db.Accounts.FirstOrDefault(x => x.Id == id);
+        var account = _accountService.GetById(id, CurrentEmployeeScopeId());
         if (account is null)
         {
             return NotFound();
@@ -194,65 +204,78 @@ public class AccountsController : AppController
             return NotFound();
         }
 
-        ViewBag.Owner = account.OwnerEmployeeId.HasValue ? Db.Employees.FirstOrDefault(x => x.Id == account.OwnerEmployeeId.Value) : null;
-        ViewBag.Activities = Db.Activities.Where(x => x.AccountId == account.Id).OrderByDescending(x => x.ActivityDate).ToList();
-        ViewBag.Sales = Db.Sales.Where(x => x.AccountId == account.Id).OrderByDescending(x => x.SaleDate).ToList();
+        ViewBag.Owner = account.OwnerEmployee;
+        ViewBag.Activities = account.Activities
+            .OrderByDescending(x => x.ActivityDate)
+            .ToList();
+        ViewBag.Sales = account.Sales
+            .OrderByDescending(x => x.SaleDate)
+            .ToList();
         return View(account);
     }
 
+    [Authorize(Roles = "Admin,Operations,FieldSales")]
     [HttpGet]
     public IActionResult Create()
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.DuplicateWarnings = Array.Empty<string>();
         return View(new AccountFormViewModel());
     }
 
+    [Authorize(Roles = "Admin,Operations,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(AccountFormViewModel model)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
-        var duplicateWarnings = BuildDuplicateWarnings(model, null);
-        ViewBag.DuplicateWarnings = duplicateWarnings;
-
-        if (string.IsNullOrWhiteSpace(model.Phone) && string.IsNullOrWhiteSpace(model.Email))
-        {
-            ModelState.AddModelError(string.Empty, "Telefon veya e-posta alanlarindan en az biri dolu olmalidir.");
-        }
-
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
-        var id = (Db.Accounts.Max(x => (int?)x.Id) ?? 100) + 1;
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
+        
         var account = new Account
         {
-            Id = id,
-            Code = $"ACC-{id}",
             AccountType = model.AccountType,
-            DisplayName = model.DisplayName,
-            City = model.City,
+            DisplayName = model.DisplayName ?? string.Empty,
+            City = model.City ?? string.Empty,
             District = model.District,
             Phone = model.Phone,
             Email = model.Email,
             TaxNumber = model.TaxNumber,
-            OwnerEmployeeId = model.OwnerEmployeeId,
+            OwnerEmployeeId = HasGlobalEmployeeAccess() ? model.OwnerEmployeeId : (CurrentEmployeeScopeId() ?? model.OwnerEmployeeId),
             Status = model.Status,
-            Notes = model.Notes
+            Notes = model.Notes ?? string.Empty
         };
-        Db.Accounts.Add(account);
-        QueueAudit("Account", "Create", account.Code, $"{account.DisplayName} kaydi olusturuldu.");
 
-        Db.SaveChanges();
-        if (duplicateWarnings.Count > 0)
+        var (isValid, errors) = _accountService.Validate(account);
+        if (!isValid)
         {
-            TempData["Warning"] = string.Join(" | ", duplicateWarnings);
+            foreach (var err in errors)
+            {
+                ModelState.AddModelError(err.Key, err.Value);
+            }
         }
-        TempData["Flash"] = "Musteri kaydi olusturuldu.";
+
+        if (!ModelState.IsValid)
+        {
+            ViewBag.DuplicateWarnings = _accountService.CheckDuplicate(model.DisplayName ?? string.Empty, model.Phone, model.Email, model.TaxNumber, null);
+            return View(model);
+        }
+
+        var duplicates = _accountService.CheckDuplicate(model.DisplayName ?? string.Empty, model.Phone, model.Email, model.TaxNumber, null);
+        if (duplicates.Any() && !Request.Form.ContainsKey("ignoreDuplicates"))
+        {
+            ViewBag.DuplicateWarnings = duplicates;
+            return View(model);
+        }
+
+        _accountService.Create(account);
+        TempData["Success"] = "Musteri kaydi olusturuldu.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -271,7 +294,10 @@ public class AccountsController : AppController
             return NotFound();
         }
 
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         var model = new AccountFormViewModel
         {
             Id = account.Id,
@@ -286,7 +312,7 @@ public class AccountsController : AppController
             Status = account.Status,
             Notes = account.Notes
         };
-        ViewBag.DuplicateWarnings = BuildDuplicateWarnings(model, id);
+        ViewBag.DuplicateWarnings = _accountService.CheckDuplicate(model.DisplayName ?? string.Empty, model.Phone, model.Email, model.TaxNumber, id);
         return View(model);
     }
 
@@ -295,13 +321,40 @@ public class AccountsController : AppController
     public IActionResult Edit(int id, AccountFormViewModel model)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
-        var duplicateWarnings = BuildDuplicateWarnings(model, id);
-        ViewBag.DuplicateWarnings = duplicateWarnings;
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
 
-        if (string.IsNullOrWhiteSpace(model.Phone) && string.IsNullOrWhiteSpace(model.Email))
+        var duplicates = _accountService.CheckDuplicate(model.DisplayName ?? string.Empty, model.Phone, model.Email, model.TaxNumber, id);
+        if (duplicates.Any() && !Request.Form.ContainsKey("ignoreDuplicates"))
         {
-            ModelState.AddModelError(string.Empty, "Telefon veya e-posta alanlarindan en az biri dolu olmalidir.");
+            ViewBag.DuplicateWarnings = duplicates;
+            return View(model);
+        }
+        
+        var tempAccount = new Account
+        {
+            Id = id,
+            AccountType = model.AccountType,
+            DisplayName = model.DisplayName ?? string.Empty,
+            City = model.City ?? string.Empty,
+            District = model.District,
+            Phone = model.Phone,
+            Email = model.Email,
+            TaxNumber = model.TaxNumber,
+            OwnerEmployeeId = model.OwnerEmployeeId,
+            Status = model.Status,
+            Notes = model.Notes ?? string.Empty
+        };
+
+        var (isValid, errors) = _accountService.Validate(tempAccount);
+        if (!isValid)
+        {
+            foreach (var err in errors)
+            {
+                ModelState.AddModelError(err.Key, err.Value);
+            }
         }
 
         if (!ModelState.IsValid)
@@ -309,35 +362,14 @@ public class AccountsController : AppController
             return View(model);
         }
 
-        var account = Db.Accounts.FirstOrDefault(x => x.Id == id);
-        if (account is null)
+        var existing = _accountService.GetById(id, CurrentEmployeeScopeId());
+        if (existing is null || (existing.OwnerEmployeeId.HasValue && !CanSeeEmployeeData(existing.OwnerEmployeeId.Value)))
         {
             return NotFound();
         }
 
-        if (account.OwnerEmployeeId.HasValue && !CanSeeEmployeeData(account.OwnerEmployeeId.Value))
-        {
-            return NotFound();
-        }
-
-        account.AccountType = model.AccountType;
-        account.DisplayName = model.DisplayName;
-        account.City = model.City;
-        account.District = model.District;
-        account.Phone = model.Phone;
-        account.Email = model.Email;
-        account.TaxNumber = model.TaxNumber;
-        account.OwnerEmployeeId = model.OwnerEmployeeId;
-        account.Status = model.Status;
-        account.Notes = model.Notes;
-        QueueAudit("Account", "Update", account.Code, $"{account.DisplayName} kaydi guncellendi.");
-        Db.SaveChanges();
-
-        if (duplicateWarnings.Count > 0)
-        {
-            TempData["Warning"] = string.Join(" | ", duplicateWarnings);
-        }
-        TempData["Flash"] = "Musteri kaydi guncellendi.";
+        _accountService.Update(id, tempAccount);
+        TempData["Success"] = "Musteri kaydi guncellendi.";
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -345,21 +377,14 @@ public class AccountsController : AppController
     [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
-        var account = Db.Accounts.FirstOrDefault(x => x.Id == id);
-        if (account is null)
+        var existing = _accountService.GetById(id, CurrentEmployeeScopeId());
+        if (existing is null)
         {
             return NotFound();
         }
-
-        if (account.OwnerEmployeeId.HasValue && !CanSeeEmployeeData(account.OwnerEmployeeId.Value))
-        {
-            return NotFound();
-        }
-
-        QueueAudit("Account", "Delete", account.Code, $"{account.DisplayName} kaydi silindi.");
-        Db.Accounts.Remove(account);
-        Db.SaveChanges();
-        TempData["Flash"] = "Musteri kaydi silindi.";
+        
+        _accountService.Delete(id);
+        TempData["Success"] = "Musteri kaydi silindi.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -376,7 +401,7 @@ public class AccountsController : AppController
             Email = model.Email,
             TaxNumber = model.TaxNumber,
             OwnerEmployeeId = canManageAll ? model.OwnerEmployeeId : currentEmployeeId,
-            Status = string.IsNullOrWhiteSpace(model.Status) ? "Active" : model.Status,
+            Status = string.IsNullOrWhiteSpace(model.Status) ? "Aktif" : model.Status,
             Notes = model.Notes
         };
     }
@@ -401,37 +426,5 @@ public class AccountsController : AppController
         }
 
         return errors;
-    }
-
-    private List<string> BuildDuplicateWarnings(AccountFormViewModel model, int? currentId)
-    {
-        var warnings = new List<string>();
-        var accounts = Db.Accounts.Where(x => !currentId.HasValue || x.Id != currentId.Value);
-
-        if (!string.IsNullOrWhiteSpace(model.DisplayName) &&
-            accounts.Any(x => x.DisplayName == model.DisplayName))
-        {
-            warnings.Add("Ayni musteri/firma ismiyle baska bir kayit bulundu.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(model.Phone) &&
-            accounts.Any(x => x.Phone == model.Phone))
-        {
-            warnings.Add("Bu telefon numarasi baska bir musteri kaydinda kullaniliyor.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(model.Email) &&
-            accounts.Any(x => x.Email == model.Email))
-        {
-            warnings.Add("Bu e-posta adresi baska bir musteri kaydinda kullaniliyor.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(model.TaxNumber) &&
-            accounts.Any(x => x.TaxNumber == model.TaxNumber))
-        {
-            warnings.Add("Bu vergi numarasi ile mevcut bir musteri kaydi var.");
-        }
-
-        return warnings;
     }
 }

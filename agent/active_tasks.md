@@ -2,9 +2,9 @@
 
 ## Current Focus
 
-- MVC uygulamasini kalici veri katmanina yaklastirma
-- PostgreSQL migration ve veri kalitesi altyapisini guclendirme
-- Audit log, duplicate kontrolu ve operasyonel duzenleme akislarini derinlestirme
+- Raporlama API'larının optimizasyonu ve büyük veri seti testleri
+- Excel'e veri aktarımı (Export) ve gelişmiş filtreleme sistemleri
+- Mobil uyumluluğun (Responsive) tüm gridlerde mükemmelleştirilmesi
 
 ## Completed
 
@@ -49,23 +49,66 @@
 - BES finansal alan standardi belgelendi
 - Rol ve yetki matrisi belgelendi
 - Ilk sprint kapsam karari belgelendi
-- `.NET Core MVC` proje iskeleti kuruldu ve uygulama ayaga kaldirildi
+- .NET Core MVC proje iskeleti kuruldu ve uygulama ayaga kaldirildi
 - Giris, dashboard, lead, musteri, aktivite, satis, masraf, personel, admin ve import ekranlari calisir hale getirildi
 - Arayuz metinleri buyuk olcude Turkcelestirildi
 - EF Core veri katmani ve PostgreSQL/InMemory provider secimi eklendi
-- `AppDbContext`, seeding ve ilk migration yapisi olusturuldu
-- Docker tabanli PostgreSQL ve pgAdmin gelistirme ortami eklendi
-- PostgreSQL ile canli baglanti kuruldu, migration ve seed zinciri dogrulandi
-- Lead, musteri, aktivite, satis ve masraf modullerinde duzenle/sil akislari eklendi
-- Audit log entity, admin audit ekrani ve temel audit kayitlari eklendi
+- AppDbContext, seeding ve ilk migration yapisi olusturuldu
+- Docker tabanli PostgreSQL ve pgAdmin gelistirme ortami
+- AppDataStore singleton kaldirildi, tum veri erisimi AppDbContext uzerinden saglandi
+- BaseEntity abstract sinifi olusturuldu; tum transaction entity'leri (AuditLog haric) bu siniftan turetildi
+- CreatedAt, CreatedBy, UpdatedAt, UpdatedBy audit alanlari tum entity'lere eklendi
+- Audit alanlari AppDbContext.SaveChanges icerisinde otomatik dolduruluyor
+- Sifre hashleme BCrypt ile uygulamaya alindi, plain text sifre kaldirildi
+- Migration sifirdan olusturuldu ve PostgreSQL ile dogrulandi
+- Controller'lardaki manuel audit atamalari temizlendi
+- Dashboard servis tasarimi ve MVP metrik implementasyonu
+- Import altyapisi (CSV parser, onizleme gridi, dry-run engine)
+- Lead -> Account -> Activity dönüşüm zinciri
+- FieldSales (Saha satıs) rolü bazlı veri izolasyonu
+- Audit interceptor entegrasyonu (Create/Update logicleri icine) temel audit kayitlari eklendi
 - Lead ve musteri formlarinda duplicate uyari mantigi eklendi
 - Import modulu fiziksel dosya yukleme ve indirme akisina tasindi
+- Referans tablolari olusturuldu (lead_status_types, activity_contact_status_types, activity_outcome_status_types, insurance_product_types, expense_types, lead_source_types)
+- Enum -> FK gecisi tamamlandi; tum controller, view ve servisler yeni yapiya tasindi
+- Navigation property'ler ve LeadAssignment tablosu eklendi
+- Dashboard ve metrik hesaplamalari yeni FK yapisiyla hizalandi
+- Veri tabani migration'lari resetlenerek temiz bir iliskisel sema olusturuldu
+- **Sprint 3 - Dashboard & Performans & Planlama:**
+    - Servis katmanı tam operasyonel hale getirildi (ILeadService, IActivityService, ISaleService, IExpenseService vb.)
+    - Personel Performans Dashboard'u (Employees/Details) tüm veri setleriyle (Lead, Satış, Masraf) yayına alındı
+    - Rol bazlı veriye erişim sınırı (Admin & Kendi Kaydı) EmployeesController seviyesinde uygulandı
+    - Aktivite Planlama Modülü: "PLANNED" statüsü ve Ajanda/Randevu akışı eklendi
+    - Lead Not Sistemi: Kronolojik sıra, yazar bilgisi, scrollable UI ve anchor refocus özelliği eklendi
+    - UI/Tasarım Fix: Sidebar sünme ve layout stretching sorunları global CSS ile giderildi
+    - Soft Delete: Tüm ana tablolarda `ISoftDeletable` ve `DeletedAt/By` alanları üzerinden altyapı kuruldu
+    - Validation: Aktivite durumsal doğrulama kuralları (Planlandı/Görüşülemedi durumunda sonuç muafiyeti) eklendi
+    - Audit: `AppController.QueueAudit` üzerinden `IAuditService` merkezi loglama yapısı kuruldu
+- **Sprint 4 - Dinamik Yetkilendirme ve Yönetim:**
+    - **Dinamik RBAC:** Yetki sistemi veritabanına (`RolePermission`) bağlandı; rollerin modül erişimleri canlı yönetilebilir hale getirildi.
+    - **Yönetim Paneli:** Kullanıcı ve Rol yönetimi arayüzleri "Premium" tasarım standartlarıyla yenilendi.
+    - **Finansal Grid Fix:** TR/EN kültürler arası ondalık sayı (virgül/nokta) görüntüleme sorunu giderildi.
+    - **Security Transition:** Veritabanı SQLite'a taşınarak zero-config ve kalıcı veri yapısı sağlandı.
+    - **Master Key:** Admin rütbesi için "Süper Anahtar" bypass mekanizması eklendi.
+    - **Delegated Imports:** Veri Aktarımı (Import) modülü dinamik yetki tablosuna tam entegre edildi.
+- **Sprint 5 — Dashboard ve KPI Güçlendirme (Parça C Tamamlandı)**
+    - **Gelişmiş Filtreleme:** Personel ve Ürün Tipi bazlı dropdown filtreleri tüm ekranlara (Executive, Performance, Products, Expenses) entegre edildi.
+    - **Yetki Bazlı Filtreleme:** Saha satış personelinin filtrelemesi sadece kendi verileriyle kısıtlandı (Admin/Manager tam yetkili).
+    - **Finansal Detay Tablosu:** Ürün bazlı APE, Prim ve Üretim değerlerini ayrıştıran çapraz finansal matris tablosu oluşturuldu.
+    - **Kod Standardizasyonu:** Filtreleme bloğu `shared partial` yapıya dönüştürülerek UI tutarlılığı ve bakım kolaylığı sağlandı.
+- **Görsel Analitik**: `Chart.js` kütüphanesi ile zenginleştirilmiş ana dashboard:
+    - Günlük bazlı Aktivite vs Satış trend çizgileri.
+    - Ürün portföyü ve tahsilat dağılımı (Donut/Bar chart).
+- **Detaylı Performans Matrisi**: Personel tablosu; "Görüşülen Aktivite" ve "Aktiviteye Bağlı Satış" verimliliği ekseninde 7 kolonlu yapıya taşınmıştır.
+- **Navigasyon ve UX**: Ekranlar arası geçiş deneyimi için "Tab-Navigation" yapısı kurulmuştur.
+- **Veri Kalitesi Paneli**: Satışların aktiviteyle olan ilişkisi (Linkage) analiz edilerek verinin "saha" çıkışlı olup olmadığı görselleştirilmiştir.
 
 ## Next Up
 
-- Rol/yetki kontrollerini ekran ve aksiyon bazinda sertlestirme
-- Validation, duplicate kontrolu ve veri kalite kurallarini diger modullerde genisletme
-- Import icin kolon esleme ve satir onizleme adimini ekleme
+- Import modulu icin kolon esleme ve satir onizleme adimini ekleme
+- Personel sifre yenileme ve profil guncelleme ekranlari
+- Excel'e veri aktarimi (Export) fonksiyonlari
+- Rapor ekranlari (Sube, Bolge, Personel bazli kirilimlar)
 - Otomatik test ve yayin hazirligina gecme
 
 ## Backlog
@@ -109,6 +152,10 @@
 - Operations satis kaydinda yalnizca operasyonel duzeltmeler yapabilecek; cekirdek satis alanlari kontrollu olacak
 - MVP'de masraf onay akisi olmayacak, masraflar once kayit ve raporlama ekseninde ilerleyecek
 - Ilk sprintte auth ile birlikte temel user/role yonetimi de acilacak
+- Geliştirme sürecinde "Zero-Config" ve "Persistence" için SQLite veritabanı kararlaştırıldı.
+- Canlı (Production) ortam için PostgreSQL hedefi korunacak; SQLite geliştirme aşamasındaki hızı artırmak içindir.
+- Dinamik yetki yönetiminde "Modül Bazlı" kontrol esas alınacak (Dashboard, Leads, Sales vb.).
+- Admin rütbesi, sistem bütünlüğü için tüm yetki kısıtlamalarından muaf tutulacak (Hardcoded Master Key).
 
 ## Open Questions
 

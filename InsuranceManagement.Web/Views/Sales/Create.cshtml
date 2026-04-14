@@ -6,36 +6,69 @@
     ViewData["Title"] = "Yeni Satis";
     ViewData["Subtitle"] = "Urun tipine gore ilgili finansal alanlarin girildigi satis formu";
 }
-<div class="panel">
-    <form method="post">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="All" class="validation-summary-errors"></div>
-        <div class="form-grid three">
-            <div class="field"><label asp-for="SaleDate"></label><input asp-for="SaleDate" type="date" /></div>
-            <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
-            <div class="field"><label asp-for="AccountId"></label><select asp-for="AccountId">@foreach (var account in accounts){<option value="@account.Id">@account.DisplayName</option>}</select></div>
-            <div class="field"><label asp-for="ActivityId"></label><select asp-for="ActivityId"><option value="">Bagimsiz satis</option>@foreach (var activity in activities){<option value="@activity.Id">@activity.Code</option>}</select></div>
-            <div class="field">
-                <label asp-for="ProductType"></label>
-                <select asp-for="ProductType">
-                    <option value="Bes">BES</option>
-                    <option value="Life">Hayat</option>
-                    <option value="Health">Saglik</option>
-                    <option value="Travel">Seyahat</option>
-                    <option value="Other">Diger</option>
-                </select>
+
+<div class="form-layout">
+    <div class="layout-main">
+        <section class="section-block">
+            <h3>Satis Bilgileri</h3>
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="validation-summary-errors"></div>
+                <div class="form-grid three">
+                    <div class="field"><label asp-for="SaleDate"></label><input asp-for="SaleDate" type="date" /></div>
+                    <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
+                    <div class="field"><label asp-for="AccountId"></label><select asp-for="AccountId">@foreach (var account in accounts){<option value="@account.Id">@account.DisplayName</option>}</select></div>
+                    <div class="field"><label asp-for="ActivityId"></label><select asp-for="ActivityId"><option value="">Bagimsiz satis</option>@foreach (var activity in activities){<option value="@activity.Id">@activity.Code</option>}</select></div>
+                    <div class="field">
+                        <label>Urun Tipi</label>
+                        <select asp-for="ProductTypeId">
+                            @foreach (var type in (List<InsuranceManagement.Web.Domain.InsuranceProductType>)ViewBag.ProductTypes)
+                            {
+                                <option value="@type.Id">@type.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field"><label asp-for="SaleCount"></label><input asp-for="SaleCount" /></div>
+                    <div class="field"><label asp-for="CollectionAmount"></label><input asp-for="CollectionAmount" /></div>
+                    <div class="field"><label asp-for="ApeAmount"></label><input asp-for="ApeAmount" /></div>
+                    <div class="field"><label asp-for="LumpSumAmount"></label><input asp-for="LumpSumAmount" /></div>
+                    <div class="field"><label asp-for="MonthlyPaymentAmount"></label><input asp-for="MonthlyPaymentAmount" /></div>
+                    <div class="field"><label asp-for="PremiumAmount"></label><input asp-for="PremiumAmount" /></div>
+                    <div class="field"><label asp-for="ProductionAmount"></label><input asp-for="ProductionAmount" /></div>
+                    <div class="field"><label asp-for="SaleAmount"></label><input asp-for="SaleAmount" /></div>
+                </div>
+                <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
+                <div class="page-actions"><button type="submit" class="btn primary">Satisi Kaydet</button></div>
+            </form>
+        </section>
+    </div>
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <h3>Baglamsal Aksiyonlar ve Rehber</h3>
+        </section>
+        <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Hizli Aksiyonlar</h4>
+            <div class="action-buttons">
+                <button class="btn primary" type="button">Teklif Ozeti</button>
+                <button class="btn primary" type="button">Musteri Karti</button>
             </div>
-            <div class="field"><label asp-for="SaleCount"></label><input asp-for="SaleCount" /></div>
-            <div class="field"><label asp-for="CollectionAmount"></label><input asp-for="CollectionAmount" /></div>
-            <div class="field"><label asp-for="ApeAmount"></label><input asp-for="ApeAmount" /></div>
-            <div class="field"><label asp-for="LumpSumAmount"></label><input asp-for="LumpSumAmount" /></div>
-            <div class="field"><label asp-for="MonthlyPaymentAmount"></label><input asp-for="MonthlyPaymentAmount" /></div>
-            <div class="field"><label asp-for="PremiumAmount"></label><input asp-for="PremiumAmount" /></div>
-            <div class="field"><label asp-for="ProductionAmount"></label><input asp-for="ProductionAmount" /></div>
-            <div class="field"><label asp-for="SaleAmount"></label><input asp-for="SaleAmount" /></div>
-        </div>
-        <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
-        <div class="note-box"><strong>Validation karari</strong><p>Secilen urune gore zorunlu alanlar degisir. BES icin tek tutar yerine tahsilat, APE, toplu para ve aylik odeme ayri tutulur.</p></div>
-        <div class="page-actions"><button type="submit" class="btn primary">Satisi Kaydet</button></div>
-    </form>
+        </section>
+        <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Kayit Rehberi</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong>Urun mantigi</strong>
+                    <div>BES satislarinda tahsilat, APE, toplu para ve aylik odeme alanlari birlikte takip edilir.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Aktivite baglantisi</strong>
+                    <div>Bir aktiviteden donusen satis baglanti ile kaydedilirse performans raporlari daha saglikli cikar.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sonraki adim</strong>
+                    <div>Kayit sonrasi tahsilat plani, belge kontrolu veya masraf eslestirmesi acilabilir.</div>
+                </div>
+            </div>
+        </section>
+    </aside>
 </div>

@@ -1,47 +1,141 @@
 @model InsuranceManagement.Web.ViewModels.LoginViewModel
-@{
-    Layout = null;
-}
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Giris - Sigorta Operasyon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        body { 
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            overflow: hidden;
+        }
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 1000px;
+            height: 640px;
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+        .auth-card {
+            padding: 60px;
+            border: none;
+            box-shadow: none;
+        }
+        .auth-side {
+            background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+            padding: 60px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            width: 18px;
+        }
+        .input-group input {
+            padding-left: 44px !important;
+        }
+        .brand-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--brand-soft);
+            color: var(--brand);
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+    </style>
 </head>
 <body>
     <div class="hero">
-        <div class="panel auth-card">
-            <div class="kicker">Sigorta Saha Operasyonlari</div>
-            <h1>Tek uygulamada lead, aktivite, satis ve masraf takibi</h1>
-            <p class="muted">Seed kullanicilar: `admin/admin123`, `manager/manager123`, `sales/sales123`, `ops/ops123`, `field1/field123`, `call/call123`</p>
+        <div class="auth-card">
+            <div class="brand-pill">
+                <i data-lucide="shield-check" style="width:16px;"></i>
+                Sigorta Saha Operasyonlari
+            </div>
+            <h1 style="font-family:'Outfit'; margin-bottom:12px;">Hos Geldiniz</h1>
+            <p style="color:var(--muted); margin-bottom:32px;">Lutfen sistem giris bilgilerini kullanin.</p>
+            
             <form method="post" asp-action="Login">
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="All" class="validation-summary-errors"></div>
+                
                 <div class="field">
-                    <label asp-for="UserName"></label>
-                    <input asp-for="UserName" />
+                    <label>Kullanici Adi</label>
+                    <div class="input-group">
+                        <i data-lucide="user"></i>
+                        <input asp-for="UserName" placeholder="Orn: admin" />
+                    </div>
                 </div>
+
                 <div class="field">
-                    <label asp-for="Password"></label>
-                    <input asp-for="Password" />
+                    <label>Sifre</label>
+                    <div class="input-group">
+                        <i data-lucide="lock"></i>
+                        <input asp-for="Password" type="password" placeholder="••••••••" />
+                    </div>
                 </div>
-                <div class="page-actions">
-                    <button type="submit" class="btn primary">Giris Yap</button>
-                </div>
+
+                <button type="submit" class="btn primary" style="width:100%; height:48px; border-radius:12px; margin-top:20px; font-weight:600;">
+                    Sisteme Giris Yap
+                </button>
             </form>
+
+            <div style="margin-top:40px; padding:16px; background:#f8fafc; border-radius:12px; font-size:12px; color:var(--muted);">
+                <strong>Hizli Erisim:</strong> admin / admin123, field1 / field123
+            </div>
         </div>
+
         <div class="auth-side">
-            <div class="kicker" style="color: rgba(255,255,255,0.7);">MVP Scope</div>
-            <h2>Lead -> Account + Activity -> Sale -> Expense</h2>
-            <p>Bu surum, dokumanlarda belirlenen operasyon akisini tek MVC uygulamasi icinde calisan MVP olarak baslatir.</p>
-            <div class="stats-row">
-                <div class="stat-box"><strong>Lead Queue</strong><p>Call center havuzu ve atama</p></div>
-                <div class="stat-box"><strong>Field Flow</strong><p>Ziyaret ve satis zinciri</p></div>
-                <div class="stat-box"><strong>Dashboards</strong><p>Yonetsel KPI ozetleri</p></div>
+            <h2 style="font-family:'Outfit'; font-size:32px; margin-bottom:20px;">Uctan Uca Sigorta Yonetimi</h2>
+            <p style="font-size:16px; line-height:1.6; opacity:0.9; margin-bottom:40px;">
+                Lead toplama, saha ziyareti, satis kapama ve masraf takibini tek bir merkezden, dinamik yetkilendirme ile yonetin.
+            </p>
+            
+            <div style="display:grid; gap:20px;">
+                <div style="display:flex; gap:16px; align-items:center;">
+                    <div style="width:40px; height:40px; background:rgba(255,255,255,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="zap"></i>
+                    </div>
+                    <div><strong>Hizli Is Akisi</strong><p style="margin:0; font-size:13px; opacity:0.8;">Anlik veri girisi ve takip</p></div>
+                </div>
+                <div style="display:flex; gap:16px; align-items:center;">
+                    <div style="width:40px; height:40px; background:rgba(255,255,255,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="bar-chart-3"></i>
+                    </div>
+                    <div><strong>Yonetici Ozetleri</strong><p style="margin:0; font-size:13px; opacity:0.8;">Guvenceli KPI verileri</p></div>
+                </div>
             </div>
         </div>
     </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

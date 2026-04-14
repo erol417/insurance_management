@@ -1,0 +1,68 @@
+@model InsuranceManagement.Web.Domain.UserAccount
+@using InsuranceManagement.Web.Domain
+@{
+    ViewData["Title"] = "Kullaniciyi Duzenle";
+}
+
+<div class="premium-strip">
+    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+        <div>
+            <strong>Kullanici Profilini Duzenle</strong>
+            <span>@Model.FullName (@Model.UserName) hesabini guncelle.</span>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+            @if (Model.EmployeeId.HasValue)
+            {
+                <a href="/Employees/Edit/@Model.EmployeeId" class="btn success-outline" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);">
+                    👤 Personel Dosyasına Git
+                </a>
+            }
+            <a asp-action="Users" class="btn primary-outline" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);">
+                 Don
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="edit-container" style="max-width:600px; margin:40px auto;">
+    <div class="card" style="background:#fff; border-radius:24px; padding:32px; box-shadow:0 20px 40px rgba(0,0,0,0.05); border:1px solid #eeeff2;">
+        <form asp-action="EditUser" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+
+            <div class="form-group" style="margin-bottom:24px;">
+                <label style="display:block; font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px;">Ad Soyad</label>
+                <input type="text" name="fullName" value="@Model.FullName" required
+                       style="width:100%; padding:14px 18px; border-radius:12px; border:1px solid #e2e8f0; font-size:15px; background:#f8fafc; outline:none;" />
+            </div>
+
+            <div class="form-group" style="margin-bottom:24px;">
+                <label style="display:block; font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px;">Kullanici Adi</label>
+                <input type="text" name="userName" value="@Model.UserName" required
+                       style="width:100%; padding:14px 18px; border-radius:12px; border:1px solid #e2e8f0; font-size:15px; background:#f8fafc; outline:none;" />
+            </div>
+
+            <div class="form-group" style="margin-bottom:32px;">
+                <label style="display:block; font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px;">Sistem Rolu</label>
+                <select name="role" style="width:100%; padding:14px 18px; border-radius:12px; border:1px solid #e2e8f0; font-size:15px; background:#f8fafc; cursor:pointer;">
+                    @foreach (RoleType role in Enum.GetValues(typeof(RoleType)))
+                    {
+                        <!option value="@role" @(Model.Role == role ? "selected" : "")>@role.ToDisplayText()</!option>
+                    }
+                </select>
+                <p style="margin-top:8px; font-size:12px; color:#94a3b8;">Not: Rol degisikligi kullanicinin tum sayfa yetkilerini etkiler.</p>
+            </div>
+
+            <div style="display:flex; gap:16px;">
+                <button type="submit" class="btn primary" style="flex:1; padding:15px; font-weight:700; border-radius:14px; box-shadow:0 8px 16px rgba(37,99,235,0.2);">
+                    Degisiklikleri Kaydet
+                </button>
+                <a asp-action="Users" class="btn ghost" style="padding:15px 30px; font-weight:600;">Iptal</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    input:focus, select:focus { border-color: #3b82f6 !important; background: #fff !important; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+</style>

@@ -1,26 +1,97 @@
 @model InsuranceManagement.Web.ViewModels.ProductDashboardViewModel
 @{
+    var topProduct = Model.Rows.OrderByDescending(x => x.CollectionTotal).FirstOrDefault();
     ViewData["Title"] = "Urun Kirilimi";
-    ViewData["Subtitle"] = "Urun bazli uretim ve satis gorunumu";
+    ViewData["Subtitle"] = "Urun bazli satis, tahsilat ve ana finansal metrikler";
 }
-<div class="grid equal-2">
+
+<section class="premium-strip">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div class="brand-icon-new" style="width:48px; height:48px; border-radius:12px; background:var(--success-soft); color:var(--success);">
+            <i data-lucide="package"></i>
+        </div>
+        <div>
+            <strong>Urun Portfoy Analizi</strong>
+            <span>@Model.StartDate.ToShortDateString() - @Model.EndDate.ToShortDateString() dönemi urun bazlı finansal performans.</span>
+        </div>
+    </div>
+    <partial name="_DashboardFilter" model="Model" />
+</section>
+
+<partial name="_DashboardTabs" />
+
+<section class="metric-grid">
+    <div class="metric-card">
+        <div class="label">Urun Cesidi</div>
+        <div class="value">@Model.Rows.Count</div>
+        <div class="sub">rapora giren urunler</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Toplam Satis</div>
+        <div class="value">@Model.Rows.Sum(x => x.SaleCount)</div>
+        <div class="sub">tum urun adetleri</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Toplam Tahsilat</div>
+        <div class="value">@Model.Rows.Sum(x => x.CollectionTotal).ToString("N0") TRY</div>
+        <div class="sub">urun toplam tahsilati</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Ana Finansal Metrik</div>
+        <div class="value">@Model.Rows.Sum(x => x.PrimaryFinancialMetric).ToString("N0")</div>
+        <div class="sub">APE / premium / uretim</div>
+    </div>
+</section>
+
+<section class="chart-grid-2">
     <div class="panel">
-        <div class="donut"></div>
+        <div class="panel-title">
+            <h3>Urun Bazli Satis Trendi</h3>
+            <span class="pill">adet bazli</span>
+        </div>
+        <div class="mini-chart bars"></div>
     </div>
     <div class="panel">
-        <table class="table">
-            <thead><tr><th>Urun</th><th>Satis</th><th>Tahsilat</th><th>Ana Metrik</th></tr></thead>
+        <div class="panel-title">
+            <h3>Tahsilat Dagilimi</h3>
+            <span class="pill">portfoy payi</span>
+        </div>
+        <div class="mini-chart donut"></div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-title">
+        <h2>Urun Bazli Detay Tablosu</h2>
+        <span class="pill">satis ve finans</span>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Sigorta Urunu</th>
+                    <th>Satis Adedi</th>
+                    <th>Tahsilat (TL)</th>
+                    <th>APE (BES)</th>
+                    <th>Prim (Hayat)</th>
+                    <th>Uretim (Saglik)</th>
+                    <th>Diger Satis</th>
+                </tr>
+            </thead>
             <tbody>
             @foreach (var row in Model.Rows)
             {
                 <tr>
-                    <td>@row.ProductName</td>
+                    <td><strong>@row.ProductName</strong></td>
                     <td>@row.SaleCount</td>
-                    <td>@row.CollectionTotal.ToString("N0") TRY</td>
-                    <td>@row.PrimaryFinancialMetric.ToString("N0")</td>
+                    <td style="font-weight:600; color:var(--success);">@row.CollectionTotal.ToString("N0") ₺</td>
+                    <td style="color:@(row.ApeTotal > 0 ? "var(--brand)" : "var(--muted)");">@row.ApeTotal.ToString("N0") ₺</td>
+                    <td style="color:@(row.PremiumTotal > 0 ? "var(--brand)" : "var(--muted)");">@row.PremiumTotal.ToString("N0") ₺</td>
+                    <td style="color:@(row.ProductionTotal > 0 ? "var(--brand)" : "var(--muted)");">@row.ProductionTotal.ToString("N0") ₺</td>
+                    <td style="color:@(row.BaseSaleTotal > 0 ? "var(--brand)" : "var(--muted)");">@row.BaseSaleTotal.ToString("N0") ₺</td>
                 </tr>
             }
             </tbody>
         </table>
     </div>
-</div>
+</section>

@@ -1,26 +1,33 @@
 using InsuranceManagement.Web.Data;
 using InsuranceManagement.Web.Domain;
 using InsuranceManagement.Web.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
 namespace InsuranceManagement.Web.Controllers;
 
+[Authorize(Roles = "Admin,Manager,SalesManager,Operations,FieldSales")]
 public class SalesController : AppController
 {
-    public SalesController(AppDbContext db) : base(db)
+    private readonly InsuranceManagement.Web.Services.ISaleService _saleService;
+
+    public SalesController(AppDbContext db, InsuranceManagement.Web.Services.ISaleService saleService) : base(db)
     {
+        _saleService = saleService;
     }
 
-    public IActionResult Index(int page = 1, int pageSize = 10)
+    public IActionResult Index(int page = 1, int pageSize = 10, string? searchTerm = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true)
     {
         BuildShell();
-        var itemsQuery = Db.Sales.AsQueryable();
         var currentEmployeeId = CurrentEmployeeScopeId();
+        
+        int? filterEmployeeId = employeeId;
         if (!HasGlobalEmployeeAccess() && currentEmployeeId.HasValue)
         {
-            itemsQuery = itemsQuery.Where(x => x.EmployeeId == currentEmployeeId.Value);
+            filterEmployeeId = currentEmployeeId.Value;
         }
 
         ViewBag.Employees = HasGlobalEmployeeAccess()
@@ -28,49 +35,48 @@ public class SalesController : AppController
             : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.OrderBy(x => x.DisplayName).ToList();
         ViewBag.Activities = Db.Activities.OrderByDescending(x => x.ActivityDate).Take(250).ToList();
+        ViewBag.ProductTypes = Db.InsuranceProductTypes.OrderBy(x => x.DisplayOrder).ToList();
+        
+        ViewBag.SearchTerm = searchTerm;
+        ViewBag.EmployeeId = filterEmployeeId;
+        ViewBag.SortBy = sortBy;
+        ViewBag.IsDescending = isDescending;
 
-        var totalCount = itemsQuery.Count();
+        var filterEmployeeIdField = CurrentEmployeeScopeId();
+        var items = _saleService.GetAll(page, pageSize, out var totalCount, searchTerm, filterEmployeeId, filterEmployeeIdField, sortBy, isDescending);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-        var currentPage = Math.Min(Math.Max(page, 1), totalPages);
+        var currentPage = page;
 
         return View(new SalesIndexViewModel
         {
             NewSale = new SaleInlineEditViewModel
             {
                 SaleDate = DateTime.Today,
-                EmployeeId = currentEmployeeId ?? Db.Employees.OrderBy(x => x.Id).Select(x => x.Id).FirstOrDefault(),
-                ProductType = ProductType.Bes,
-                SaleCount = 1
+                EmployeeId = currentEmployeeId ?? 0
             },
             CurrentPage = currentPage,
             PageSize = pageSize,
             TotalCount = totalCount,
             TotalPages = totalPages,
-            Items = itemsQuery
-                .OrderByDescending(x => x.SaleDate)
-                .ThenByDescending(x => x.Id)
-                .Skip((currentPage - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new SaleInlineEditViewModel
-                {
-                    Id = x.Id,
-                    Code = x.Code,
-                    SaleDate = x.SaleDate,
-                    EmployeeId = x.EmployeeId,
-                    AccountId = x.AccountId,
-                    ActivityId = x.ActivityId,
-                    ProductType = x.ProductType,
-                    CollectionAmount = x.CollectionAmount,
-                    ApeAmount = x.ApeAmount,
-                    LumpSumAmount = x.LumpSumAmount,
-                    MonthlyPaymentAmount = x.MonthlyPaymentAmount,
-                    PremiumAmount = x.PremiumAmount,
-                    ProductionAmount = x.ProductionAmount,
-                    SaleAmount = x.SaleAmount,
-                    SaleCount = x.SaleCount,
-                    Notes = x.Notes
-                })
-                .ToList()
+            Items = items.Select(x => new SaleInlineEditViewModel
+            {
+                Id = x.Id,
+                Code = x.Code,
+                SaleDate = x.SaleDate,
+                EmployeeId = x.EmployeeId,
+                AccountId = x.AccountId,
+                ActivityId = x.ActivityId,
+                ProductTypeId = x.ProductTypeId,
+                CollectionAmount = x.CollectionAmount,
+                ApeAmount = x.ApeAmount,
+                LumpSumAmount = x.LumpSumAmount,
+                MonthlyPaymentAmount = x.MonthlyPaymentAmount,
+                PremiumAmount = x.PremiumAmount,
+                ProductionAmount = x.ProductionAmount,
+                SaleAmount = x.SaleAmount,
+                SaleCount = x.SaleCount,
+                Notes = x.Notes
+            }).ToList()
         });
     }
 
@@ -137,7 +143,7 @@ public class SalesController : AppController
                 sale.EmployeeId = formModel.EmployeeId;
                 sale.AccountId = formModel.AccountId;
                 sale.ActivityId = formModel.ActivityId;
-                sale.ProductType = formModel.ProductType;
+                sale.ProductTypeId = formModel.ProductTypeId;
                 sale.CollectionAmount = formModel.CollectionAmount;
                 sale.ApeAmount = formModel.ApeAmount;
                 sale.LumpSumAmount = formModel.LumpSumAmount;
@@ -160,7 +166,7 @@ public class SalesController : AppController
                     EmployeeId = formModel.EmployeeId,
                     AccountId = formModel.AccountId,
                     ActivityId = formModel.ActivityId,
-                    ProductType = formModel.ProductType,
+                    ProductTypeId = formModel.ProductTypeId,
                     CollectionAmount = formModel.CollectionAmount,
                     ApeAmount = formModel.ApeAmount,
                     LumpSumAmount = formModel.LumpSumAmount,
@@ -193,52 +199,68 @@ public class SalesController : AppController
     public IActionResult Details(int id)
     {
         BuildShell();
-        var sale = Db.Sales.FirstOrDefault(x => x.Id == id);
+        var sale = _saleService.GetById(id, CurrentEmployeeScopeId());
         if (sale is null || !CanSeeEmployeeData(sale.EmployeeId))
         {
             return NotFound();
         }
 
-        ViewBag.Employee = Db.Employees.FirstOrDefault(x => x.Id == sale.EmployeeId);
-        ViewBag.Account = Db.Accounts.FirstOrDefault(x => x.Id == sale.AccountId);
-        ViewBag.Activity = sale.ActivityId.HasValue ? Db.Activities.FirstOrDefault(x => x.Id == sale.ActivityId.Value) : null;
+        ViewBag.Employee = sale.Employee;
+        ViewBag.Account = sale.Account;
+        ViewBag.Activity = sale.Activity;
         return View(sale);
     }
 
+    [Authorize(Roles = "Admin,Operations,FieldSales")]
     [HttpGet]
-    public IActionResult Create()
+    public IActionResult Create(int? activityId = null)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.ToList();
         ViewBag.Activities = Db.Activities.ToList();
-        return View(new SaleFormViewModel());
+        ViewBag.ProductTypes = Db.InsuranceProductTypes.OrderBy(x => x.DisplayOrder).ToList();
+        
+        var model = new SaleFormViewModel { SaleDate = DateTime.Today };
+        
+        if (activityId.HasValue)
+        {
+            var activity = Db.Activities.FirstOrDefault(x => x.Id == activityId.Value);
+            if (activity != null)
+            {
+                model.ActivityId = activity.Id;
+                model.AccountId = activity.AccountId;
+                model.EmployeeId = activity.EmployeeId;
+            }
+        }
+        
+        return View(model);
     }
 
+    [Authorize(Roles = "Admin,Operations,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(SaleFormViewModel model)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.ToList();
         ViewBag.Activities = Db.Activities.ToList();
+        ViewBag.ProductTypes = Db.InsuranceProductTypes.OrderBy(x => x.DisplayOrder).ToList();
 
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
-        var id = (Db.Sales.Max(x => (int?)x.Id) ?? 100) + 1;
         var sale = new Sale
         {
-            Id = id,
-            Code = $"SAL-{id}",
             SaleDate = model.SaleDate,
             EmployeeId = model.EmployeeId,
             AccountId = model.AccountId,
             ActivityId = model.ActivityId,
-            ProductType = model.ProductType,
+            ProductTypeId = model.ProductTypeId,
             CollectionAmount = model.CollectionAmount,
             ApeAmount = model.ApeAmount,
             LumpSumAmount = model.LumpSumAmount,
@@ -247,16 +269,29 @@ public class SalesController : AppController
             ProductionAmount = model.ProductionAmount,
             SaleAmount = model.SaleAmount,
             SaleCount = model.SaleCount,
-            Notes = model.Notes
+            Notes = model.Notes ?? string.Empty
         };
-        Db.Sales.Add(sale);
-        QueueAudit("Sale", "Create", sale.Code, $"{sale.ProductType} satis kaydi olusturuldu.");
 
-        Db.SaveChanges();
-        TempData["Flash"] = "Satis kaydi olusturuldu.";
+        var (isValid, errors) = _saleService.Validate(sale);
+        if (!isValid)
+        {
+            foreach (var err in errors)
+            {
+                ModelState.AddModelError(err.Key, err.Value);
+            }
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        _saleService.Create(sale);
+        TempData["Success"] = "Satis kaydi olusturuldu.";
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = "Admin,Operations,SalesManager")]
     [HttpGet]
     public IActionResult Edit(int id)
     {
@@ -272,9 +307,13 @@ public class SalesController : AppController
             return NotFound();
         }
 
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.ToList();
         ViewBag.Activities = Db.Activities.ToList();
+        ViewBag.ProductTypes = Db.InsuranceProductTypes.OrderBy(x => x.DisplayOrder).ToList();
         return View(new SaleFormViewModel
         {
             Id = sale.Id,
@@ -282,7 +321,7 @@ public class SalesController : AppController
             EmployeeId = sale.EmployeeId,
             AccountId = sale.AccountId,
             ActivityId = sale.ActivityId,
-            ProductType = sale.ProductType,
+            ProductTypeId = sale.ProductTypeId,
             CollectionAmount = sale.CollectionAmount,
             ApeAmount = sale.ApeAmount,
             LumpSumAmount = sale.LumpSumAmount,
@@ -295,71 +334,77 @@ public class SalesController : AppController
         });
     }
 
+    [Authorize(Roles = "Admin,Operations,SalesManager")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Edit(int id, SaleFormViewModel model)
     {
         BuildShell();
-        ViewBag.Employees = Db.Employees.ToList();
+        var currentEmployeeId = CurrentEmployeeScopeId();
+        ViewBag.Employees = HasGlobalEmployeeAccess()
+            ? Db.Employees.OrderBy(x => x.FullName).ToList()
+            : Db.Employees.Where(x => x.Id == currentEmployeeId).OrderBy(x => x.FullName).ToList();
         ViewBag.Accounts = Db.Accounts.ToList();
         ViewBag.Activities = Db.Activities.ToList();
+        ViewBag.ProductTypes = Db.InsuranceProductTypes.OrderBy(x => x.DisplayOrder).ToList();
+
+        var tempSale = new Sale
+        {
+            Id = id,
+            SaleDate = model.SaleDate,
+            EmployeeId = model.EmployeeId,
+            AccountId = model.AccountId,
+            ActivityId = model.ActivityId,
+            ProductTypeId = model.ProductTypeId,
+            CollectionAmount = model.CollectionAmount,
+            ApeAmount = model.ApeAmount,
+            LumpSumAmount = model.LumpSumAmount,
+            MonthlyPaymentAmount = model.MonthlyPaymentAmount,
+            PremiumAmount = model.PremiumAmount,
+            ProductionAmount = model.ProductionAmount,
+            SaleAmount = model.SaleAmount,
+            SaleCount = model.SaleCount,
+            Notes = model.Notes ?? string.Empty
+        };
+
+        var (isValid, errors) = _saleService.Validate(tempSale);
+        if (!isValid)
+        {
+            foreach (var err in errors)
+            {
+                ModelState.AddModelError(err.Key, err.Value);
+            }
+        }
 
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var sale = Db.Sales.FirstOrDefault(x => x.Id == id);
-        if (sale is null)
+        var existing = _saleService.GetById(id, CurrentEmployeeScopeId());
+        if (existing is null || !CanSeeEmployeeData(existing.EmployeeId))
         {
             return NotFound();
         }
 
-        if (!CanSeeEmployeeData(sale.EmployeeId))
-        {
-            return NotFound();
-        }
-
-        sale.SaleDate = model.SaleDate;
-        sale.EmployeeId = model.EmployeeId;
-        sale.AccountId = model.AccountId;
-        sale.ActivityId = model.ActivityId;
-        sale.ProductType = model.ProductType;
-        sale.CollectionAmount = model.CollectionAmount;
-        sale.ApeAmount = model.ApeAmount;
-        sale.LumpSumAmount = model.LumpSumAmount;
-        sale.MonthlyPaymentAmount = model.MonthlyPaymentAmount;
-        sale.PremiumAmount = model.PremiumAmount;
-        sale.ProductionAmount = model.ProductionAmount;
-        sale.SaleAmount = model.SaleAmount;
-        sale.SaleCount = model.SaleCount;
-        sale.Notes = model.Notes;
-        QueueAudit("Sale", "Update", sale.Code, $"{sale.Code} satis kaydi guncellendi.");
-        Db.SaveChanges();
-
-        TempData["Flash"] = "Satis kaydi guncellendi.";
+        _saleService.Update(id, tempSale);
+        TempData["Success"] = "Satis kaydi guncellendi.";
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
-        var sale = Db.Sales.FirstOrDefault(x => x.Id == id);
-        if (sale is null)
+        var existing = _saleService.GetById(id, CurrentEmployeeScopeId());
+        if (existing is null)
         {
             return NotFound();
         }
-
-        if (!CanSeeEmployeeData(sale.EmployeeId))
-        {
-            return NotFound();
-        }
-
-        QueueAudit("Sale", "Delete", sale.Code, $"{sale.Code} satis kaydi silindi.");
-        Db.Sales.Remove(sale);
-        Db.SaveChanges();
-        TempData["Flash"] = "Satis kaydi silindi.";
+        
+        _saleService.Delete(id);
+        TempData["Success"] = "Satis kaydi silindi.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -372,7 +417,7 @@ public class SalesController : AppController
             EmployeeId = canManageAll ? model.EmployeeId : currentEmployeeId ?? model.EmployeeId,
             AccountId = model.AccountId,
             ActivityId = model.ActivityId,
-            ProductType = model.ProductType,
+            ProductTypeId = model.ProductTypeId,
             CollectionAmount = model.CollectionAmount,
             ApeAmount = model.ApeAmount,
             LumpSumAmount = model.LumpSumAmount,

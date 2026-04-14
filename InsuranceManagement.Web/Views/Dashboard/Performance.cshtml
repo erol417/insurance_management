@@ -1,34 +1,99 @@
 @model InsuranceManagement.Web.ViewModels.PerformanceDashboardViewModel
 @{
+    var topCollector = Model.Rows.OrderByDescending(x => x.CollectionTotal).FirstOrDefault();
     ViewData["Title"] = "Personel Performansi";
-    ViewData["Subtitle"] = "Personel bazli aktivite, satis ve masraf performansi";
+    ViewData["Subtitle"] = "Personel bazli aktivite, satis, tahsilat ve masraf dengesi";
 }
-<div class="panel">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Personel</th>
-                <th>Bolge</th>
-                <th>Aktivite</th>
-                <th>Satis</th>
-                <th>Donusum</th>
-                <th>Tahsilat</th>
-                <th>Masraf</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var row in Model.Rows)
-        {
-            <tr>
-                <td>@row.EmployeeName</td>
-                <td>@row.Region</td>
-                <td>@row.ActivityCount</td>
-                <td>@row.SaleCount</td>
-                <td>@row.ConversionRate %</td>
-                <td>@row.CollectionTotal.ToString("N0") TRY</td>
-                <td>@row.ExpenseTotal.ToString("N0") TRY</td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
+
+<section class="premium-strip">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div class="brand-icon-new" style="width:48px; height:48px; border-radius:12px; background:var(--brand-soft); color:var(--brand);">
+            <i data-lucide="users"></i>
+        </div>
+        <div>
+            <strong>Performans Kontrol Paneli</strong>
+            <span>@Model.StartDate.ToShortDateString() - @Model.EndDate.ToShortDateString() dönemi personel verimlilik analizi.</span>
+        </div>
+    </div>
+    <partial name="_DashboardFilter" model="Model" />
+</section>
+
+<partial name="_DashboardTabs" />
+
+<section class="metric-grid">
+    <div class="metric-card">
+        <div class="label">Toplam Personel</div>
+        <div class="value">@Model.Rows.Count</div>
+        <div class="sub">rapora dahil ekip</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Toplam Aktivite</div>
+        <div class="value">@Model.Rows.Sum(x => x.ActivityCount)</div>
+        <div class="sub">tum personel aktiviteleri</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Toplam Tahsilat</div>
+        <div class="value">@Model.Rows.Sum(x => x.CollectionTotal).ToString("N0") TRY</div>
+        <div class="sub">aylik tahsilat toplamı</div>
+    </div>
+    <div class="metric-card">
+        <div class="label">Toplam Masraf</div>
+        <div class="value">@Model.Rows.Sum(x => x.ExpenseTotal).ToString("N0") TRY</div>
+        <div class="sub">operasyon masrafi</div>
+    </div>
+</section>
+
+<section class="chart-grid-2">
+    <div class="panel">
+        <div class="panel-title">
+            <h3>Personel Aktivite Trendi</h3>
+            <span class="pill">ekip yogunlugu</span>
+        </div>
+        <div class="mini-chart bars"></div>
+    </div>
+    <div class="panel">
+        <div class="panel-title">
+            <h3>Tahsilat / Masraf Dagilimi</h3>
+            <span class="pill">verim karsilastirmasi</span>
+        </div>
+        <div class="mini-chart donut"></div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-title">
+        <h2>Personel Performans Tablosu</h2>
+        <span class="pill">sirali gorunum</span>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Personel</th>
+                    <th>Bolge</th>
+                    <th>Aktivite</th>
+                    <th>Gorusulen</th>
+                    <th>Satis</th>
+                    <th>BES Tahsilat</th>
+                    <th>Masraf</th>
+                    <th>Donusum</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td><strong>@row.EmployeeName</strong></td>
+                    <td style="font-size:12px; color:var(--muted);">@row.Region</td>
+                    <td>@row.ActivityCount</td>
+                    <td>@row.ContactedCount</td>
+                    <td>@row.SaleCount</td>
+                    <td>@row.BesCollection.ToString("N0") ₺</td>
+                    <td>@row.ExpenseTotal.ToString("N0") ₺</td>
+                    <td style="font-weight:600; color:var(--brand);">@row.ConversionRate %</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

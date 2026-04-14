@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace InsuranceManagement.Web.Data.Migrations
+namespace InsuranceManagement.Web.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260404225018_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260409113616_Sprint1_Init")]
+    partial class Sprint1_Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -47,6 +47,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -82,6 +89,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.HasKey("Id");
 
                     b.ToTable("accounts", (string)null);
@@ -116,6 +130,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.Property<int>("EmployeeId")
                         .HasColumnType("integer");
 
@@ -131,9 +152,57 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasMaxLength(3000)
                         .HasColumnType("character varying(3000)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.HasKey("Id");
 
                     b.ToTable("activities", (string)null);
+                });
+
+            modelBuilder.Entity("InsuranceManagement.Web.Domain.AuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Detail")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("EntityCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("audit_logs", (string)null);
                 });
 
             modelBuilder.Entity("InsuranceManagement.Web.Domain.Employee", b =>
@@ -149,6 +218,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -159,6 +235,13 @@ namespace InsuranceManagement.Web.Data.Migrations
 
                     b.Property<string>("Region")
                         .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
@@ -184,6 +267,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.Property<int>("EmployeeId")
                         .HasColumnType("integer");
 
@@ -200,6 +290,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.HasKey("Id");
 
                     b.ToTable("expenses", (string)null);
@@ -212,6 +309,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -235,6 +339,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.HasKey("Id");
 
@@ -275,6 +386,10 @@ namespace InsuranceManagement.Web.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -319,6 +434,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.HasKey("Id");
 
                     b.ToTable("leads", (string)null);
@@ -350,6 +472,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                     b.Property<decimal?>("CollectionAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<int>("EmployeeId")
                         .HasColumnType("integer");
@@ -390,6 +519,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                     b.Property<DateTime>("SaleDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.HasKey("Id");
 
                     b.ToTable("sales", (string)null);
@@ -403,6 +539,13 @@ namespace InsuranceManagement.Web.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.Property<int?>("EmployeeId")
                         .HasColumnType("integer");
 
@@ -411,7 +554,7 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -420,6 +563,13 @@ namespace InsuranceManagement.Web.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("UserName")
                         .IsRequired()

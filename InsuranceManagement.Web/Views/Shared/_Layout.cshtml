@@ -1,8 +1,49 @@
 @using InsuranceManagement.Web.ViewModels
+@using Microsoft.AspNetCore.Routing
 @{
     var shell = ViewBag.AppShell as AppShellViewModel ?? new AppShellViewModel();
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var navigationLabels = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Dashboard"] = "Dashboard",
+        ["Leads"] = "Leadler",
+        ["Accounts"] = "Musteriler",
+        ["Activities"] = "Aktiviteler",
+        ["Sales"] = "Satislar",
+        ["Expenses"] = "Masraflar",
+        ["Employees"] = "Personeller",
+        ["Admin"] = "Yonetim",
+        ["Imports"] = "Veri Aktarımı"
+    };
+
+    var topNavItems = shell.Groups
+        .Where(x => x.Title != "Kisisel")
+        .SelectMany(x => x.Items)
+        .Where(x => !string.IsNullOrWhiteSpace(x.Controller))
+        .GroupBy(x => x.Controller!, StringComparer.OrdinalIgnoreCase)
+        .Select(g =>
+        {
+            var first = g.First();
+            var label = navigationLabels.TryGetValue(g.Key, out var mappedLabel) ? mappedLabel : first.Label;
+            return new { Controller = first.Controller, Action = first.Action, Label = label, RouteValues = (object?)null };
+        })
+        .ToList();
+
+    var kisiselGroup = shell.Groups.FirstOrDefault(x => x.Title == "Kisisel");
+
+    var subNavControllers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Dashboard",
+        "Leads",
+        "Admin",
+        "Imports"
+    };
+
+    var currentGroup = shell.Groups.FirstOrDefault(g => g.Items.Any(i => string.Equals(i.Controller, controller, StringComparison.OrdinalIgnoreCase)));
+    var subNavItems = currentGroup?.Items
+        .Where(i => !string.IsNullOrWhiteSpace(i.Controller) && !string.IsNullOrWhiteSpace(i.Action))
+        .ToList() ?? [];
 }
 <!DOCTYPE html>
 <html lang="tr">
@@ -10,42 +51,82 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Sigorta Operasyon</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Professional Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <div class="brand">
-                <div class="brand-badge"></div>
-                <h1>Sigorta Operasyon</h1>
-                <p>@(shell.CurrentRole?.ToDisplayText() ?? "MVP Platformu")</p>
-            </div>
-            @foreach (var group in shell.Groups)
-            {
-                <div class="nav-group">
-                    <div class="nav-title">@group.Title</div>
-                    @foreach (var item in group.Items)
+    <div class="app-shell">
+        <header class="topnav">
+            <div class="topnav-left">
+                <div class="brand-lockup">
+                    <div class="brand-icon-new">
+                        <i data-lucide="shield-check"></i>
+                    </div>
+                    <div class="brand-title">Sigorta <span>Operasyon</span> <small>@(shell.CurrentRole?.ToDisplayText() ?? "MVP")</small></div>
+                </div>
+                <nav class="mainnav">
+                    @if (kisiselGroup != null)
                     {
-                        var activeClass = controller == item.Controller && action == item.Action ? "active" : string.Empty;
-                        <a class="nav-link @activeClass" asp-controller="@item.Controller" asp-action="@item.Action">@item.Label</a>
+                        @foreach (var item in kisiselGroup.Items)
+                        {
+                            var activeClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase) && string.Equals(action, item.Action, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+                            var routeData = item.RouteValues != null ? new RouteValueDictionary(item.RouteValues).ToDictionary(x => x.Key, x => x.Value?.ToString() ?? string.Empty) : null;
+                            <a class="@activeClass" style="border-right: 1px solid var(--line); padding-right: 15px; margin-right: 5px; color: var(--brand); font-weight: 600;" 
+                               asp-controller="@item.Controller" asp-action="@item.Action" asp-all-route-data="routeData">@item.Label</a>
+                        }
+                    }
+                    @foreach (var item in topNavItems)
+                    {
+                        var activeClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+                        <a class="@activeClass" asp-controller="@item.Controller" asp-action="@item.Action">@item.Label</a>
+                    }
+                </nav>
+            </div>
+            <div class="topnav-right">
+                <input class="search-input" value="Ara" />
+                <div class="user-lockup">
+                    <div class="avatar"></div>
+                    <div>@shell.CurrentUserName</div>
+                </div>
+                <form asp-controller="Auth" asp-action="Logout" method="post" class="inline-form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn primary">Cikis</button>
+                </form>
+            </div>
+        </header>
+        <main class="page">
+            <div class="page-inner">
+                @if (subNavControllers.Contains(controller ?? string.Empty) && subNavItems.Count > 1)
+                {
+                    <nav class="subnav">
+                        @foreach (var item in subNavItems)
+                        {
+                            var subActiveClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase)
+                                && string.Equals(action, item.Action, StringComparison.OrdinalIgnoreCase)
+                                ? "active"
+                                : string.Empty;
+                            var subRouteData = item.RouteValues != null 
+                                ? new RouteValueDictionary(item.RouteValues).ToDictionary(x => x.Key, x => x.Value?.ToString() ?? string.Empty) 
+                                : null;
+                            <a class="@subActiveClass" asp-controller="@item.Controller" asp-action="@item.Action" asp-all-route-data="subRouteData">@item.Label</a>
+                        }
+                    </nav>
+                }
+                <div class="page-header">
+                    <div class="breadcrumb">@(navigationLabels.TryGetValue(controller ?? string.Empty, out var breadcrumbLabel) ? breadcrumbLabel : (controller ?? "Ana Sayfa")) / @(ViewData["Title"] ?? action ?? "Dashboard")</div>
+                    <h1>@ViewData["Title"]</h1>
+                    @if (ViewData["Subtitle"] is string subtitle && !string.IsNullOrWhiteSpace(subtitle))
+                    {
+                        <p>@subtitle</p>
                     }
                 </div>
-            }
-        </aside>
-        <main class="main">
-            <div class="topbar">
-                <div class="headline">
-                    <h2>@ViewData["Title"]</h2>
-                    <p>@ViewData["Subtitle"]</p>
-                </div>
-                <div class="toolbar">
-                    <span class="btn secondary">@shell.CurrentUserName</span>
-                    <form asp-controller="Auth" asp-action="Logout" method="post" class="inline-form">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn primary">Cikis</button>
-                    </form>
-                </div>
-            </div>
             @if (TempData["Flash"] is string flash)
             {
                 <div class="flash">@flash</div>
@@ -55,10 +136,14 @@
                 <div class="note-box" style="margin-bottom:16px;"><strong>Uyari</strong><p>@warning</p></div>
             }
             @RenderBody()
+            </div>
         </main>
     </div>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/gridDraft.js" asp-append-version="true"></script>
+    <script>
+        lucide.createIcons();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

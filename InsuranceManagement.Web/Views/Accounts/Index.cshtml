@@ -7,32 +7,121 @@
     ViewData["Title"] = "Musteriler";
     ViewData["Subtitle"] = "Musteri ve firma kayitlari";
 }
-<div class="page-actions">
-    <button type="button" class="btn primary" onclick="toggleAccountInsertRow()">Yeni Satir Ekle</button>
+
+<div class="premium-strip">
+    <div>
+        <strong>Musteri Yonetim Merkezi</strong>
+        <span>Bireysel ve kurumsal hesaplari tek tablo uzerinden guncelle, sahiplik ve veri kalitesini izleyin.</span>
+    </div>
+    <div class="inline-actions">
+        <a class="btn primary" asp-action="Create">Detayli Form</a>
+    </div>
+</div>
+
+<div class="panel filters-bar">
+    <form method="get" class="filters-inline">
+        <div class="filter-group">
+            <i data-lucide="search"></i>
+            <input type="text" name="searchTerm" placeholder="Musteri Adi, Kod veya Telefon..." value="@ViewBag.SearchTerm" />
+        </div>
+        
+        <select name="status" class="filter-select">
+            <option value="">-- Durum --</option>
+            <option value="Active" selected="@(ViewBag.Status == "Active")">Aktif</option>
+            <option value="Passive" selected="@(ViewBag.Status == "Passive")">Pasif</option>
+        </select>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn primary btn-icon-only" title="Filtrele">
+                <i data-lucide="filter"></i>
+            </button>
+            <a asp-action="Index" class="btn ghost btn-icon-only" title="Temizle">
+                <i data-lucide="rotate-ccw"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="page-actions" style="margin-bottom:14px;">
+    <button type="button" class="btn" onclick="toggleAccountInsertRow()">Yeni Satir Ekle</button>
     <button type="button" class="btn secondary" id="save-all-accounts-btn">Degisiklikleri Kaydet</button>
     <button type="button" class="btn ghost" id="clear-account-draft-btn">Taslagi Temizle</button>
-    <a class="btn secondary" asp-action="Create">Detayli Form</a>
 </div>
-<div class="panel" style="margin-top:18px;">
+
+<div class="panel">
     <div class="note-box">
         <strong>Grid duzenleme</strong>
         <p>Bu ekranda musteri ve firma kayitlari tablo uzerinden hizli duzenlenir. Tum degisiklikler taslakta tutulur ve tek kaydetme ile islenir.</p>
-        <p>Sayfalar arasinda gezsen de taslak korunur. Kaydetmeden ayrilirsan sistem uyarir.</p>
+        <p>Sorumlu personel, durum ve temel iletisim alanlari ayni akis icinde duzenlenir; operasyon ekibi icin hizli bakim ekranidir.</p>
     </div>
     <div class="table-scroll">
-        <table class="table compact-table">
+        <table class="data-table compact-table">
             <thead>
                 <tr>
-                    <th>Kod</th>
-                    <th>Tip</th>
-                    <th>Ad / Unvan</th>
-                    <th>Sehir</th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "code" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="code" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "code" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-status="@ViewBag.Status">
+                            Kod @if(ViewBag.SortBy == "code") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "type" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="type" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "type" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-status="@ViewBag.Status">
+                            Tip @if(ViewBag.SortBy == "type") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "displayname" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="displayname" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "displayname" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-status="@ViewBag.Status">
+                            Ad / Unvan @if(ViewBag.SortBy == "displayname") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "city" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="city" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "city" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-status="@ViewBag.Status">
+                            Sehir @if(ViewBag.SortBy == "city") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
                     <th>Ilce</th>
                     <th>Telefon</th>
                     <th>E-posta</th>
                     <th>Vergi No</th>
-                    <th>Sahibi</th>
-                    <th>Durum</th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "employee" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="employee" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "employee" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-status="@ViewBag.Status">
+                            Personel @if(ViewBag.SortBy == "employee") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "status" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="status" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "status" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-status="@ViewBag.Status">
+                            Durum @if(ViewBag.SortBy == "status") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
                     <th>Not</th>
                 </tr>
             </thead>
@@ -68,7 +157,7 @@
                             <span class="pill">@employees.FirstOrDefault()?.FullName</span>
                         }
                     </td>
-                    <td><input data-field="status" class="cell-input" value="Active" /></td>
+                    <td><input data-field="status" class="cell-input" value="Aktif" /></td>
                     <td><input data-field="notes" class="cell-input" placeholder="Not" /></td>
                 </tr>
                 @foreach (var account in Model.Items)
@@ -127,11 +216,27 @@
             </tbody>
         </table>
     </div>
-    <div class="page-actions split-actions">
+    <div class="page-actions split-actions" style="margin-top:16px;">
         <div class="pager">
-            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" asp-action="Index" asp-route-page="@prevPage" asp-route-pageSize="@Model.PageSize">Onceki</a>
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" 
+               asp-action="Index" 
+               asp-route-page="@prevPage" 
+               asp-route-pageSize="@Model.PageSize"
+               asp-route-searchTerm="@ViewBag.SearchTerm"
+               asp-route-status="@ViewBag.Status"
+               asp-route-sortBy="@ViewBag.SortBy"
+               asp-route-isDescending="@ViewBag.IsDescending">Onceki</a>
+            
             <span class="pill">Sayfa @Model.CurrentPage / @Model.TotalPages</span>
-            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" asp-action="Index" asp-route-page="@nextPage" asp-route-pageSize="@Model.PageSize">Sonraki</a>
+            
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" 
+               asp-action="Index" 
+               asp-route-page="@nextPage" 
+               asp-route-pageSize="@Model.PageSize"
+               asp-route-searchTerm="@ViewBag.SearchTerm"
+               asp-route-status="@ViewBag.Status"
+               asp-route-sortBy="@ViewBag.SortBy"
+               asp-route-isDescending="@ViewBag.IsDescending">Sonraki</a>
         </div>
         <div class="muted">Toplam @Model.TotalCount kayit</div>
     </div>

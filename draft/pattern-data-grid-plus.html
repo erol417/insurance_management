@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Grid Plus</title>
+  <link rel="stylesheet" href="./structure-patterns.css">
+</head>
+<body class="screen-page">
+  <div class="screen-stack">
+    <a class="back-link" href="./structure-patterns.html">Yapisal kataloge don</a>
+    <section class="hero-card">
+      <span class="eyebrow">Pattern 3</span>
+      <h1>Data Grid Plus</h1>
+      <p class="caption">Bu yapida liste ekranlari hala merkezdedir ama artik yalniz degildir. Ust filtre komuta alani, hizli segmentler, secili satir rail'i ve toplu islem cubugu ile desteklenir.</p>
+    </section>
+
+    <section class="frame">
+      <div class="app">
+        <aside class="sidebar">
+          <div class="brand-mark"></div>
+          <h2 class="brand-title">Insurance Flow</h2>
+          <p class="brand-subtitle">List intelligence</p>
+          <div class="nav-section">
+            <div class="nav-title">Lists</div>
+            <a class="nav-link active">Lead Pool</a>
+            <a class="nav-link">Activities</a>
+            <a class="nav-link">Sales</a>
+            <a class="nav-link">Expenses</a>
+          </div>
+          <div class="nav-section">
+            <div class="nav-title">Views</div>
+            <a class="nav-link">Tum kayitlar</a>
+            <a class="nav-link">Atanmamislar</a>
+            <a class="nav-link">Yuksek oncelik</a>
+          </div>
+        </aside>
+        <main class="main">
+          <div class="sticky-bar">
+            <div class="sticky-left">
+              <span class="chip active">Secili: 14 kayit</span>
+              <span class="chip">Grid taslak aktif</span>
+              <span class="chip">2 filtre uygulanmis</span>
+            </div>
+            <div class="sticky-right">
+              <a class="btn-secondary">Toplu durum degistir</a>
+              <a class="btn-secondary">Sahibe ata</a>
+              <a class="btn">Kaydet</a>
+            </div>
+          </div>
+
+          <div class="headline" style="margin-bottom:16px;">
+            <h2>Lead havuzu</h2>
+            <p>Tablo merkezde kalir ama ekranin geri kalani tabloya hizmet eder. Kullanici filtre, segment, secili kayit ve sonraki is adimini ayni anda gorur.</p>
+          </div>
+
+          <div class="subnav" style="margin-bottom:16px;">
+            <a class="active">Tum leadler</a>
+            <a>Atanmamislar</a>
+            <a>Bugun gelenler</a>
+            <a>Eksik veriler</a>
+          </div>
+
+          <div class="layout-2col">
+            <div class="stack">
+              <div class="surface">
+                <div class="section-title"><h3>Komut filtresi</h3><span class="tiny-tag">Search + Segments</span></div>
+                <div class="filters">
+                  <span class="chip active">Arama: Istanbul</span>
+                  <span class="chip">Status: Ready</span>
+                  <span class="chip">Atama: Bos</span>
+                  <span class="chip">Kaynak: Call Center</span>
+                  <span class="chip">Oncelik: High</span>
+                  <span class="chip">+ Filtre ekle</span>
+                </div>
+              </div>
+
+              <div class="surface">
+                <div class="section-title"><h3>Lead grid</h3><span class="tiny-tag">Grid + Inline</span></div>
+                <div class="card-list">
+                  <div class="list-row header"><div>Lead</div><div>Durum</div><div>Kaynak</div><div>Atanan</div><div></div></div>
+                  <div class="list-row"><div><strong>LD-102 · Acme aday kaydi</strong><p class="caption">IK muduru kontagi alindi</p></div><div>Ready</div><div>Call Center</div><div>-</div><div class="priority-dot"></div></div>
+                  <div class="list-row"><div><strong>LD-103 · Nova Lojistik</strong><p class="caption">Sali gunu ziyaret bekleniyor</p></div><div>Assigned</div><div>Call Center</div><div>Ahmet Yilmaz</div><div class="priority-dot"></div></div>
+                  <div class="list-row"><div><strong>LD-104 · Burcu Cetin</strong><p class="caption">Arama geri donusu bekliyor</p></div><div>New</div><div>Referral</div><div>-</div><div class="priority-dot" style="opacity:.45;"></div></div>
+                  <div class="list-row"><div><strong>LD-105 · Teknomer</strong><p class="caption">Kurumsal teklif toplantisi planlandi</p></div><div>Qualified</div><div>Web Form</div><div>Elif Kara</div><div class="priority-dot"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="right-rail">
+              <div class="rail-card">
+                <strong>Secili kayit ozeti</strong>
+                <p>LD-102 secili. Iletisim tam, atama bos, notlar yeterli. Bu rail secili satira gore dinamik degisir.</p>
+                <div class="action-list" style="margin-top:12px;">
+                  <a class="btn-secondary">Detay ac</a>
+                  <a class="btn-secondary">Not ekle</a>
+                  <a class="btn">Ata</a>
+                </div>
+              </div>
+              <div class="rail-card">
+                <strong>Grid yardimcilari</strong>
+                <ul>
+                  <li>Klavye kisayollari</li>
+                  <li>Taslak degisiklik gostergesi</li>
+                  <li>Filtreyi kaydet ve yeniden kullan</li>
+                </ul>
+              </div>
+              <div class="rail-card">
+                <strong>Hizli segmentler</strong>
+                <p>“Sadece atama bekleyenler”, “Eksik telefonu olanlar”, “Bugun aranacaklar” gibi tek tik filtre kutulari burada olabilir.</p>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

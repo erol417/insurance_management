@@ -3,35 +3,271 @@
     var employee = ViewBag.Employee as InsuranceManagement.Web.Domain.Employee;
     var account = ViewBag.Account as InsuranceManagement.Web.Domain.Account;
     var sales = ViewBag.Sales as List<InsuranceManagement.Web.Domain.Sale> ?? [];
-    ViewData["Title"] = "Aktivite Detayi";
-    ViewData["Subtitle"] = "Iki asamali aktivite sonucu modeli";
+    ViewData["Title"] = Model.Code;
+    
+    // Workflow Logic
+    bool isSaleExpected = Model.OutcomeStatusTypeId == 5; // SALE_CLOSED
+    bool isSaleMissing = isSaleExpected && !sales.Any();
+    bool isFromLead = Model.LeadId.HasValue;
+    
+    // Progress Tracker Logic (1: Draft/New, 2: Outcome Set, 3: Completed)
+    int step = 1;
+    if (Model.OutcomeStatusTypeId > 1) step = 2;
+    if (isSaleExpected && sales.Any()) step = 3;
+    if (Model.OutcomeStatusTypeId is 2 or 3 or 4) step = 3; // POSITIVE/NEGATIVE/POSTPONED are terminal if no sale
 }
-<div class="grid equal-2">
-    <div class="panel">
-        <div class="list">
-            <div class="list-item"><strong>Aktivite</strong><span>@Model.Code</span></div>
-            <div class="list-item"><strong>Personel</strong><span>@employee?.FullName</span></div>
-            <div class="list-item"><strong>Account</strong><span>@account?.DisplayName</span></div>
-            <div class="list-item"><strong>Temas Durumu</strong><span>@Model.ContactStatus.ToDisplayText()</span></div>
-            <div class="list-item"><strong>Sonuc</strong><span>@(Model.OutcomeStatus.HasValue ? Model.OutcomeStatus.Value.ToDisplayText() : "-")</span></div>
-        </div>
-        <div class="note-box"><strong>Icerik</strong><p>@Model.Summary</p></div>
+
+<!-- Workflow Navigation / Breadcrumb -->
+<div class="workflow-nav">
+    <a asp-action="Index"><i class="bi bi-arrow-left"></i> Aktivite Listesi</a>
+    <span class="sep">/</span>
+    <span class="current">@Model.Code Detayi</span>
+</div>
+
+<!-- Smart Status Tracker -->
+<div class="process-tracker panel">
+    <div class="step @(step >= 1 ? "active" : "")">
+        <div class="circle">1</div>
+        <div class="label">Aktivite Olusturuldu</div>
     </div>
-    <div class="panel">
-        <div class="section-title"><h3>Bagli satislar</h3><span class="pill">@sales.Count kayit</span></div>
-        <div class="list">
-            @foreach (var sale in sales)
-            {
-                <div class="list-item"><strong>@sale.Code</strong><span>@sale.ProductType</span></div>
-            }
+    <div class="line @(step >= 2 ? "active" : "")"></div>
+    <div class="step @(step >= 2 ? "active" : "")">
+        <div class="circle">2</div>
+        <div class="label">Sonuc Kaydedildi</div>
+    </div>
+    <div class="line @(step >= 3 ? "active" : "")"></div>
+    <div class="step @(step >= 3 ? "active" : "")">
+        <div class="circle">3</div>
+        <div class="label">Satis / Islemler Tamam</div>
+    </div>
+</div>
+
+<!-- Smart Alert Bar -->
+@if (isSaleMissing)
+{
+    <div class="workflow-alert danger">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div class="content">
+            <strong>Dikkat: Satis Kaydi Eksik!</strong>
+            <span>Bu aktivite "Satis Oldu" olarak isaretlenmis ancak sisteme bagli bir satis girilmemis.</span>
+        </div>
+        <a asp-controller="Sales" asp-action="Create" asp-route-activityId="@Model.Id" class="btn btn-sm">Hemen Satis Gir</a>
+    </div>
+}
+else if (isFromLead)
+{
+    <div class="workflow-alert info">
+        <i class="bi bi-info-circle-fill"></i>
+        <div class="content">
+            <strong>Lead Donusumu</strong>
+            <span>Bu aktivite bir potansiyel musteriden (Lead) baslatilmistir.</span>
+        </div>
+        <a asp-controller="Leads" asp-action="Details" asp-route-id="@Model.LeadId" class="btn btn-sm outline">Leadi Gor</a>
+    </div>
+}
+
+<div class="main-workspace">
+    <div class="left-column">
+        <!-- Main Content Card -->
+        <div class="panel workspace-card">
+            <div class="card-header">
+                <h3><i class="bi bi-file-earmark-text"></i> Aktivite Bilgileri</h3>
+                <span class="date">@Model.ActivityDate.ToShortDateString()</span>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Musteri / Hesap</label>
+                        <div class="val">
+                            <a asp-controller="Accounts" asp-action="Details" asp-route-id="@Model.AccountId" class="link">
+                                @account?.DisplayName <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <label>Irtibat Kurulan Kisi</label>
+                        <div class="val">@Model.ContactName</div>
+                    </div>
+                    <div class="info-item">
+                        <label>Gorusme Kanali / Durum</label>
+                        <div class="val"><span class="badge">@Model.ContactStatusType?.Name</span></div>
+                    </div>
+                    <div class="info-item">
+                        <label>Gorusme Sonucu</label>
+                        <div class="val">
+                            <span class="badge @(Model.OutcomeStatusTypeId == 5 ? "success" : "secondary")">
+                                @(Model.OutcomeStatusType?.Name ?? "Henuz Girilmedi")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <label>Aktivite Notlari / Ozet</label>
+                    <div class="summary-box">@Model.Summary</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Connected Sales Card -->
+        <div class="panel workspace-card mt-20">
+            <div class="card-header">
+                <h3><i class="bi bi-cash-stack"></i> Bagli Satis Kayitlari</h3>
+                <span class="badge dark">@sales.Count kayit</span>
+            </div>
+            <div class="card-body no-padding">
+                @if (!sales.Any())
+                {
+                    <div class="empty-state">
+                        <p>Bu aktiviteye dair henuz bir satis kaydi bulunmuyor.</p>
+                        @if (Model.OutcomeStatusTypeId == 5)
+                        {
+                            <a asp-controller="Sales" asp-action="Create" asp-route-activityId="@Model.Id" class="btn primary-sm">Yeni Satis Ekle</a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <table class="data-table small">
+                        <thead>
+                            <tr>
+                                <th>Kod</th>
+                                <th>Urun</th>
+                                <th>Tarih</th>
+                                <th class="text-right">Aksiyon</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sale in sales)
+                            {
+                                <tr>
+                                    <td><strong>@sale.Code</strong></td>
+                                    <td>@sale.InsuranceProductType?.Name</td>
+                                    <td>@sale.SaleDate.ToShortDateString()</td>
+                                    <td class="text-right"><a asp-controller="Sales" asp-action="Details" asp-route-id="@sale.Id" class="btn-icon"><i class="bi bi-eye"></i></a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <div class="right-column">
+        <!-- Employee Card -->
+        <div class="panel mini-card">
+            <div class="card-title">Sorumlu Personel</div>
+            <div class="assignee-box">
+                <div class="avatar">@employee?.FullName?[0]</div>
+                <div class="info">
+                    <strong>@employee?.FullName</strong>
+                    <span>@employee?.City Ofisi</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Sidebar -->
+        <div class="panel mini-card mt-15">
+            <div class="card-title">Hizli Islemler</div>
+            <div class="actions-stack">
+                <a class="btn action-btn" asp-action="Edit" asp-route-id="@Model.Id">
+                    <i class="bi bi-pencil-square"></i> Aktiviteyi Duzenle
+                </a>
+                
+                @if (Model.OutcomeStatusTypeId != 5)
+                {
+                     <a class="btn action-btn outline" asp-controller="Sales" asp-action="Create" asp-route-activityId="@Model.Id">
+                        <i class="bi bi-plus-circle"></i> Satis Kaydi Olustur
+                    </a>
+                }
+                
+                <form asp-action="Delete" method="post" onsubmit="return confirm('Bu aktiviteyi silmek istediginizden emin misiniz?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn action-btn text-danger">
+                        <i class="bi bi-trash"></i> Aktiviteyi Sil
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Metadata -->
+        <div class="metadata-box mt-15">
+            <div class="meta-item"><span>Olusturan:</span> <strong>@Model.CreatedBy</strong></div>
+            <div class="meta-item"><span>Olusturma:</span> <strong>@Model.CreatedAt.ToString("g")</strong></div>
+            <div class="meta-item"><span>Son Guncelleme:</span> <strong>@(Model.UpdatedAt?.ToString("g") ?? "-")</strong></div>
         </div>
     </div>
 </div>
-<div class="page-actions">
-    <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
-    <form asp-action="Delete" method="post" class="inline-form">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" value="@Model.Id" />
-        <button type="submit" class="btn secondary">Sil</button>
-    </form>
-</div>
+
+<style>
+    .workflow-nav { margin-bottom: 20px; font-size: 0.9rem; color: #666; display: flex; align-items: center; gap: 8px; }
+    .workflow-nav a { color: #6366f1; text-decoration: none; font-weight: 500; }
+    .workflow-nav .sep { color: #ccc; }
+    .workflow-nav .current { color: #333; font-weight: 700; }
+
+    /* Process Tracker */
+    .process-tracker { display: flex; align-items: center; justify-content: space-around; padding: 25px; margin-bottom: 25px; background: white; border-radius: 12px; }
+    .process-tracker .step { display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 1; }
+    .process-tracker .circle { width: 32px; height: 32px; background: #f0f0f0; border: 2px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #999; font-size: 0.85rem; transition: 0.3s; }
+    .process-tracker .label { font-size: 0.75rem; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+    .process-tracker .line { flex-grow: 1; height: 3px; background: #f0f0f0; margin: 0 -15px; margin-top: -24px; z-index: 0; }
+    
+    .process-tracker .step.active .circle { background: #6366f1; border-color: #6366f1; color: white; box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
+    .process-tracker .step.active .label { color: #6366f1; }
+    .process-tracker .line.active { background: #6366f1; }
+
+    /* Alert Bar */
+    .workflow-alert { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; animation: slideIn 0.5s ease; }
+    .workflow-alert.danger { background: #fff5f5; border: 1px solid #feb2b2; color: #c53030; }
+    .workflow-alert.info { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; }
+    .workflow-alert .content { flex-grow: 1; display: flex; flex-direction: column; }
+    .workflow-alert .content strong { font-size: 1rem; }
+    .workflow-alert .content span { font-size: 0.85rem; opacity: 0.8; }
+    .workflow-alert .btn { background: #c53030; color: white; font-weight: 700; padding: 6px 15px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; }
+    .workflow-alert.info .btn { background: #2b6cb0; }
+    .workflow-alert.info .btn.outline { background: transparent; border: 1px solid #2b6cb0; color: #2b6cb0; }
+
+    /* Layout */
+    .main-workspace { display: grid; grid-template-columns: 1fr 300px; gap: 25px; }
+    .workspace-card { border-radius: 12px; overflow: hidden; }
+    .card-header { padding: 15px 20px; background: #fafafa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .card-header h3 { margin: 0; font-size: 1rem; color: #333; display: flex; align-items: center; gap: 10px; }
+    .card-header .date { font-size: 0.85rem; color: #888; font-weight: 600; }
+    .card-body { padding: 25px; }
+    .card-body.no-padding { padding: 0; }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+    .info-item label { display: block; font-size: 0.75rem; font-weight: 700; color: #999; text-transform: uppercase; margin-bottom: 5px; }
+    .info-item .val { font-size: 1rem; color: #333; font-weight: 600; }
+    .info-item .link { color: #6366f1; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+    
+    .summary-section label { display: block; font-size: 0.75rem; font-weight: 700; color: #999; text-transform: uppercase; margin-bottom: 5px; }
+    .summary-box { background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 8px; padding: 15px; min-height: 100px; color: #555; line-height: 1.6; }
+
+    .mini-card { padding: 20px; border-radius: 12px; }
+    .mini-card .card-title { font-size: 0.8rem; font-weight: 800; color: #999; text-transform: uppercase; margin-bottom: 15px; }
+    
+    .assignee-box { display: flex; align-items: center; gap: 12px; }
+    .assignee-box .avatar { width: 44px; height: 44px; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; font-size: 1.4rem; }
+    .assignee-box .info { display: flex; flex-direction: column; }
+    
+    .actions-stack { display: flex; flex-direction: column; gap: 10px; }
+    .action-btn { width: 100%; text-align: left; padding: 12px 15px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; justify-content: flex-start; gap: 10px; border: 1px solid #eee; background: white; transition: 0.2s; }
+    .action-btn:hover { background: #f9fafb; border-color: #ddd; transform: translateX(5px); }
+    .action-btn.outline { border-color: #6366f1; color: #6366f1; }
+    .action-btn.text-danger { color: #dc3545; }
+
+    .metadata-box { font-size: 0.75rem; color: #999; padding: 15px; border-radius: 12px; background: #fafafa; border: 1px solid #eee; }
+    .meta-item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    
+    .mt-20 { margin-top: 20px; }
+    .mt-15 { margin-top: 15px; }
+
+    .empty-state { padding: 40px; text-align: center; color: #aaa; }
+    .empty-state p { font-style: italic; margin-bottom: 15px; }
+    .primary-sm { background: #6366f1; color: white; padding: 6px 15px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 0.85rem; }
+
+    @@keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+</style>

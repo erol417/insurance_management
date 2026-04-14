@@ -6,20 +6,96 @@
     ViewData["Title"] = "Aktivite Duzenle";
     ViewData["Subtitle"] = "Aktivite kaydini guncelle";
 }
-<div class="panel">
-    <form method="post">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="All" class="validation-summary-errors"></div>
-        <div class="form-grid three">
-            <div class="field"><label asp-for="ActivityDate"></label><input asp-for="ActivityDate" type="date" /></div>
-            <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
-            <div class="field"><label asp-for="AccountId"></label><select asp-for="AccountId">@foreach (var account in accounts){<option value="@account.Id">@account.DisplayName</option>}</select></div>
-            <div class="field"><label asp-for="LeadId"></label><select asp-for="LeadId"><option value="">Lead yok</option>@foreach (var lead in leads){<option value="@lead.Id">@lead.Code · @lead.DisplayName</option>}</select></div>
-            <div class="field"><label asp-for="ContactName"></label><input asp-for="ContactName" /></div>
-            <div class="field"><label asp-for="ContactStatus"></label><select asp-for="ContactStatus" data-contact-status><option value="Contacted">Gorusuldu</option><option value="NotContacted">Gorusulmedi</option></select></div>
-            <div class="field" data-outcome-wrapper><label asp-for="OutcomeStatus"></label><select asp-for="OutcomeStatus"><option value="">Seciniz</option><option value="Positive">Olumlu</option><option value="Negative">Olumsuz</option><option value="Postponed">Ertelendi</option><option value="SaleClosed">Satis Oldu</option></select></div>
-        </div>
-        <div class="field"><label asp-for="Summary"></label><textarea asp-for="Summary"></textarea></div>
-        <div class="page-actions"><button type="submit" class="btn primary">Guncelle</button></div>
-    </form>
+
+<div class="form-layout">
+    <div class="layout-main">
+        <section class="section-block">
+            <h3>Aktivite Bilgileri</h3>
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="validation-summary-errors"></div>
+                <div class="form-grid three">
+                    <div class="field"><label asp-for="ActivityDate"></label><input asp-for="ActivityDate" type="date" /></div>
+                    <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
+                    <div class="field"><label asp-for="AccountId"></label><select asp-for="AccountId">@foreach (var account in accounts){<option value="@account.Id">@account.DisplayName</option>}</select></div>
+                    <div class="field"><label asp-for="LeadId"></label><select asp-for="LeadId"><option value="">Lead yok</option>@foreach (var lead in leads){<option value="@lead.Id">@lead.Code - @lead.DisplayName</option>}</select></div>
+                    <div class="field"><label asp-for="ContactName"></label><input asp-for="ContactName" /></div>
+                    <div class="field">
+                        <label>Gorusme Durumu</label>
+                        <select asp-for="ContactStatusTypeId" data-contact-status>
+                            @foreach (var status in (List<InsuranceManagement.Web.Domain.ActivityContactStatusType>)ViewBag.ContactStatusTypes)
+                            {
+                                <option value="@status.Id">@status.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field" data-outcome-wrapper>
+                        <label>Gorusme Sonucu</label>
+                        <select asp-for="OutcomeStatusTypeId">
+                            <option value="">Seciniz</option>
+                            @foreach (var status in (List<InsuranceManagement.Web.Domain.ActivityOutcomeStatusType>)ViewBag.OutcomeStatusTypes)
+                            {
+                                <option value="@status.Id">@status.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="field"><label asp-for="Summary"></label><textarea asp-for="Summary"></textarea></div>
+                <div class="page-actions"><button type="submit" class="btn primary">Guncelle</button></div>
+            </form>
+        </section>
+    </div>
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <h3>Baglamsal Aksiyonlar ve Rehber</h3>
+        </section>
+        <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Hizli Aksiyonlar</h4>
+            <div class="action-buttons">
+                <button class="btn primary" type="button">Aktivite Detayi</button>
+                <button class="btn primary" type="button">Takvim Guncelle</button>
+            </div>
+        </section>
+        <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Duzenleme Rehberi</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong>Durum uyumu</strong>
+                    <div>Gorusme ve sonuc alanlari birbiriyle tutarli tutulursa dashboard raporlari saglikli olur.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Musteri baglantisi</strong>
+                    <div>Yanlis musteri secimi satis baglantilarini bozabilir; hesap kartini tekrar kontrol et.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sonraki adim</strong>
+                    <div>Aktivite tamamlaniyorsa satis kaydi veya takip gorevi acilabilir.</div>
+                </div>
+            </div>
+        </section>
+    </aside>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const contactSelect = document.querySelector('[data-contact-status]');
+            const outcomeWrapper = document.querySelector('[data-outcome-wrapper]');
+            const outcomeSelect = document.querySelector('#OutcomeStatusTypeId');
+
+            function sync() {
+                // ID 1: Görüşüldü
+                const contacted = contactSelect.value === "1";
+                if (contacted) {
+                    outcomeWrapper.style.display = 'block';
+                } else {
+                    outcomeWrapper.style.display = 'none';
+                    if (!contacted) outcomeSelect.value = "";
+                }
+            }
+
+            contactSelect.addEventListener('change', sync);
+            sync();
+        });
+    </script>
+}

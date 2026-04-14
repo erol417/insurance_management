@@ -3,41 +3,344 @@
     var employee = ViewBag.Employee as InsuranceManagement.Web.Domain.Employee;
     var convertedAccount = ViewBag.ConvertedAccount as InsuranceManagement.Web.Domain.Account;
     var convertedActivity = ViewBag.ConvertedActivity as InsuranceManagement.Web.Domain.Activity;
-    ViewData["Title"] = "Lead Detayi";
-    ViewData["Subtitle"] = "Lead durumu, atama ve donusum izlemesi";
+    ViewData["Title"] = Model.DisplayName;
+    ViewData["Subtitle"] = "Lead detaylari, atama durumu ve sonraki aksiyonlar";
+
+    var statusId = Model.LeadStatusTypeId;
+    var currentStatus = (InsuranceManagement.Web.Domain.LeadStatus)statusId;
+    
+    var isConverted = currentStatus == InsuranceManagement.Web.Domain.LeadStatus.Converted;
+    var isDisqualified = currentStatus == InsuranceManagement.Web.Domain.LeadStatus.Disqualified;
+    var isAssigned = Model.AssignedEmployeeId.HasValue;
+    var canStartVisit = (User.IsInRole("FieldSales") || User.IsInRole("Admin") || User.IsInRole("SalesManager")) && !isConverted && !isDisqualified;
+
+    var step = 1;
+    if (isAssigned) step = 2;
+    if (currentStatus == InsuranceManagement.Web.Domain.LeadStatus.Visited || currentStatus == InsuranceManagement.Web.Domain.LeadStatus.Converted) step = 3;
+
+    var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
+    var canAssign = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SalesManager");
 }
-<div class="panel">
-    <div class="list">
-        <div class="list-item"><strong>Kod</strong><span>@Model.Code</span></div>
-        <div class="list-item"><strong>Ad</strong><span>@Model.DisplayName</span></div>
-        <div class="list-item"><strong>Durum</strong><span class="status neutral">@Model.Status.ToDisplayText()</span></div>
-        <div class="list-item"><strong>Atanan</strong><span>@(employee?.FullName ?? "-")</span></div>
-        <div class="list-item"><strong>Sehir</strong><span>@Model.City / @Model.District</span></div>
-        <div class="list-item"><strong>Kontak</strong><span>@Model.ContactName · @Model.Phone</span></div>
-    </div>
-    <div class="note-box"><strong>Not</strong><p>@Model.Note</p></div>
-    @if (convertedAccount is not null)
-    {
-        <div class="note-box"><strong>Donusen Account</strong><p>@convertedAccount.Code · @convertedAccount.DisplayName</p></div>
-    }
-    @if (convertedActivity is not null)
-    {
-        <div class="note-box"><strong>Donusen Aktivite</strong><p>@convertedActivity.Code · @convertedActivity.Summary</p></div>
-    }
-    <div class="page-actions">
-        <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
-        @if (User.IsInRole("FieldSales") || User.IsInRole("Admin") || User.IsInRole("SalesManager"))
+
+@if (isConverted)
+{
+    <div class="alert-banner success">
+        <div>
+            <strong>Bu lead donusturuldu.</strong>
+            <div class="muted">Musteri kazanimi tamamlandi. Bagli aktivite ve musteri kartlarini asagida gorebilirsin.</div>
+        </div>
+        @if (Model.ConvertedActivityId.HasValue)
         {
-            <form asp-action="StartVisit" method="post" class="inline-form">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <button type="submit" class="btn primary">Ziyaret Baslat</button>
-            </form>
+            <a asp-controller="Activities" asp-action="Details" asp-route-id="@Model.ConvertedActivityId" class="btn primary">Aktiviteye Git</a>
         }
-        <form asp-action="Delete" method="post" class="inline-form">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="id" value="@Model.Id" />
-            <button type="submit" class="btn secondary">Sil</button>
-        </form>
     </div>
+}
+else if (!isAssigned && !isDisqualified)
+{
+    <div class="alert-banner warning">
+        <div>
+            <strong>Atama bekleniyor.</strong>
+            <div class="muted">Bu lead henuz saha satis personeline atanmamis durumda.</div>
+        </div>
+        @if (canAssign)
+        {
+            <div style="display:flex; gap:12px; align-items:center;">
+                <form asp-action="Assign" method="post" style="display:flex; gap:8px;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="leadId" value="@Model.Id" />
+                    <input type="hidden" name="priority" value="Medium" />
+                    <input type="hidden" name="returnUrl" value="@Url.Action("Details", new { id = Model.Id })" />
+                    <select name="employeeId" class="cell-input" style="width:200px; height:36px;" required>
+                        <option value="">Personel Seciniz...</option>
+                        @foreach (var emp in employees)
+                        {
+                            <option value="@emp.Id">@emp.FullName</option>
+                        }
+                    </select>
+                    <button type="submit" class="btn primary">Hemen Ata</button>
+                </form>
+                <span class="muted">veya</span>
+                <a asp-action="Assignments" class="btn">Atama Kuyruğuna Git</a>
+            </div>
+        }
+    </div>
+}
+
+<section class="panel">
+    <div class="panel-title">
+        <h2>Surec Durumu</h2>
+        <span class="pill">@Model.LeadStatusType.Name</span>
+    </div>
+    <div class="stepper">
+        <div class="step-card @(step >= 1 ? "active" : string.Empty)">
+            <div class="step-index">1</div>
+            <strong>Yeni Kayit</strong>
+            <div class="muted">Lead sisteme alindi.</div>
+        </div>
+        <div class="step-card @(step >= 2 ? "active" : string.Empty)">
+            <div class="step-index">2</div>
+            <strong>Atama Yapildi</strong>
+            <div class="muted">Saha personeli belirlendi.</div>
+        </div>
+        <div class="step-card @(step >= 3 ? "active" : string.Empty)">
+            <div class="step-index">3</div>
+            <strong>Ziyaret / Donusum</strong>
+            <div class="muted">Aktivite veya donusum tamamlandi.</div>
+        </div>
+    </div>
+</section>
+
+<form id="start-visit-form" asp-action="StartVisit" method="post" style="display:none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@Model.Id" />
+</form>
+
+<section class="section-block">
+    <h3>Hizli Aksiyonlar</h3>
+    <div class="quick-actions-grid">
+        <div class="qa-card" onclick="openMailTemplate()">
+            <div class="qa-icon">📧</div>
+            <strong>Teklif Maili</strong>
+            <span>Taslak maili hazirla</span>
+        </div>
+        <div class="qa-card" onclick="createCallTask()">
+            <div class="qa-icon">📞</div>
+            <strong>Arama Notu</strong>
+            <span>Gorusme gorevi ekle</span>
+        </div>
+        <div class="qa-card" onclick="window.open('https://wa.me/@(Model.Phone?.Replace(" ","").Replace("-",""))', '_blank')">
+            <div class="qa-icon">💬</div>
+            <strong>WhatsApp</strong>
+            <span>Hizli mesaj gonder</span>
+        </div>
+        @if (canStartVisit)
+        {
+            <div class="qa-card highlight" onclick="document.getElementById('start-visit-form').submit()">
+                <div class="qa-icon">🚀</div>
+                <strong>Ziyaret Baslat</strong>
+                <span>Saha aktivitesi yarat</span>
+            </div>
+        }
+    </div>
+</section>
+
+
+<div class="form-layout">
+    <div class="layout-main">
+        <section class="section-block">
+            <h3>Temas ve Lokasyon</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <label>Lead Ismi / Unvan</label>
+                    <strong>@Model.DisplayName</strong>
+                </div>
+                <div class="detail-item">
+                    <label>Durum</label>
+                    <strong>@Model.LeadStatusType.Name</strong>
+                </div>
+                <div class="detail-item">
+                    <label>Telefon</label>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.Phone) ? "-" : Model.Phone)</strong>
+                </div>
+                <div class="detail-item">
+                    <label>E-Posta</label>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.Email) ? "-" : Model.Email)</strong>
+                </div>
+                <div class="detail-item">
+                    <label>Bolge / Sehir</label>
+                    <strong>@Model.City / @Model.District</strong>
+                </div>
+                <div class="detail-item">
+                    <label>Ilgili Kisi</label>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.ContactName) ? "-" : Model.ContactName)</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-block" id="notes-section">
+            <div class="panel-title">
+                <h3>Lead Notları</h3>
+                <span class="muted">@(Model.Notes?.Count ?? 0) Not</span>
+            </div>
+            
+            <div class="notes-container">
+                @if (Model.Notes != null && Model.Notes.Any())
+                {
+                    @foreach (var note in Model.Notes.OrderByDescending(x => x.CreatedAt))
+                    {
+                        <div class="note-item">
+                            <div class="note-header">
+                                <div class="note-author">
+                                    <span class="note-badge">@note.CreatedBy</span>
+                                </div>
+                                <div class="note-date">@note.CreatedAt.ToString("dd.MM.yyyy HH:mm")</div>
+                            </div>
+                            <div class="note-content">@note.Content</div>
+                        </div>
+                    }
+                }
+                
+                @if (!string.IsNullOrWhiteSpace(Model.Note))
+                {
+                    <div class="note-item" style="border-left: 4px solid var(--warning);">
+                        <div class="note-header">
+                            <div class="note-author">
+                                <span class="note-badge shadow" style="background:var(--warning); color:white;">Eski Not (Legacy)</span>
+                            </div>
+                            <div class="note-date">@((Model.UpdatedAt ?? Model.CreatedAt).ToString("dd.MM.yyyy HH:mm"))</div>
+                        </div>
+                        <div class="note-content">@Model.Note</div>
+                    </div>
+                }
+
+                @if (!(Model.Notes?.Any() ?? false) && string.IsNullOrWhiteSpace(Model.Note))
+                {
+                    <div class="summary-box" style="text-align:center; padding:40px;">
+                        <span class="muted">Henüz bir not girilmemiş. İlk notu aşağıdan ekleyebilirsiniz.</span>
+                    </div>
+                }
+            </div>
+
+            <div class="note-footer">
+                <form asp-action="AddNote" method="post" class="note-input-area">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="leadId" value="@Model.Id" />
+                    <textarea name="content" class="note-textarea" placeholder="Yeni bir not yazın..." required></textarea>
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button type="submit" class="btn primary">Notu Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        @if (isConverted)
+        {
+            <section class="section-block">
+                <h3>Donusen Kayitlar</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Donusen Musteri</label>
+                        @if (Model.ConvertedAccountId.HasValue)
+                        {
+                            <a asp-controller="Accounts" asp-action="Details" asp-route-id="@Model.ConvertedAccountId"><strong>@convertedAccount?.DisplayName</strong></a>
+                        }
+                        else
+                        {
+                            <strong>-</strong>
+                        }
+                    </div>
+                    <div class="detail-item">
+                        <label>Donusen Aktivite</label>
+                        @if (Model.ConvertedActivityId.HasValue)
+                        {
+                            <a asp-controller="Activities" asp-action="Details" asp-route-id="@Model.ConvertedActivityId"><strong>@convertedActivity?.Code</strong></a>
+                        }
+                        else
+                        {
+                            <strong>-</strong>
+                        }
+                    </div>
+                </div>
+            </section>
+        }
+    </div>
+
+    <aside class="side-stack">
+        <section class="side-panel">
+            <h4 style="margin-bottom:16px;">Atama Bilgisi</h4>
+            @if (isAssigned)
+            {
+                <div class="mini-summary">
+                    <label>Saha Personeli</label>
+                    <strong>@employee?.FullName</strong>
+                </div>
+                <div class="mini-summary">
+                    <label>Planlanan Ziyaret</label>
+                    <strong>@(Model.ScheduledVisitDate.HasValue ? Model.ScheduledVisitDate.Value.ToString("dd.MM.yyyy HH:mm") : "-")</strong>
+                </div>
+            }
+            else
+            {
+                <div class="mini-summary">
+                    <label>Durum</label>
+                    <strong style="color:var(--warning);">Henüz atama yapılmadı</strong>
+                </div>
+                @if (canAssign)
+                {
+                    <div style="margin-top:12px; padding-top:12px; border-top:1px solid #eee;">
+                        <form asp-action="Assign" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="leadId" value="@Model.Id" />
+                            <input type="hidden" name="priority" value="Medium" />
+                            <input type="hidden" name="returnUrl" value="@Url.Action("Details", new { id = Model.Id })" />
+                            <div class="field">
+                                <label style="font-size:11px; color:#888;">Hızlı Atama</label>
+                                <select name="employeeId" class="cell-input" style="width:100%; margin-bottom:8px;" required>
+                                    <option value="">Personel Seç...</option>
+                                    @foreach (var emp in employees)
+                                    {
+                                        <option value="@emp.Id">@emp.FullName</option>
+                                    }
+                                </select>
+                            </div>
+                            <button type="submit" class="btn primary" style="width:100%;">Atamayı Kaydet</button>
+                        </form>
+                    </div>
+                }
+            }
+        </section>
+
+        <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Aksiyonlar</h4>
+            <div class="action-stack">
+                @if (canStartVisit)
+                {
+                    <form asp-action="StartVisit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn primary" style="width:100%;">Ziyareti Baslat</button>
+                    </form>
+                }
+                <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Lead Bilgilerini Duzenle</a>
+                <form asp-action="Delete" method="post" onsubmit="return confirm('Bu leadi silmek istediginizden emin misiniz?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn" style="width:100%;">Sil</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="side-panel">
+            <h4 style="margin-bottom:16px;">Edinim ve Kayit</h4>
+            <table class="info-table">
+                <tbody>
+                    <tr><th>Kaynak</th><td>@Model.LeadSourceType.Name</td></tr>
+                    <tr><th>Oncelik</th><td>@Model.Priority</td></tr>
+                    <tr><th>Sisteme Giris</th><td>@Model.CreatedAt.ToString("g")</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </aside>
 </div>
+@section Scripts {
+    <script>
+        function createCallTask() {
+            // Note: In details page we might need an AJAX call or just redirect to Edit with a param
+            // For now, let's just show a feedback and suggest going to Edit or using the Activity convert
+            appFeedback.show("Arama gorevi notu editleme ekraninda eklenebilir veya 'Ziyaret Baslat' ile aktivite kaydedilebilir.", "info");
+        }
+
+        function openMailTemplate() {
+            const email = "@Model.Email";
+            const name = "@Model.DisplayName" || "Sayin Musterimiz";
+            const subject = encodeURIComponent("Sigorta Teklif Talebiniz Hakkinda");
+            const body = encodeURIComponent(`Merhaba ${name},\n\nSigorta teklif talebiniz sistemimize ulasmistir. En kisa surede uzman arkadaslarimiz sizinle iletisime gececektir.\n\nIyi calismalar dileriz.`);
+            
+            if (email && email !== "-") {
+                window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+            } else {
+                appFeedback.show("E-posta adresi bulunamadi.", "warning");
+            }
+        }
+    </script>
+}

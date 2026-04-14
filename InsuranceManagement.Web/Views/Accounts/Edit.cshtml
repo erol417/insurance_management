@@ -3,34 +3,74 @@
     var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
     var duplicateWarnings = ViewBag.DuplicateWarnings as IEnumerable<string> ?? [];
     ViewData["Title"] = "Musteri Duzenle";
-    ViewData["Subtitle"] = "Musteri/firma kaydini guncelle";
+    ViewData["Subtitle"] = "Musteri veya firma kaydini guncelle";
 }
-<div class="panel">
-    <form method="post">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="All" class="validation-summary-errors"></div>
-        @if (duplicateWarnings.Any())
-        {
-            <div class="note-box warning">
-                <strong>Benzer kayit uyarilari</strong>
-                @foreach (var warning in duplicateWarnings)
+
+<div class="form-layout">
+    <div class="layout-main">
+        <section class="section-block">
+            <h3>Musteri Bilgileri</h3>
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="validation-summary-errors"></div>
+                @if (duplicateWarnings.Any())
                 {
-                    <p>@warning</p>
+                    <div class="note-box warning">
+                        <strong>Benzer kayit uyarilari</strong>
+                        @foreach (var warning in duplicateWarnings)
+                        {
+                            <p>@warning</p>
+                        }
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.1);">
+                            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700;">
+                                <input type="checkbox" name="ignoreDuplicates" value="true" /> Buna ragmen kaydet (Yinelenen veriyi onaylıyorum)
+                            </label>
+                        </div>
+                    </div>
                 }
+                <div class="form-grid three">
+                    <div class="field"><label asp-for="AccountType"></label><select asp-for="AccountType"><option value="Corporate">Kurumsal</option><option value="Individual">Bireysel</option></select></div>
+                    <div class="field"><label asp-for="DisplayName"></label><input asp-for="DisplayName" /></div>
+                    <div class="field"><label asp-for="City"></label><input asp-for="City" /></div>
+                    <div class="field"><label asp-for="District"></label><input asp-for="District" /></div>
+                    <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" /></div>
+                    <div class="field"><label asp-for="Email"></label><input asp-for="Email" /></div>
+                    <div class="field"><label asp-for="TaxNumber"></label><input asp-for="TaxNumber" /></div>
+                    <div class="field"><label asp-for="OwnerEmployeeId"></label><select asp-for="OwnerEmployeeId"><option value="">Seciniz</option>@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
+                    <div class="field"><label asp-for="Status"></label><input asp-for="Status" /></div>
+                </div>
+                <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
+                <div class="page-actions"><button type="submit" class="btn primary">Guncelle</button></div>
+            </form>
+        </section>
+    </div>
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <h3>Baglamsal Aksiyonlar ve Rehber</h3>
+        </section>
+        <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Hizli Aksiyonlar</h4>
+            <div class="action-buttons">
+                <button class="btn primary" type="button">Aktivite Gecmisi</button>
+                <button class="btn primary" type="button">Satis Ozetleri</button>
             </div>
-        }
-        <div class="form-grid three">
-            <div class="field"><label asp-for="AccountType"></label><select asp-for="AccountType"><option value="Corporate">Kurumsal</option><option value="Individual">Bireysel</option></select></div>
-            <div class="field"><label asp-for="DisplayName"></label><input asp-for="DisplayName" /></div>
-            <div class="field"><label asp-for="City"></label><input asp-for="City" /></div>
-            <div class="field"><label asp-for="District"></label><input asp-for="District" /></div>
-            <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" /></div>
-            <div class="field"><label asp-for="Email"></label><input asp-for="Email" /></div>
-            <div class="field"><label asp-for="TaxNumber"></label><input asp-for="TaxNumber" /></div>
-            <div class="field"><label asp-for="OwnerEmployeeId"></label><select asp-for="OwnerEmployeeId"><option value="">Seciniz</option>@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
-            <div class="field"><label asp-for="Status"></label><input asp-for="Status" /></div>
-        </div>
-        <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
-        <div class="page-actions"><button type="submit" class="btn primary">Guncelle</button></div>
-    </form>
+        </section>
+        <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Duzenleme Rehberi</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong>Iletisim tutarliligi</strong>
+                    <div>Telefon, e-posta ve vergi numarasi degisiklikleri bagli sureclerde arama ve eslestirme mantigini etkiler.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sorumlu degisimi</strong>
+                    <div>Sahiplik degisirse acik aktiviteler ve rapor sorumlulugu da yeniden degerlendirilmelidir.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sonraki adim</strong>
+                    <div>Kayit guncellendikten sonra musteri bazli lead, aktivite ve satis akislari yeniden gozden gecirilebilir.</div>
+                </div>
+            </div>
+        </section>
+    </aside>
 </div>

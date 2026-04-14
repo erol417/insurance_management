@@ -4,17 +4,60 @@
     ViewData["Title"] = "Masraf Duzenle";
     ViewData["Subtitle"] = "Masraf kaydini guncelle";
 }
-<div class="panel">
-    <form method="post">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="All" class="validation-summary-errors"></div>
-        <div class="form-grid three">
-            <div class="field"><label asp-for="ExpenseDate"></label><input asp-for="ExpenseDate" type="date" /></div>
-            <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
-            <div class="field"><label asp-for="ExpenseType"></label><select asp-for="ExpenseType"><option value="Travel">Yol</option><option value="Meal">Yemek</option><option value="Accommodation">Konaklama</option><option value="Other">Diger</option></select></div>
-            <div class="field"><label asp-for="Amount"></label><input asp-for="Amount" /></div>
-        </div>
-        <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
-        <div class="page-actions"><button type="submit" class="btn primary">Guncelle</button></div>
-    </form>
+
+<div class="form-layout">
+    <div class="layout-main">
+        <section class="section-block">
+            <h3>Masraf Bilgileri</h3>
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="validation-summary-errors"></div>
+                <div class="form-grid three">
+                    <div class="field"><label asp-for="ExpenseDate"></label><input asp-for="ExpenseDate" type="date" /></div>
+                    <div class="field"><label asp-for="EmployeeId"></label><select asp-for="EmployeeId">@foreach (var employee in employees){<option value="@employee.Id">@employee.FullName</option>}</select></div>
+                    <div class="field">
+                        <label>Masraf Turu</label>
+                        <select asp-for="ExpenseTypeId">
+                            @foreach (var type in (List<InsuranceManagement.Web.Domain.ExpenseReferenceType>)ViewBag.ExpenseTypes)
+                            {
+                                <option value="@type.Id">@type.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field"><label asp-for="Amount"></label><input asp-for="Amount" /></div>
+                </div>
+                <div class="field"><label asp-for="Notes"></label><textarea asp-for="Notes"></textarea></div>
+                <div class="page-actions"><button type="submit" class="btn primary">Guncelle</button></div>
+            </form>
+        </section>
+    </div>
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <h3>Baglamsal Aksiyonlar ve Rehber</h3>
+        </section>
+        <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Hizli Aksiyonlar</h4>
+            <div class="action-buttons">
+                <button class="btn primary" type="button">Masraf Raporu</button>
+                <button class="btn primary" type="button">Personel Performansi</button>
+            </div>
+        </section>
+        <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Duzenleme Rehberi</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong>Tutar tutarliligi</strong>
+                    <div>Masraf tutari degisirse personel verim ve yonetici dashboard ozetleri dogrudan etkilenir.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Kategori uyumu</strong>
+                    <div>Yanlis masraf tipi kategori analizinde bozulma yaratir; degisiklikte dikkatli olunmali.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sonraki adim</strong>
+                    <div>Kayit guncellendikten sonra aylik trend ve personel bazli masraf/uretim dengesini kontrol edin.</div>
+                </div>
+            </div>
+        </section>
+    </aside>
 </div>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow</title>
+  <link rel="stylesheet" href="./structure-patterns.css">
+</head>
+<body class="screen-page">
+  <div class="screen-stack">
+    <a class="back-link" href="./structure-patterns.html">Yapisal kataloge don</a>
+    <section class="hero-card">
+      <span class="eyebrow">Pattern 2</span>
+      <h1>Workflow</h1>
+      <p class="caption">Bu duzende kullaniciya “simdi ne yapmaliyim?” sorusunun cevabi verilir. Adim cubugu, siradaki is listesi ve form ekranlarinda rehber panel bu yapinin omurgasidir.</p>
+    </section>
+
+    <section class="frame">
+      <div class="app">
+        <aside class="sidebar">
+          <div class="brand-mark"></div>
+          <h2 class="brand-title">Insurance Flow</h2>
+          <p class="brand-subtitle">Task driven workspace</p>
+          <div class="nav-section">
+            <div class="nav-title">Journey</div>
+            <a class="nav-link active">Lead Intake</a>
+            <a class="nav-link">Qualification</a>
+            <a class="nav-link">Field Visit</a>
+            <a class="nav-link">Sale Closure</a>
+          </div>
+          <div class="nav-section">
+            <div class="nav-title">My Queue</div>
+            <a class="nav-link">Bugun</a>
+            <a class="nav-link">Bu hafta</a>
+            <a class="nav-link">Gecikenler</a>
+          </div>
+        </aside>
+        <main class="main">
+          <div class="sticky-bar">
+            <div class="sticky-left">
+              <span class="chip active">Asama: Lead Intake</span>
+              <span class="chip">6 kayit bugun tamamlanmali</span>
+            </div>
+            <div class="sticky-right">
+              <a class="btn-secondary">Checklist</a>
+              <a class="btn-secondary">Hazir sablonlar</a>
+              <a class="btn">Siradaki isi ac</a>
+            </div>
+          </div>
+
+          <div class="headline" style="margin-bottom:16px;">
+            <h2>Lead kaydi akisi</h2>
+            <p>Bu kurgu saha ve operasyon personeli icin daha uygun. Uygulama bir dashboard gibi degil, gorev yonetim araci gibi davranir.</p>
+          </div>
+
+          <div class="journey">
+            <div class="journey-step active"><strong>1. Lead al</strong><p class="caption">Temel bilgi ve kaynak</p></div>
+            <div class="journey-step"><strong>2. Nitelendir</strong><p class="caption">Oncelik ve uygunluk</p></div>
+            <div class="journey-step"><strong>3. Ata</strong><p class="caption">Bolge ve kapasiteye gore</p></div>
+            <div class="journey-step"><strong>4. Takip et</strong><p class="caption">Aktiviteye donustur</p></div>
+          </div>
+
+          <div class="layout-2col" style="margin-top:18px;">
+            <div class="stack">
+              <div class="surface">
+                <div class="section-title"><h3>Bugunun yapilacaklari</h3><span class="tiny-tag">Queue</span></div>
+                <div class="kanban">
+                  <div class="kanban-col">
+                    <h4>Yeni gelenler</h4>
+                    <div class="mini-card"><strong>LD-221</strong><p>Web formdan geldi, telefon dogrulama eksik.</p></div>
+                    <div class="mini-card"><strong>LD-224</strong><p>Kurumsal saglik talebi, hizli geri donus bekleniyor.</p></div>
+                  </div>
+                  <div class="kanban-col">
+                    <h4>Kontrol et</h4>
+                    <div class="mini-card"><strong>LD-214</strong><p>Mukerrer kayit riski var.</p></div>
+                  </div>
+                  <div class="kanban-col">
+                    <h4>Atamaya hazir</h4>
+                    <div class="mini-card"><strong>LD-207</strong><p>Bolge ve urun bilgisi tamamlandi.</p></div>
+                  </div>
+                  <div class="kanban-col">
+                    <h4>Gecikenler</h4>
+                    <div class="mini-card"><strong>LD-199</strong><p>24 saati gecti, acil aksiyon gerekli.</p></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="surface">
+                <div class="section-title"><h3>Form + rehber panel</h3><span class="tiny-tag">Guided</span></div>
+                <div class="form-layout">
+                  <div class="form-box">
+                    <div class="field-grid">
+                      <div class="field"><label>Ad / Unvan</label><input value="Acme Lojistik"></div>
+                      <div class="field"><label>Kaynak</label><select><option>Call Center</option></select></div>
+                      <div class="field"><label>Sehir</label><input value="Istanbul"></div>
+                      <div class="field"><label>Ilce</label><input value="Umraniye"></div>
+                      <div class="field"><label>Kontak</label><input value="Buse Aydin"></div>
+                      <div class="field"><label>Telefon</label><input value="0553 000 00 00"></div>
+                    </div>
+                    <div class="field" style="margin-top:14px;"><label>Not</label><textarea>Ilk gorusme sonrasi tamamlayici saglik ve BES ilgi notu olustu.</textarea></div>
+                  </div>
+                  <div class="right-rail">
+                    <div class="rail-card"><strong>Adim kontrol listesi</strong><ul><li>Iletisim bilgisi dogrulandi</li><li>Kaynak secildi</li><li>Bolge atamaya uygun</li></ul></div>
+                    <div class="rail-card"><strong>Sistem onerisi</strong><p>Bu lead kurumsal B2B saglik sinifina uyuyor. Elif Kara uygun sahip olabilir.</p></div>
+                    <div class="rail-card"><strong>Sonraki adim</strong><p>Kaydet ve direkt “Atamaya hazir” asamasina tasimayi oner.</p></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="right-rail">
+              <div class="rail-card">
+                <strong>Siradaki is</strong>
+                <p>LD-224 kurumsal saglik leadi, 15 dakika icinde aranmazsa oncelik kaybedecek.</p>
+                <div class="cta-row" style="margin-top:12px;"><a class="btn">Bu kaydi ac</a></div>
+              </div>
+              <div class="rail-card">
+                <strong>Kisayollar</strong>
+                <ul>
+                  <li>Mukerrer kontrolu</li>
+                  <li>Hazir not sablonlari</li>
+                  <li>Bolgeye gore sahip onerisi</li>
+                </ul>
+              </div>
+              <div class="rail-card">
+                <strong>Motivasyon kutusu degil</strong>
+                <p>Burasi kullaniciyi ileri iten yardimci karar paneli. Yardim metni yerine operasyonel yonlendirme icermeli.</p>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

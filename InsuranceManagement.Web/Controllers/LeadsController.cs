@@ -4,24 +4,39 @@ using InsuranceManagement.Web.Extensions;
 using InsuranceManagement.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace InsuranceManagement.Web.Controllers;
 
+[Authorize]
 public class LeadsController : AppController
 {
-    public LeadsController(AppDbContext db) : base(db)
+    private readonly InsuranceManagement.Web.Services.ILeadService _leadService;
+
+    public LeadsController(AppDbContext db, InsuranceManagement.Web.Services.ILeadService leadService) : base(db)
     {
+        _leadService = leadService;
     }
 
-    public IActionResult Index(int page = 1, int pageSize = 10)
+    public IActionResult Index(int page = 1, int pageSize = 10, string? searchTerm = null, int? statusId = null, int? employeeId = null, string? sortBy = "date", bool isDescending = true)
     {
         BuildShell();
-        ViewBag.EmployeeMap = Db.Employees.ToDictionary(x => x.Id, x => x.FullName);
         ViewBag.Employees = Db.Employees.OrderBy(x => x.FullName).ToList();
-        var totalCount = Db.Leads.Count();
+        ViewBag.StatusTypes = Db.LeadStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        ViewBag.SourceTypes = Db.LeadSourceTypes.OrderBy(x => x.DisplayOrder).ToList();
+        
+        ViewBag.SearchTerm = searchTerm;
+        ViewBag.StatusId = statusId;
+        ViewBag.EmployeeId = employeeId;
+        ViewBag.SortBy = sortBy;
+        ViewBag.IsDescending = isDescending;
+        
+        var filterEmployeeId = CurrentEmployeeScopeId();
+        var leads = _leadService.GetAll(page, pageSize, out var totalCount, searchTerm, statusId, employeeId, filterEmployeeId, sortBy, isDescending);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
-        var currentPage = Math.Min(Math.Max(page, 1), totalPages);
+        var currentPage = page; 
+        
         return View(new LeadsIndexViewModel
         {
             NewLead = new LeadInlineEditViewModel(),
@@ -29,10 +44,7 @@ public class LeadsController : AppController
             PageSize = pageSize,
             TotalCount = totalCount,
             TotalPages = totalPages,
-            Items = Db.Leads
-                .OrderByDescending(x => x.CreatedAt)
-                .Skip((currentPage - 1) * pageSize)
-                .Take(pageSize)
+            Items = leads
                 .Select(x => new LeadInlineEditViewModel
                 {
                     Id = x.Id,
@@ -43,8 +55,8 @@ public class LeadsController : AppController
                     ContactName = x.ContactName,
                     Phone = x.Phone,
                     Email = x.Email,
-                    Source = x.Source,
-                    Status = x.Status,
+                    LeadSourceTypeId = x.LeadSourceTypeId,
+                    LeadStatusTypeId = x.LeadStatusTypeId,
                     Priority = x.Priority,
                     Note = x.Note,
                     AssignedEmployeeId = x.AssignedEmployeeId
@@ -113,11 +125,17 @@ public class LeadsController : AppController
                 lead.ContactName = formModel.ContactName;
                 lead.Phone = formModel.Phone;
                 lead.Email = formModel.Email;
-                lead.Source = formModel.Source;
-                lead.Status = formModel.Status;
+                lead.LeadSourceTypeId = formModel.LeadSourceTypeId;
+                lead.LeadStatusTypeId = formModel.LeadStatusTypeId;
                 lead.Priority = formModel.Priority;
                 lead.Note = formModel.Note;
                 lead.AssignedEmployeeId = item.AssignedEmployeeId;
+
+                // Auto-set status to Assigned (Id: 3) if an employee is assigned
+                if (lead.AssignedEmployeeId.HasValue && (lead.LeadStatusTypeId == 1 || lead.LeadStatusTypeId == 2))
+                {
+                    lead.LeadStatusTypeId = 3;
+                }
                 QueueAudit("Lead", "Update", lead.Code, $"{lead.DisplayName} lead kaydi toplu grid kaydi ile guncellendi.");
                 updatedCount++;
             }
@@ -134,13 +152,18 @@ public class LeadsController : AppController
                     ContactName = formModel.ContactName,
                     Phone = formModel.Phone,
                     Email = formModel.Email,
-                    Source = formModel.Source,
-                    Status = formModel.Status,
+                    LeadSourceTypeId = formModel.LeadSourceTypeId,
+                    LeadStatusTypeId = formModel.LeadStatusTypeId,
                     Priority = formModel.Priority,
                     Note = formModel.Note,
-                    AssignedEmployeeId = item.AssignedEmployeeId,
-                    CreatedAt = DateTime.Today
+                    AssignedEmployeeId = item.AssignedEmployeeId
                 };
+
+                // Auto-set status to Assigned (Id: 3) if an employee is assigned
+                if (lead.AssignedEmployeeId.HasValue && (lead.LeadStatusTypeId == 1 || lead.LeadStatusTypeId == 2))
+                {
+                    lead.LeadStatusTypeId = 3;
+                }
                 Db.Leads.Add(lead);
                 QueueAudit("Lead", "Create", lead.Code, $"{lead.DisplayName} lead kaydi toplu grid kaydi ile olusturuldu.");
                 createdCount++;
@@ -172,41 +195,37 @@ public class LeadsController : AppController
     {
         var formModel = ToLeadFormModel(model);
         var duplicateWarnings = BuildDuplicateWarnings(formModel, null);
-        var validationErrors = ValidateInlineLead(formModel);
-        if (validationErrors.Count > 0)
-        {
-            TempData["Warning"] = string.Join(" | ", validationErrors);
-            return RedirectToAction(nameof(Index));
-        }
-
-        var id = (Db.Leads.Max(x => (int?)x.Id) ?? 100) + 1;
+        
         var lead = new Lead
         {
-            Id = id,
-            Code = $"LD-{id}",
             DisplayName = formModel.DisplayName,
             City = formModel.City,
             District = formModel.District,
-            ContactName = formModel.ContactName,
+            ContactName = formModel.ContactName ?? string.Empty,
             Phone = formModel.Phone,
             Email = formModel.Email,
-            Source = formModel.Source,
-            Status = formModel.Status,
+            LeadSourceTypeId = formModel.LeadSourceTypeId,
+            LeadStatusTypeId = formModel.LeadStatusTypeId,
             Priority = formModel.Priority,
             Note = formModel.Note,
-            AssignedEmployeeId = model.AssignedEmployeeId,
-            CreatedAt = DateTime.Today
+            AssignedEmployeeId = model.AssignedEmployeeId
         };
-        Db.Leads.Add(lead);
-        QueueAudit("Lead", "Create", lead.Code, $"{lead.DisplayName} lead kaydi grid uzerinden olusturuldu.");
-        Db.SaveChanges();
+        
+        var (isValid, validationErrors) = _leadService.Validate(lead);
+        if (!isValid)
+        {
+            TempData["Warning"] = string.Join(" | ", validationErrors.Values);
+            return RedirectToAction(nameof(Index));
+        }
+
+        _leadService.Create(lead);
 
         if (duplicateWarnings.Count > 0)
         {
             TempData["Warning"] = string.Join(" | ", duplicateWarnings);
         }
 
-        TempData["Flash"] = "Lead satiri eklendi.";
+        TempData["Success"] = "Lead satiri eklendi.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -220,107 +239,112 @@ public class LeadsController : AppController
             return NotFound();
         }
 
-        var lead = Db.Leads.FirstOrDefault(x => x.Id == model.Id.Value);
+        var formModel = ToLeadFormModel(model);
+        var duplicateWarnings = BuildDuplicateWarnings(formModel, model.Id);
+        
+        var tempLead = new Lead
+        {
+            DisplayName = formModel.DisplayName,
+            City = formModel.City,
+            District = formModel.District,
+            ContactName = formModel.ContactName ?? string.Empty,
+            Phone = formModel.Phone,
+            Email = formModel.Email,
+            LeadSourceTypeId = formModel.LeadSourceTypeId,
+            LeadStatusTypeId = formModel.LeadStatusTypeId,
+            Priority = formModel.Priority,
+            Note = formModel.Note,
+            AssignedEmployeeId = model.AssignedEmployeeId
+        };
+
+        var (isValid, validationErrors) = _leadService.Validate(tempLead);
+        if (!isValid)
+        {
+            TempData["Warning"] = string.Join(" | ", validationErrors.Values);
+            return RedirectToAction(nameof(Index));
+        }
+
+        var lead = _leadService.Update(model.Id.Value, tempLead);
         if (lead is null)
         {
             return NotFound();
         }
-
-        var formModel = ToLeadFormModel(model);
-        var duplicateWarnings = BuildDuplicateWarnings(formModel, model.Id);
-        var validationErrors = ValidateInlineLead(formModel);
-        if (validationErrors.Count > 0)
-        {
-            TempData["Warning"] = string.Join(" | ", validationErrors);
-            return RedirectToAction(nameof(Index));
-        }
-
-        lead.DisplayName = formModel.DisplayName;
-        lead.City = formModel.City;
-        lead.District = formModel.District;
-        lead.ContactName = formModel.ContactName;
-        lead.Phone = formModel.Phone;
-        lead.Email = formModel.Email;
-        lead.Source = formModel.Source;
-        lead.Status = formModel.Status;
-        lead.Priority = formModel.Priority;
-        lead.Note = formModel.Note;
-        lead.AssignedEmployeeId = model.AssignedEmployeeId;
-        QueueAudit("Lead", "Update", lead.Code, $"{lead.DisplayName} lead kaydi grid uzerinden guncellendi.");
-        Db.SaveChanges();
 
         if (duplicateWarnings.Count > 0)
         {
             TempData["Warning"] = string.Join(" | ", duplicateWarnings);
         }
 
-        TempData["Flash"] = "Lead satiri guncellendi.";
+        TempData["Success"] = "Lead satiri guncellendi.";
         return RedirectToAction(nameof(Index));
     }
 
     public IActionResult Details(int id)
     {
         BuildShell();
-        var lead = Db.Leads.FirstOrDefault(x => x.Id == id);
+        var lead = _leadService.GetById(id, CurrentEmployeeScopeId());
         if (lead is null)
         {
             return NotFound();
         }
 
-        ViewBag.Employee = lead.AssignedEmployeeId.HasValue ? Db.Employees.FirstOrDefault(x => x.Id == lead.AssignedEmployeeId.Value) : null;
+        ViewBag.Employee = lead.AssignedEmployee;
         ViewBag.ConvertedAccount = lead.ConvertedAccountId.HasValue ? Db.Accounts.FirstOrDefault(x => x.Id == lead.ConvertedAccountId.Value) : null;
         ViewBag.ConvertedActivity = lead.ConvertedActivityId.HasValue ? Db.Activities.FirstOrDefault(x => x.Id == lead.ConvertedActivityId.Value) : null;
+        ViewBag.Employees = Db.Employees.Where(x => x.IsActive).OrderBy(x => x.FullName).ToList();
         return View(lead);
     }
 
-    [Authorize(Roles = "Admin,SalesManager,CallCenter")]
+    [Authorize(Roles = "Admin,CallCenter,Operations")]
     [HttpGet]
     public IActionResult Create()
     {
         BuildShell();
+        ViewBag.StatusTypes = Db.LeadStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        ViewBag.SourceTypes = Db.LeadSourceTypes.OrderBy(x => x.DisplayOrder).ToList();
         ViewBag.DuplicateWarnings = Array.Empty<string>();
         return View(new LeadFormViewModel());
     }
 
-    [Authorize(Roles = "Admin,SalesManager,CallCenter")]
+    [Authorize(Roles = "Admin,CallCenter,Operations")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(LeadFormViewModel model)
     {
         BuildShell();
-        var duplicateWarnings = BuildDuplicateWarnings(model, null);
-        ViewBag.DuplicateWarnings = duplicateWarnings;
+        
+        var lead = new Lead
+        {
+            DisplayName = model.DisplayName ?? string.Empty,
+            City = model.City ?? string.Empty,
+            District = model.District,
+            ContactName = model.ContactName ?? string.Empty,
+            Phone = model.Phone,
+            Email = model.Email,
+            LeadSourceTypeId = model.LeadSourceTypeId,
+            LeadStatusTypeId = model.LeadStatusTypeId,
+            Priority = model.Priority,
+            Note = model.Note
+        };
+
+        var (isValid, errors) = _leadService.Validate(lead);
+        if (!isValid)
+        {
+            foreach (var err in errors)
+            {
+                ModelState.AddModelError(err.Key, err.Value);
+            }
+        }
+
         if (!ModelState.IsValid)
         {
+            ViewBag.StatusTypes = Db.LeadStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+            ViewBag.SourceTypes = Db.LeadSourceTypes.OrderBy(x => x.DisplayOrder).ToList();
             return View(model);
         }
 
-        var id = (Db.Leads.Max(x => (int?)x.Id) ?? 100) + 1;
-        var lead = new Lead
-        {
-            Id = id,
-            Code = $"LD-{id}",
-            DisplayName = model.DisplayName,
-            City = model.City,
-            District = model.District,
-            ContactName = model.ContactName,
-            Phone = model.Phone,
-            Email = model.Email,
-            Source = model.Source,
-            Status = model.Status,
-            Priority = model.Priority,
-            Note = model.Note,
-            CreatedAt = DateTime.Today
-        };
-        Db.Leads.Add(lead);
-        QueueAudit("Lead", "Create", lead.Code, $"{lead.DisplayName} lead kaydi olusturuldu.");
-
-        Db.SaveChanges();
-        if (duplicateWarnings.Count > 0)
-        {
-            TempData["Warning"] = string.Join(" | ", duplicateWarnings);
-        }
-        TempData["Flash"] = "Lead kaydi olusturuldu.";
+        _leadService.Create(lead);
+        TempData["Success"] = "Lead kaydi olusturuldu.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -335,6 +359,9 @@ public class LeadsController : AppController
             return NotFound();
         }
 
+        ViewBag.StatusTypes = Db.LeadStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+        ViewBag.SourceTypes = Db.LeadSourceTypes.OrderBy(x => x.DisplayOrder).ToList();
+
         var model = new LeadFormViewModel
         {
             Id = lead.Id,
@@ -344,8 +371,8 @@ public class LeadsController : AppController
             ContactName = lead.ContactName,
             Phone = lead.Phone,
             Email = lead.Email,
-            Source = lead.Source,
-            Status = lead.Status,
+            LeadSourceTypeId = lead.LeadSourceTypeId,
+            LeadStatusTypeId = lead.LeadStatusTypeId,
             Priority = lead.Priority,
             Note = lead.Note
         };
@@ -359,79 +386,100 @@ public class LeadsController : AppController
     public IActionResult Edit(int id, LeadFormViewModel model)
     {
         BuildShell();
-        var duplicateWarnings = BuildDuplicateWarnings(model, id);
-        ViewBag.DuplicateWarnings = duplicateWarnings;
+        
+        var tempLead = new Lead
+        {
+            Id = id,
+            DisplayName = model.DisplayName ?? string.Empty,
+            City = model.City ?? string.Empty,
+            District = model.District,
+            ContactName = model.ContactName ?? string.Empty,
+            Phone = model.Phone,
+            Email = model.Email,
+            LeadSourceTypeId = model.LeadSourceTypeId,
+            LeadStatusTypeId = model.LeadStatusTypeId,
+            Priority = model.Priority,
+            Note = model.Note
+        };
+
+        var (isValid, errors) = _leadService.Validate(tempLead);
+        if (!isValid)
+        {
+            foreach (var err in errors)
+            {
+                ModelState.AddModelError(err.Key, err.Value);
+            }
+        }
+
         if (!ModelState.IsValid)
         {
+            ViewBag.StatusTypes = Db.LeadStatusTypes.OrderBy(x => x.DisplayOrder).ToList();
+            ViewBag.SourceTypes = Db.LeadSourceTypes.OrderBy(x => x.DisplayOrder).ToList();
             return View(model);
         }
 
-        var lead = Db.Leads.FirstOrDefault(x => x.Id == id);
-        if (lead is null)
+        var existing = _leadService.GetById(id, CurrentEmployeeScopeId());
+        if (existing == null) return NotFound();
+        
+        var updated = _leadService.Update(id, tempLead);
+        if (updated == null)
         {
             return NotFound();
         }
 
-        lead.DisplayName = model.DisplayName;
-        lead.City = model.City;
-        lead.District = model.District;
-        lead.ContactName = model.ContactName;
-        lead.Phone = model.Phone;
-        lead.Email = model.Email;
-        lead.Source = model.Source;
-        lead.Status = model.Status;
-        lead.Priority = model.Priority;
-        lead.Note = model.Note;
-        QueueAudit("Lead", "Update", lead.Code, $"{lead.DisplayName} lead kaydi guncellendi.");
-        Db.SaveChanges();
-
-        if (duplicateWarnings.Count > 0)
-        {
-            TempData["Warning"] = string.Join(" | ", duplicateWarnings);
-        }
-        TempData["Flash"] = "Lead kaydi guncellendi.";
+        TempData["Success"] = "Lead kaydi guncellendi.";
         return RedirectToAction(nameof(Details), new { id });
     }
 
-    [Authorize(Roles = "Admin,Manager,SalesManager")]
+    [Authorize(Roles = "Admin,SalesManager,Manager")]
     [HttpGet]
     public IActionResult Assignments()
     {
         BuildShell();
         ViewBag.Employees = Db.Employees.ToList();
         ViewBag.AssignedLeads = Db.Leads
-            .Where(x => x.Status == LeadStatus.Assigned || x.Status == LeadStatus.VisitScheduled)
+            .Include(x => x.AssignedEmployee)
+            .Include(x => x.LeadStatusType)
+            .Where(x => x.AssignedEmployeeId != null && x.LeadStatusTypeId != 5 && x.LeadStatusTypeId != 9)
             .OrderBy(x => x.ScheduledVisitDate ?? DateTime.MaxValue)
             .ThenBy(x => x.DisplayName)
             .ToList();
-        return View(Db.Leads
-            .Where(x => x.Status == LeadStatus.ReadyForAssignment)
+        var leads = Db.Leads
+            .Include(x => x.LeadSourceType)
+            .Include(x => x.LeadStatusType)
+            .Where(x => x.AssignedEmployeeId == null && (x.LeadStatusTypeId == 1 || x.LeadStatusTypeId == 2))
             .OrderByDescending(x => x.CreatedAt)
-            .ThenBy(x => x.DisplayName)
-            .ToList());
+            .ToList();
+
+        // Sort: ReadyForAssignment (Id:2) > New (Id:1)
+        return View(leads.OrderByDescending(x => x.LeadStatusTypeId).ToList());
     }
 
-    [Authorize(Roles = "Admin,Manager,SalesManager")]
+    [Authorize(Roles = "Admin,SalesManager,Manager")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Assign(int leadId, int employeeId, DateTime? scheduledVisitDate, string priority, string note)
+    public IActionResult Assign(int leadId, int employeeId, DateTime? scheduledVisitDate, LeadPriority priority, string note, string? returnUrl = null)
     {
-        var lead = Db.Leads.FirstOrDefault(x => x.Id == leadId);
-        if (lead is null)
+        var lead = _leadService.Assign(leadId, employeeId, User.GetUserId(), note);
+        if (lead == null)
         {
             return NotFound();
         }
 
-        lead.AssignedEmployeeId = employeeId;
-        lead.ScheduledVisitDate = scheduledVisitDate;
-        lead.Priority = string.IsNullOrWhiteSpace(priority) ? lead.Priority : priority;
-        lead.Note = string.IsNullOrWhiteSpace(note) ? lead.Note : note;
-        lead.Status = LeadStatus.Assigned;
-        var employee = Db.Employees.FirstOrDefault(x => x.Id == employeeId);
-        QueueAudit("Lead", "Assign", lead.Code, $"{lead.DisplayName} leadi {employee?.FullName ?? "Bilinmeyen Personel"} kişisine atandi.");
-        Db.SaveChanges();
+        lead.Priority = priority;
 
-        TempData["Flash"] = "Lead atamasi kaydedildi.";
+        // Service set standard logic, but if specialized date was provided:
+        if (scheduledVisitDate.HasValue)
+        {
+            lead.ScheduledVisitDate = scheduledVisitDate;
+            Db.SaveChanges(); // Direct DB usage as plan allows for minor things, or I could update service
+        }
+
+        TempData["Success"] = "Lead atamasi kaydedildi.";
+        if (!string.IsNullOrEmpty(returnUrl))
+        {
+            return LocalRedirect(returnUrl);
+        }
         return RedirectToAction(nameof(Assignments));
     }
 
@@ -440,81 +488,55 @@ public class LeadsController : AppController
     {
         BuildShell();
         var employeeId = User.GetEmployeeId();
-        var leads = Db.Leads.Where(x => x.AssignedEmployeeId == employeeId && (x.Status == LeadStatus.Assigned || x.Status == LeadStatus.VisitScheduled)).ToList();
+        var leads = Db.Leads
+            .Include(x => x.LeadStatusType)
+            .Include(x => x.LeadSourceType)
+            .Where(x => x.AssignedEmployeeId == employeeId && (x.LeadStatusTypeId == 3 || x.LeadStatusTypeId == 4))
+            .ToList();
         return View(leads);
     }
 
-    [Authorize(Roles = "Admin,SalesManager,CallCenter")]
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
-        var lead = Db.Leads.FirstOrDefault(x => x.Id == id);
-        if (lead is null)
+        var success = _leadService.Delete(id);
+        if (!success)
         {
             return NotFound();
         }
 
-        QueueAudit("Lead", "Delete", lead.Code, $"{lead.DisplayName} lead kaydi silindi.");
-        Db.Leads.Remove(lead);
-        Db.SaveChanges();
-        TempData["Flash"] = "Lead kaydi silindi.";
+        TempData["Success"] = "Lead kaydi silindi.";
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Roles = "FieldSales,Admin,SalesManager")]
+    [Authorize(Roles = "Admin,SalesManager,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult StartVisit(int id)
     {
-        var lead = Db.Leads.FirstOrDefault(x => x.Id == id);
-        if (lead is null)
+        var filterId = CurrentEmployeeScopeId();
+        var lead = _leadService.GetById(id, filterId);
+        if (lead == null)
         {
             return NotFound();
         }
 
-        var employeeId = lead.AssignedEmployeeId ?? User.GetEmployeeId() ?? 1;
-        var accountId = (Db.Accounts.Max(x => (int?)x.Id) ?? 100) + 1;
-        var account = new Account
+        // If FieldSales, must be assigned to them
+        if (User.GetRoleType() == RoleType.FieldSales && lead.AssignedEmployeeId != User.GetEmployeeId())
         {
-            Id = accountId,
-            Code = $"ACC-{accountId}",
-            AccountType = AccountType.Corporate,
-            DisplayName = lead.DisplayName,
-            City = lead.City,
-            District = lead.District,
-            Phone = lead.Phone,
-            Email = lead.Email,
-            OwnerEmployeeId = employeeId,
-            Notes = $"Lead donusumu: {lead.Code}",
-            Status = "Active"
-        };
-        Db.Accounts.Add(account);
+            return Forbid();
+        }
 
-        var activityId = (Db.Activities.Max(x => (int?)x.Id) ?? 100) + 1;
-        var activity = new Activity
+        var leadResult = _leadService.StartVisit(id, User.GetEmployeeId() ?? 0);
+        if (leadResult == null)
         {
-            Id = activityId,
-            Code = $"ACT-{activityId}",
-            ActivityDate = DateTime.Today,
-            EmployeeId = employeeId,
-            AccountId = accountId,
-            LeadId = lead.Id,
-            ContactName = lead.ContactName,
-            ContactStatus = ContactStatus.Contacted,
-            OutcomeStatus = OutcomeStatus.Positive,
-            Summary = $"Lead ziyareti baslatildi: {lead.DisplayName}"
-        };
-        Db.Activities.Add(activity);
+            return NotFound();
+        }
 
-        lead.Status = LeadStatus.ConvertedToActivity;
-        lead.ConvertedAccountId = accountId;
-        lead.ConvertedActivityId = activityId;
-        QueueAudit("Lead", "Convert", lead.Code, $"{lead.DisplayName} leadi {account.Code} ve {activity.Code} kayitlarina donusturuldu.");
-
-        Db.SaveChanges();
-        TempData["Flash"] = "Lead account + activity zincirine donusturuldu.";
-        return RedirectToAction("Details", "Activities", new { id = activityId });
+        TempData["Success"] = "Lead account + activity zincirine donusturuldu.";
+        return RedirectToAction("Details", "Activities", new { id = leadResult.ConvertedActivityId });
     }
 
     private List<string> BuildDuplicateWarnings(LeadFormViewModel model, int? currentId)
@@ -568,8 +590,8 @@ public class LeadsController : AppController
             ContactName = model.ContactName,
             Phone = model.Phone,
             Email = model.Email,
-            Source = model.Source,
-            Status = model.Status,
+            LeadSourceTypeId = model.LeadSourceTypeId,
+            LeadStatusTypeId = model.LeadStatusTypeId,
             Priority = model.Priority,
             Note = model.Note
         };
@@ -594,5 +616,19 @@ public class LeadsController : AppController
         }
 
         return errors;
+    }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AddNote(int leadId, string content)
+    {
+        if (!string.IsNullOrWhiteSpace(content))
+        {
+            var lead = _leadService.GetById(leadId, CurrentEmployeeScopeId());
+            if (lead == null) return NotFound();
+
+            _leadService.AddNote(leadId, content);
+            TempData["Success"] = "Not kaydedildi.";
+        }
+        return Redirect(Url.Action(nameof(Details), new { id = leadId }) + "#notes-section");
     }
 }

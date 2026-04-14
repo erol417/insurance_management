@@ -9,30 +9,174 @@
     ViewData["Title"] = "Aktiviteler";
     ViewData["Subtitle"] = "Saha ziyaret ve gorusme kayitlari";
 }
-<div class="page-actions">
-    <button type="button" class="btn primary" onclick="toggleActivityInsertRow()">Yeni Satir Ekle</button>
+
+<div class="premium-strip">
+    <div>
+        <strong>Aktivite Yonetim Merkezi</strong>
+        <span>Ziyaret, gorusme ve sonuc kayitlarini tek tablo uzerinden takip et.</span>
+    </div>
+    <div class="inline-actions">
+        <a class="btn primary" asp-action="Create">Yeni Aktivite</a>
+    </div>
+</div>
+
+<div class="panel filters-bar">
+    <form method="get" class="filters-inline">
+        <div class="filter-group">
+            <i data-lucide="search"></i>
+            <input type="text" name="searchTerm" placeholder="Ozet veya Musteri..." value="@ViewBag.SearchTerm" />
+        </div>
+        
+        @if (canManageAll)
+        {
+            <select name="employeeId" class="filter-select">
+                <option value="">-- Personel --</option>
+                @foreach (var emp in employees)
+                {
+                    <option value="@emp.Id" selected="@(ViewBag.EmployeeId == emp.Id)">@emp.FullName</option>
+                }
+            </select>
+        }
+
+        <div class="filter-actions">
+            <button type="submit" class="btn primary btn-icon-only" title="Filtrele">
+                <i data-lucide="filter"></i>
+            </button>
+            <a asp-action="Index" class="btn ghost btn-icon-only" title="Temizle">
+                <i data-lucide="rotate-ccw"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="page-actions" style="margin-bottom:14px;">
+    <button type="button" class="btn" onclick="toggleActivityInsertRow()">Yeni Satir Ekle</button>
     <button type="button" class="btn secondary" id="save-all-activities-btn">Degisiklikleri Kaydet</button>
     <button type="button" class="btn ghost" id="clear-activity-draft-btn">Taslagi Temizle</button>
-    <a class="btn secondary" asp-action="Create">Detayli Form</a>
 </div>
-<div class="panel" style="margin-top:18px;">
+
+@{
+    var plannedActivities = ViewBag.PlannedActivities as List<InsuranceManagement.Web.Domain.Activity> ?? [];
+}
+
+@if (plannedActivities.Any())
+{
+    <div class="panel" style="border-left: 4px solid var(--primary); margin-bottom: 24px;">
+        <div class="panel-title">
+            <h3>Yaklaşan Randevular / Planlanan İşler</h3>
+            <span class="pill highlight">@plannedActivities.Count Ajanda Kaydı</span>
+        </div>
+        <div class="table-scroll">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Personel</th>
+                        <th>Müşteri</th>
+                        <th>İlgili Lead</th>
+                        <th style="text-align:right;">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var act in plannedActivities)
+                    {
+                        <tr style="background: #f0f7ff;">
+                            <td><strong>@act.ActivityDate.ToString("dd.MM.yyyy")</strong></td>
+                            <td>@act.Employee?.FullName</td>
+                            <td>@act.Account?.DisplayName</td>
+                            <td>@(act.Lead?.Code ?? "-")</td>
+                            <td style="text-align:right;">
+                                <a asp-action="Edit" asp-route-id="@act.Id" class="btn primary">Gerçekleştir</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="panel">
     <div class="note-box">
         <strong>Grid duzenleme</strong>
         <p>Bu ekranda aktiviteler tablo uzerinden hizli duzenlenir. Tum degisiklikler taslakta tutulur ve tek kaydetme ile veritabanina yazilir.</p>
         <p>Sayfalar arasinda gezsen bile taslak korunur. Kaydetmeden sayfadan ayrilirsan sistem seni uyarir.</p>
     </div>
     <div class="table-scroll">
-        <table class="table compact-table">
+        <table class="data-table compact-table">
             <thead>
                 <tr>
-                    <th>Kod</th>
-                    <th>Tarih</th>
-                    <th>Personel</th>
-                    <th>Musteri</th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "code" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="code" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "code" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Kod @if(ViewBag.SortBy == "code") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "date" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="date" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "date" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Tarih @if(ViewBag.SortBy == "date") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "employee" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="employee" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "employee" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Personel @if(ViewBag.SortBy == "employee") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "customer" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="customer" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "customer" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Musteri @if(ViewBag.SortBy == "customer") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
                     <th>Lead</th>
-                    <th>Kontak</th>
-                    <th>Gorusme</th>
-                    <th>Sonuc</th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "contact" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="contact" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "contact" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Kontak @if(ViewBag.SortBy == "contact") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "status" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="status" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "status" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Gorusme @if(ViewBag.SortBy == "status") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "outcome" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="outcome" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "outcome" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Sonuc @if(ViewBag.SortBy == "outcome") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
                     <th>Ozet</th>
                 </tr>
             </thead>
@@ -77,17 +221,19 @@
                     </td>
                     <td><input data-field="contactName" class="cell-input" placeholder="Kontak" /></td>
                     <td>
-                        <select data-field="contactStatus" class="cell-input cell-select js-contact-status">
-                            <option value="Contacted">Gorusuldu</option>
-                            <option value="NotContacted">Gorusulmedi</option>
+                        <select data-field="contactStatusTypeId" class="cell-input cell-select js-contact-status">
+                            @foreach (var status in (List<InsuranceManagement.Web.Domain.ActivityContactStatusType>)ViewBag.ContactStatusTypes)
+                            {
+                                <option value="@status.Id">@status.Name</option>
+                            }
                         </select>
                     </td>
                     <td>
-                        <select data-field="outcomeStatus" class="cell-input cell-select js-outcome-status">
+                        <select data-field="outcomeStatusTypeId" class="cell-input cell-select js-outcome-status">
                             <option value="">-</option>
-                            @foreach (InsuranceManagement.Web.Domain.OutcomeStatus status in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.OutcomeStatus)))
+                            @foreach (var status in (List<InsuranceManagement.Web.Domain.ActivityOutcomeStatusType>)ViewBag.OutcomeStatusTypes)
                             {
-                                <option value="@status">@status.ToDisplayText()</option>
+                                <option value="@status.Id">@status.Name</option>
                             }
                         </select>
                     </td>
@@ -156,33 +302,19 @@
                         </td>
                         <td><input data-field="contactName" class="cell-input" value="@activity.ContactName" /></td>
                         <td>
-                            <select data-field="contactStatus" class="cell-input cell-select js-contact-status">
-                                @foreach (InsuranceManagement.Web.Domain.ContactStatus status in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.ContactStatus)))
+                            <select data-field="contactStatusTypeId" class="cell-input cell-select js-contact-status">
+                                @foreach (var status in (List<InsuranceManagement.Web.Domain.ActivityContactStatusType>)ViewBag.ContactStatusTypes)
                                 {
-                                    @if (activity.ContactStatus == status)
-                                    {
-                                        <option value="@status" selected>@status.ToDisplayText()</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@status">@status.ToDisplayText()</option>
-                                    }
+                                    <option value="@status.Id" selected="@(activity.ContactStatusTypeId == status.Id)">@status.Name</option>
                                 }
                             </select>
                         </td>
                         <td>
-                            <select data-field="outcomeStatus" class="cell-input cell-select js-outcome-status">
+                            <select data-field="outcomeStatusTypeId" class="cell-input cell-select js-outcome-status">
                                 <option value="">-</option>
-                                @foreach (InsuranceManagement.Web.Domain.OutcomeStatus status in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.OutcomeStatus)))
+                                @foreach (var status in (List<InsuranceManagement.Web.Domain.ActivityOutcomeStatusType>)ViewBag.OutcomeStatusTypes)
                                 {
-                                    @if (activity.OutcomeStatus == status)
-                                    {
-                                        <option value="@status" selected>@status.ToDisplayText()</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@status">@status.ToDisplayText()</option>
-                                    }
+                                    <option value="@status.Id" selected="@(activity.OutcomeStatusTypeId == status.Id)">@status.Name</option>
                                 }
                             </select>
                         </td>
@@ -192,11 +324,27 @@
             </tbody>
         </table>
     </div>
-    <div class="page-actions split-actions">
+    <div class="page-actions split-actions" style="margin-top:16px;">
         <div class="pager">
-            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" asp-action="Index" asp-route-page="@prevPage" asp-route-pageSize="@Model.PageSize">Onceki</a>
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" 
+               asp-action="Index" 
+               asp-route-page="@prevPage" 
+               asp-route-pageSize="@Model.PageSize"
+               asp-route-searchTerm="@ViewBag.SearchTerm"
+               asp-route-employeeId="@ViewBag.EmployeeId"
+               asp-route-sortBy="@ViewBag.SortBy"
+               asp-route-isDescending="@ViewBag.IsDescending">Onceki</a>
+            
             <span class="pill">Sayfa @Model.CurrentPage / @Model.TotalPages</span>
-            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" asp-action="Index" asp-route-page="@nextPage" asp-route-pageSize="@Model.PageSize">Sonraki</a>
+            
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" 
+               asp-action="Index" 
+               asp-route-page="@nextPage" 
+               asp-route-pageSize="@Model.PageSize"
+               asp-route-searchTerm="@ViewBag.SearchTerm"
+               asp-route-employeeId="@ViewBag.EmployeeId"
+               asp-route-sortBy="@ViewBag.SortBy"
+               asp-route-isDescending="@ViewBag.IsDescending">Sonraki</a>
         </div>
         <div class="muted">Toplam @Model.TotalCount kayit</div>
     </div>
@@ -220,7 +368,7 @@
             const contact = row.querySelector(".js-contact-status");
             const outcome = row.querySelector(".js-outcome-status");
             if (!contact || !outcome) return;
-            const contacted = contact.value === "Contacted";
+            const contacted = contact.value === "1";
             outcome.disabled = !contacted;
             if (!contacted) {
                 outcome.value = "";

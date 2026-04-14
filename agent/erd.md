@@ -274,6 +274,7 @@ Aktivitede fiilen temas kurulup kurulmadığını ifade eden referans tablosu.
 
 - CONTACTED
 - NOT_CONTACTED
+- PLANNED (Yeni: Geleceğe yönelik randevular/görevler için)
 
 ## 5.10 `activity_outcome_status_types`
 
@@ -361,14 +362,13 @@ Saha ziyareti veya temas kaydı.
 - `follow_up_date` nullable
 - `has_sale` boolean
 - `contact_person_name` nullable
-- `contact_person_title` nullable
-- `notes_summary` nullable
+- `summary` (NOT: Kodda 'Summary' olarak uygulanmıştır)
 - `created_at`
 - `created_by`
 - `updated_at`
 - `updated_by`
-- `deleted_at` nullable
-- `deleted_by` nullable
+- `deleted_at` nullable (ISoftDeletable)
+- `deleted_by` nullable (ISoftDeletable)
 
 İş kuralları:
 

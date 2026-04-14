@@ -1,0 +1,14 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    
+    string IsActive(string targetAction) => 
+        string.Equals(action, targetAction, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+
+<nav class="subnav dashboard-tabs" style="margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:0;">
+    <a class="@IsActive("Executive")" asp-controller="Dashboard" asp-action="Executive" style="padding:12px 20px; font-weight:600; font-family:'Outfit';">Genel Ozet</a>
+    <a class="@IsActive("Performance")" asp-controller="Dashboard" asp-action="Performance" style="padding:12px 20px; font-weight:600; font-family:'Outfit';">Personel Performansi</a>
+    <a class="@IsActive("Products")" asp-controller="Dashboard" asp-action="Products" style="padding:12px 20px; font-weight:600; font-family:'Outfit';">Urun Kirilimi</a>
+    <a class="@IsActive("Expenses")" asp-controller="Dashboard" asp-action="Expenses" style="padding:12px 20px; font-weight:600; font-family:'Outfit';">Masraf Analizi</a>
+</nav>

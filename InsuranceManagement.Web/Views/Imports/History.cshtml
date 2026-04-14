@@ -3,27 +3,49 @@
     ViewData["Title"] = "Import Gecmisi";
     ViewData["Subtitle"] = "Kaydedilen import batch gecmisi";
 }
-<div class="panel">
-    <table class="table">
-        <thead><tr><th>Dosya</th><th>Tarih</th><th>Kullanici</th><th>Durum</th><th>Not</th><th>Islem</th></tr></thead>
-        <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@item.FileName</td>
-                <td>@item.ImportedAt.ToString("dd.MM.yyyy HH:mm")</td>
-                <td>@item.ImportedBy</td>
-                <td>@item.Status</td>
-                <td>@item.Notes</td>
-                <td class="table-actions">
-                    <a class="btn ghost btn-sm" asp-action="Download" asp-route-id="@item.Id">Indir</a>
-                    @if (item.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
-                    {
-                        <a class="btn secondary btn-sm" asp-action="PreviewLeadImport" asp-route-id="@item.Id">Onizle</a>
-                    }
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
+
+<div class="premium-strip">
+    <div>
+        <strong>Import Gecmisi</strong>
+        <span>Yuklenen dosyalarin tarihce, durum ve not bilgisini tek tabloda takip et.</span>
+    </div>
+    <div class="inline-actions">
+        <a class="btn primary" asp-action="Upload">Yeni Yukleme</a>
+    </div>
 </div>
+
+<section class="section-block">
+    <div class="table-scroll">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Dosya</th>
+                    <th>Tarih</th>
+                    <th>Kullanici</th>
+                    <th>Durum</th>
+                    <th>Not</th>
+                    <th>Islem</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.FileName</td>
+                    <td>@item.ImportedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>@item.ImportedBy</td>
+                    <td>@item.Status.ToDisplayText()</td>
+                    <td>@item.Notes</td>
+                    <td class="table-actions">
+                        <a class="btn ghost btn-sm" asp-action="Download" asp-route-id="@item.Id">Indir</a>
+                        @if (item.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <a class="btn secondary btn-sm" asp-action="PreviewLeadImport" asp-route-id="@item.Id">Onizle</a>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>

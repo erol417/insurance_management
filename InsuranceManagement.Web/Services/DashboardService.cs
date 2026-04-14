@@ -2,6 +2,7 @@ using InsuranceManagement.Web.Data;
 using InsuranceManagement.Web.Domain;
 using InsuranceManagement.Web.Extensions;
 using InsuranceManagement.Web.ViewModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace InsuranceManagement.Web.Services;
 
@@ -14,116 +15,232 @@ public class DashboardService
         _db = db;
     }
 
-    public ExecutiveDashboardViewModel BuildExecutive()
+    public ExecutiveDashboardViewModel BuildExecutive(DateTime startDate, DateTime endDate, string dateRange, int? filterEmployeeId = null, int? filterProductTypeId = null)
     {
-        var activities = _db.Activities.ToList();
-        var sales = _db.Sales.ToList();
-        var expenses = _db.Expenses.ToList();
-        var leads = _db.Leads.ToList();
+        var activitiesQuery = _db.Activities
+            .Include(x => x.ContactStatusType)
+            .Where(x => x.ActivityDate >= startDate && x.ActivityDate <= endDate)
+            .AsQueryable();
+
+        var salesQuery = _db.Sales
+            .Include(x => x.InsuranceProductType)
+            .Where(x => x.SaleDate >= startDate && x.SaleDate <= endDate)
+            .AsQueryable();
+
+        var expensesQuery = _db.Expenses
+            .Where(x => x.ExpenseDate >= startDate && x.ExpenseDate <= endDate)
+            .AsQueryable();
+
+        if (filterEmployeeId.HasValue)
+        {
+            activitiesQuery = activitiesQuery.Where(x => x.EmployeeId == filterEmployeeId.Value);
+            salesQuery = salesQuery.Where(x => x.EmployeeId == filterEmployeeId.Value);
+            expensesQuery = expensesQuery.Where(x => x.EmployeeId == filterEmployeeId.Value);
+        }
+
+        if (filterProductTypeId.HasValue)
+        {
+            salesQuery = salesQuery.Where(x => x.ProductTypeId == filterProductTypeId.Value);
+        }
+
+        var activities = activitiesQuery.Include(x => x.Account).ToList();
+        var sales = salesQuery.ToList();
+        var expenses = expensesQuery.ToList();
+        var leadsQuery = _db.Leads.AsQueryable();
+        if (filterEmployeeId.HasValue) leadsQuery = leadsQuery.Where(x => x.AssignedEmployeeId == filterEmployeeId.Value);
+        var leads = leadsQuery.Include(x => x.LeadStatusType).ToList();
         var accounts = _db.Accounts.ToDictionary(x => x.Id, x => x);
+
+        var realActivities = activities.Where(a => a.ContactStatusType?.Code != "PLANNED").ToList();
 
         return new ExecutiveDashboardViewModel
         {
-            NewLeadCount = leads.Count(x => x.CreatedAt >= DateTime.Today.AddDays(-30)),
-            ActivityCount = activities.Count,
-            SaleCount = sales.Sum(x => x.SaleCount),
-            ExpenseTotal = expenses.Sum(x => x.Amount),
-            WaitingAssignmentLeadCount = leads.Count(x => x.Status == LeadStatus.ReadyForAssignment),
-            AssignedThisWeekLeadCount = leads.Count(x => x.AssignedEmployeeId.HasValue && x.CreatedAt >= DateTime.Today.AddDays(-7)),
-            ConvertedLeadCount = leads.Count(x => x.Status == LeadStatus.ConvertedToActivity),
-            RegionalStats = activities.GroupBy(x => accounts.TryGetValue(x.AccountId, out var account) ? account.City : "Bilinmiyor")
-                .Select(g => new RegionStatVm
-                {
-                    Region = g.Key,
-                    ActivityCount = g.Count(),
-                    ConversionRate = BuildConversionRate(g.Select(x => x.Id))
-                }).OrderByDescending(x => x.ActivityCount).ToList(),
-            EmployeeWorkloads = _db.Employees.ToList().Select(x => new EmployeeWorkloadVm
+            StartDate = startDate,
+            EndDate = endDate,
+            DateRange = dateRange,
+            EmployeeId = filterEmployeeId,
+            ProductTypeId = filterProductTypeId,
+
+            TotalActivities = realActivities.Count,
+            ContactedActivities = realActivities.Count(a => a.ContactStatusType?.Code == "CONTACTED"),
+            TotalSalesCount = sales.Sum(s => s.SaleCount),
+            TotalBesCollection = sales.Where(s => s.InsuranceProductType?.Code == "BES").Sum(s => s.CollectionAmount ?? 0m),
+            ConversionRate = realActivities.Count > 0 
+                ? Math.Round((decimal)sales.Count(s => s.ActivityId.HasValue) / realActivities.Count * 100m, 1) 
+                : 0,
+            TotalExpenses = expenses.Sum(e => e.Amount),
+
+            ActivityTrend = BuildTrend(realActivities.Select(a => a.ActivityDate)),
+            SalesTrend = BuildTrend(sales.Select(s => s.SaleDate)),
+            SalesLinkage = new SalesLinkageSummary 
             {
-                EmployeeId = x.Id,
-                EmployeeName = x.FullName,
-                OpenLeadCount = leads.Count(l => l.AssignedEmployeeId == x.Id && l.Status is LeadStatus.Assigned or LeadStatus.VisitScheduled),
-                CompletedLeadCount = leads.Count(l => l.AssignedEmployeeId == x.Id && l.Status == LeadStatus.ConvertedToActivity),
-                ConversionRate = BuildEmployeeConversionRate(x.Id)
-            }).OrderByDescending(x => x.OpenLeadCount).ToList(),
-            ProductBreakdown = sales.GroupBy(x => x.ProductType)
+                LinkedCount = sales.Count(s => s.ActivityId.HasValue),
+                UnlinkedCount = sales.Count(s => !s.ActivityId.HasValue)
+            },
+
+            ProductBreakdown = sales.GroupBy(x => x.InsuranceProductType?.Name ?? "Bilinmeyen")
                 .Select(g => new ProductBreakdownVm
                 {
-                    ProductName = g.Key.ToDisplayText(),
+                    ProductName = g.Key,
                     SaleCount = g.Sum(x => x.SaleCount),
                     Amount = g.Sum(x => x.CollectionAmount ?? x.ProductionAmount ?? x.PremiumAmount ?? x.SaleAmount ?? 0m)
-                }).OrderByDescending(x => x.SaleCount).ToList(),
-            DataWarnings =
-            [
-                $"{sales.Count(x => !x.ActivityId.HasValue)} bagimsiz satis kaydi KPI yorumunu etkiliyor.",
-                $"{leads.Count(x => x.Status == LeadStatus.ReadyForAssignment)} lead atama bekliyor.",
-                $"{expenses.Count(x => x.Amount > 1000m)} yuksek masraf kaydi kontrol gerektiriyor."
-            ]
+                }).OrderByDescending(x => x.SaleCount).ToList()
         };
     }
 
-    public PerformanceDashboardViewModel BuildPerformance()
+    private List<TrendPoint> BuildTrend(IEnumerable<DateTime> dates)
     {
-        var activities = _db.Activities.ToList();
-        var sales = _db.Sales.ToList();
-        var expenses = _db.Expenses.ToList();
+        return dates.GroupBy(d => d.Date)
+            .OrderBy(g => g.Key)
+            .Select(g => new TrendPoint { Label = g.Key.ToString("yyyy-MM-dd"), Count = g.Count() })
+            .ToList();
+    }
+
+    public PerformanceDashboardViewModel BuildPerformance(DateTime startDate, DateTime endDate, string dateRange, int? filterEmployeeId = null, int? filterProductTypeId = null)
+    {
+        var activitiesQuery = _db.Activities
+            .Include(x => x.ContactStatusType)
+            .Where(x => x.ActivityDate >= startDate && x.ActivityDate <= endDate)
+            .AsQueryable();
+
+        var salesQuery = _db.Sales
+            .Where(x => x.SaleDate >= startDate && x.SaleDate <= endDate)
+            .AsQueryable();
+
+        var expensesQuery = _db.Expenses
+            .Where(x => x.ExpenseDate >= startDate && x.ExpenseDate <= endDate)
+            .AsQueryable();
+
+        if (filterEmployeeId.HasValue)
+        {
+            activitiesQuery = activitiesQuery.Where(x => x.EmployeeId == filterEmployeeId.Value);
+            salesQuery = salesQuery.Where(x => x.EmployeeId == filterEmployeeId.Value);
+            expensesQuery = expensesQuery.Where(x => x.EmployeeId == filterEmployeeId.Value);
+        }
+
+        if (filterProductTypeId.HasValue)
+        {
+            salesQuery = salesQuery.Where(x => x.ProductTypeId == filterProductTypeId.Value);
+        }
+
+        var actList = activitiesQuery.ToList();
+        var saleList = salesQuery.ToList();
+        var expList = expensesQuery.ToList();
 
         return new PerformanceDashboardViewModel
         {
+            StartDate = startDate,
+            EndDate = endDate,
+            DateRange = dateRange,
+            EmployeeId = filterEmployeeId,
+            ProductTypeId = filterProductTypeId,
             Rows = _db.Employees.ToList().Select(x =>
             {
-                var employeeActivities = activities.Where(a => a.EmployeeId == x.Id).ToList();
-                var employeeSales = sales.Where(s => s.EmployeeId == x.Id).ToList();
-                var employeeExpenses = expenses.Where(e => e.EmployeeId == x.Id).ToList();
+                var employeeActivities = actList.Where(a => a.EmployeeId == x.Id && a.ContactStatusType?.Code != "PLANNED").ToList();
+                var employeeSales = saleList.Where(s => s.EmployeeId == x.Id).ToList();
+                var employeeExpenses = expList.Where(e => e.EmployeeId == x.Id).ToList();
 
                 return new PerformanceRowVm
                 {
                     EmployeeName = x.FullName,
                     Region = x.Region,
                     ActivityCount = employeeActivities.Count,
+                    ContactedCount = employeeActivities.Count(a => a.ContactStatusType?.Code == "CONTACTED"),
                     SaleCount = employeeSales.Sum(s => s.SaleCount),
-                    ConversionRate = employeeActivities.Count == 0 ? 0m : Math.Round((decimal)employeeSales.Count / employeeActivities.Count * 100m, 1),
+                    ConversionRate = employeeActivities.Count == 0 ? 0m : Math.Round((decimal)employeeSales.Count(s => s.ActivityId.HasValue) / employeeActivities.Count * 100m, 1),
                     CollectionTotal = employeeSales.Sum(s => s.CollectionAmount ?? 0m),
+                    BesCollection = employeeSales.Where(s => s.ProductTypeId == 1).Sum(s => s.CollectionAmount ?? 0m),
                     ExpenseTotal = employeeExpenses.Sum(e => e.Amount)
                 };
             }).OrderByDescending(x => x.CollectionTotal).ToList()
         };
     }
 
-    public ProductDashboardViewModel BuildProducts()
+    public ProductDashboardViewModel BuildProducts(DateTime startDate, DateTime endDate, string dateRange, int? filterEmployeeId = null, int? filterProductTypeId = null)
     {
+        var query = _db.Sales
+            .Include(x => x.InsuranceProductType)
+            .Where(x => x.SaleDate >= startDate && x.SaleDate <= endDate)
+            .AsQueryable();
+
+        if (filterEmployeeId.HasValue)
+        {
+            query = query.Where(x => x.EmployeeId == filterEmployeeId.Value);
+        }
+
+        if (filterProductTypeId.HasValue)
+        {
+            query = query.Where(x => x.ProductTypeId == filterProductTypeId.Value);
+        }
+
         return new ProductDashboardViewModel
         {
-            Rows = _db.Sales.ToList().GroupBy(x => x.ProductType)
+            StartDate = startDate,
+            EndDate = endDate,
+            DateRange = dateRange,
+            EmployeeId = filterEmployeeId,
+            ProductTypeId = filterProductTypeId,
+            Rows = query
+                .ToList()
+                .GroupBy(x => x.InsuranceProductType)
                 .Select(g => new ProductDashboardRowVm
                 {
-                    ProductName = g.Key.ToDisplayText(),
+                    ProductName = g.Key?.Name ?? "Bilinmeyen",
                     SaleCount = g.Sum(x => x.SaleCount),
                     CollectionTotal = g.Sum(x => x.CollectionAmount ?? 0m),
-                    PrimaryFinancialMetric = g.Key switch
+                    ApeTotal = g.Sum(x => x.ApeAmount ?? 0m),
+                    PremiumTotal = g.Sum(x => x.PremiumAmount ?? 0m),
+                    ProductionTotal = g.Sum(x => x.ProductionAmount ?? 0m),
+                    BaseSaleTotal = g.Sum(x => x.SaleAmount ?? 0m),
+                    PrimaryFinancialMetric = (g.Key?.Id ?? 0) switch
                     {
-                        ProductType.Bes => g.Sum(x => x.ApeAmount ?? 0m),
-                        ProductType.Life => g.Sum(x => x.PremiumAmount ?? 0m),
-                        ProductType.Health => g.Sum(x => x.ProductionAmount ?? 0m),
+                        1 => g.Sum(x => x.ApeAmount ?? 0m), // BES
+                        2 => g.Sum(x => x.PremiumAmount ?? 0m), // Hayat
+                        3 => g.Sum(x => x.ProductionAmount ?? 0m), // Saglik
                         _ => g.Sum(x => x.SaleAmount ?? 0m)
                     }
                 }).ToList()
         };
     }
 
-    public ExpenseDashboardViewModel BuildExpenses()
+    public ExpenseDashboardViewModel BuildExpenses(DateTime startDate, DateTime endDate, string dateRange, int? filterEmployeeId = null, int? filterProductTypeId = null)
     {
-        var expenses = _db.Expenses.ToList();
-        var sales = _db.Sales.ToList();
+        var expensesQuery = _db.Expenses
+            .Include(x => x.ExpenseTypeEntity)
+            .Where(x => x.ExpenseDate >= startDate && x.ExpenseDate <= endDate)
+            .AsQueryable();
+
+        var salesQuery = _db.Sales
+            .Where(x => x.SaleDate >= startDate && x.SaleDate <= endDate)
+            .AsQueryable();
+
+        if (filterEmployeeId.HasValue)
+        {
+            expensesQuery = expensesQuery.Where(x => x.EmployeeId == filterEmployeeId.Value);
+            salesQuery = salesQuery.Where(x => x.EmployeeId == filterEmployeeId.Value);
+        }
+
+        if (filterProductTypeId.HasValue)
+        {
+            salesQuery = salesQuery.Where(x => x.ProductTypeId == filterProductTypeId.Value);
+        }
+
+        var expenses = expensesQuery.ToList();
+        var sales = salesQuery.ToList();
 
         return new ExpenseDashboardViewModel
         {
+            StartDate = startDate,
+            EndDate = endDate,
+            DateRange = dateRange,
+            EmployeeId = filterEmployeeId,
+            ProductTypeId = filterProductTypeId,
             TotalExpense = expenses.Sum(x => x.Amount),
             CostPerSale = sales.Count == 0 ? 0m : Math.Round(expenses.Sum(x => x.Amount) / sales.Count, 2),
-            Rows = expenses.GroupBy(x => x.ExpenseType)
+            Rows = expenses.GroupBy(x => x.ExpenseTypeEntity)
                 .Select(g => new ExpenseBreakdownVm
                 {
-                    ExpenseType = g.Key.ToDisplayText(),
+                    ExpenseType = g.Key?.Name ?? "Bilinmeyen",
                     Count = g.Count(),
                     Total = g.Sum(x => x.Amount)
                 }).OrderByDescending(x => x.Total).ToList()

@@ -1,18 +1,225 @@
 @model InsuranceManagement.Web.Domain.Employee
 @{
-    ViewData["Title"] = "Personel Detayi";
-    ViewData["Subtitle"] = "Yuk, performans ve operasyonel ozet";
+    var openLeadsCount = (int)(ViewBag.OpenLeadsCount ?? 0);
+    var activitiesCount = (int)(ViewBag.ActivitiesCount ?? 0);
+    var salesCount = (int)(ViewBag.SalesCount ?? 0);
+    var expensesSum = (decimal)(ViewBag.ExpensesSum ?? 0m);
+    
+    var plannedActivities = ViewBag.PlannedActivities as List<InsuranceManagement.Web.Domain.Activity> ?? [];
+    var relatedLeads = ViewBag.RelatedLeads as List<InsuranceManagement.Web.Domain.Lead> ?? [];
+    var relatedSales = ViewBag.RelatedSales as List<InsuranceManagement.Web.Domain.Sale> ?? [];
+    var relatedExpenses = ViewBag.RelatedExpenses as List<InsuranceManagement.Web.Domain.Expense> ?? [];
+    
+    ViewData["Title"] = Model.FullName;
+    ViewData["Subtitle"] = "Personel performansı, üretim verileri ve masraf özeti";
 }
-<div class="grid cards-4">
-    <div class="panel metric"><span class="tag">Acik Lead</span><div class="value">@ViewBag.OpenLeads</div></div>
-    <div class="panel metric"><span class="tag">Aktivite</span><div class="value">@ViewBag.Activities</div></div>
-    <div class="panel metric"><span class="tag">Satis</span><div class="value">@ViewBag.Sales</div></div>
-    <div class="panel metric"><span class="tag">Masraf</span><div class="value">@(((decimal)ViewBag.Expenses).ToString("N0"))</div></div>
-</div>
-<div class="panel" style="margin-top:18px;">
-    <div class="list">
-        <div class="list-item"><strong>Ad</strong><span>@Model.FullName</span></div>
-        <div class="list-item"><strong>Bolge</strong><span>@Model.Region</span></div>
-        <div class="list-item"><strong>Sehir</strong><span>@Model.City</span></div>
+
+<div class="form-layout">
+    <div class="layout-main">
+        <!-- Metric Overview -->
+        <section class="section-block">
+            <div class="panel-title">
+                <h3>Performans Özeti</h3>
+                <span class="pill">@Model.Region</span>
+            </div>
+            <div class="metric-grid four">
+                <article class="metric-card">
+                    <span class="metric-label">Açık Lead</span>
+                    <strong>@openLeadsCount</strong>
+                    <small>Yüklenen/Atanan</small>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Aktivite</span>
+                    <strong>@activitiesCount</strong>
+                    <small>Tamamlanan</small>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Satış</span>
+                    <strong>@salesCount</strong>
+                    <small>Üretim Adedi</small>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Masraf</span>
+                    <strong>@expensesSum.ToString("N2") ₺</strong>
+                    <small>Toplam Talepler</small>
+                </article>
+            </div>
+        </section>
+
+        <!-- Planned Activities / Tasks -->
+        <section class="section-block" style="border-left: 4px solid var(--primary);">
+            <div class="panel-title">
+                <h3>Yaklaşan Randevular / Planlanan İşler</h3>
+                <div class="pill highlight">Planlama</div>
+            </div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Müşteri</th>
+                            <th>İlgili İş (Lead)</th>
+                            <th style="text-align:right;">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var act in plannedActivities)
+                        {
+                            <tr style="background: #f0f7ff;">
+                                <td><strong>@act.ActivityDate.ToString("dd.MM.yyyy")</strong></td>
+                                <td>@act.Account?.DisplayName</td>
+                                <td>@(act.Lead != null ? act.Lead.DisplayName : "-")</td>
+                                <td style="text-align:right;">
+                                    <a asp-controller="Activities" asp-action="Edit" asp-route-id="@act.Id" class="btn primary">Gerçekleştir</a>
+                                </td>
+                            </tr>
+                        }
+                        @if (!plannedActivities.Any())
+                        {
+                            <tr><td colspan="4" class="muted" style="text-align:center; padding:20px;">Yakın zamanda planlanmış bir randevu bulunmuyor.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Related Leads -->
+        <section class="section-block">
+            <div class="panel-title">
+                <h3>Üzerindeki İşler (Leadler)</h3>
+                <a asp-controller="Leads" asp-action="Index" asp-route-employeeId="@Model.Id" class="btn link-btn">Tümünü Gör</a>
+            </div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Kod</th>
+                            <th>Müşteri / Ünvan</th>
+                            <th>Öncelik</th>
+                            <th>Durum</th>
+                            <th style="text-align:right;">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lead in relatedLeads)
+                        {
+                            <tr>
+                                <td><code>@lead.Code</code></td>
+                                <td>@lead.DisplayName</td>
+                                <td><span class="priority-pill @lead.Priority.ToString().ToLower()">@lead.Priority</span></td>
+                                <td>@lead.LeadStatusType.Name</td>
+                                <td style="text-align:right;">
+                                    <a asp-controller="Leads" asp-action="Details" asp-route-id="@lead.Id" class="btn primary-outline" style="font-size:11px; padding:4px 8px;">Detay</a>
+                                </td>
+                            </tr>
+                        }
+                        @if (!relatedLeads.Any())
+                        {
+                            <tr><td colspan="5" class="muted" style="text-align:center; padding:20px;">Atanmış aktif iş bulunmuyor.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Production / Sales -->
+        <section class="section-block">
+            <div class="panel-title">
+                <h3>Üretim Detayı (Satışlar)</h3>
+                <a asp-controller="Sales" asp-action="Index" class="btn link-btn">Satışlara Git</a>
+            </div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Kod</th>
+                            <th>Ürün Tipi</th>
+                            <th>Tutar (APE)</th>
+                            <th>Tarih</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sale in relatedSales)
+                        {
+                            <tr>
+                                <td><code>@sale.Code</code></td>
+                                <td>@sale.InsuranceProductType?.Name</td>
+                                <td><strong>@sale.ApeAmount?.ToString("N2") ₺</strong></td>
+                                <td>@sale.CreatedAt.ToString("dd.MM.yyyy")</td>
+                            </tr>
+                        }
+                        @if (!relatedSales.Any())
+                        {
+                            <tr><td colspan="4" class="muted" style="text-align:center; padding:20px;">Henüz satış kaydı bulunmuyor.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Expenses -->
+        <section class="section-block">
+            <div class="panel-title">
+                <h3>Masraf Talepleri</h3>
+                <a asp-controller="Expenses" asp-action="Index" class="btn link-btn">Masraflara Git</a>
+            </div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Kod</th>
+                            <th>Tip</th>
+                            <th>Tutar</th>
+                            <th>Tarih</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exp in relatedExpenses)
+                        {
+                            <tr>
+                                <td><code>@exp.Code</code></td>
+                                <td>@exp.ExpenseTypeEntity?.Name</td>
+                                <td style="color:var(--danger)">@exp.Amount.ToString("N2") ₺</td>
+                                <td>@exp.ExpenseDate.ToString("dd.MM.yyyy")</td>
+                            </tr>
+                        }
+                        @if (!relatedExpenses.Any())
+                        {
+                            <tr><td colspan="4" class="muted" style="text-align:center; padding:20px;">Henüz masraf kaydı bulunmuyor.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
+
+    <!-- Sidebar Info -->
+    <aside class="side-stack">
+        <section class="side-panel">
+            <h4 style="margin-bottom:16px;">Personel Bilgileri</h4>
+            <div class="mini-summary">
+                <label>AD SOYAD</label>
+                <strong>@Model.FullName</strong>
+            </div>
+            <div class="mini-summary">
+                <label>BÖLGE / ŞEHİR</label>
+                <strong>@Model.Region / @Model.City</strong>
+            </div>
+            <div class="mini-summary">
+                <label>DURUM</label>
+                <strong style="color:var(--success)">Aktif Çalışan</strong>
+            </div>
+        </section>
+
+        <section class="side-panel">
+            <h4 style="margin-bottom:16px;">Hızlı İşlemler</h4>
+            <div class="action-stack">
+                @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn primary" style="width:100%; margin-bottom:8px; display:block; text-align:center;">Personeli Düzenle</a>
+                }
+                <a asp-controller="LeadAssignments" asp-action="Index" asp-route-employeeId="@Model.Id" class="btn primary-outline" style="width:100%; display:block; text-align:center;">Yeni İş Ata</a>
+            </div>
+        </section>
+    </aside>
 </div>

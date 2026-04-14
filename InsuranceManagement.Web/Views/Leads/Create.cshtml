@@ -4,45 +4,110 @@
     ViewData["Title"] = "Yeni Lead";
     ViewData["Subtitle"] = "Call center veya satis muduru icin yeni lead kaydi";
 }
-<div class="panel">
-    <form method="post">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="All" class="validation-summary-errors"></div>
-        @if (duplicateWarnings.Any())
-        {
-            <div class="note-box warning">
-                <strong>Benzer kayit uyarilari</strong>
-                @foreach (var warning in duplicateWarnings)
+
+<div class="form-layout">
+    <div class="layout-main">
+        <section class="section-block">
+            <h3>Kisisel ve Sirket Bilgileri</h3>
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="validation-summary-errors"></div>
+                @if (duplicateWarnings.Any())
                 {
-                    <p>@warning</p>
+                    <div class="note-box" style="margin-bottom:16px;">
+                        <strong>Benzer kayit uyarilari</strong>
+                        @foreach (var warning in duplicateWarnings)
+                        {
+                            <p>@warning</p>
+                        }
+                    </div>
                 }
+                <div class="form-grid three">
+                    <div class="field"><label asp-for="DisplayName"></label><input asp-for="DisplayName" /></div>
+                    <div class="field"><label asp-for="City"></label><input asp-for="City" /></div>
+                    <div class="field"><label asp-for="District"></label><input asp-for="District" /></div>
+                    <div class="field"><label asp-for="ContactName"></label><input asp-for="ContactName" /></div>
+                    <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" /></div>
+                    <div class="field"><label asp-for="Email"></label><input asp-for="Email" /></div>
+                    <div class="field">
+                        <label>Kaynak</label>
+                        <select asp-for="LeadSourceTypeId">
+                            @foreach (var source in (List<InsuranceManagement.Web.Domain.LeadSourceType>)ViewBag.SourceTypes)
+                            {
+                                <option value="@source.Id">@source.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Durum</label>
+                        <select asp-for="LeadStatusTypeId">
+                            @foreach (var status in (List<InsuranceManagement.Web.Domain.LeadStatusType>)ViewBag.StatusTypes)
+                            {
+                                <option value="@status.Id">@status.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label asp-for="Priority"></label>
+                        <select asp-for="Priority" asp-items="Html.GetEnumSelectList<InsuranceManagement.Web.Domain.LeadPriority>()"></select>
+                    </div>
+                </div>
+                <div class="field"><label asp-for="Note"></label><textarea asp-for="Note"></textarea></div>
+                <div class="page-actions"><button type="submit" class="btn primary">Lead Kaydet</button></div>
+            </form>
+        </section>
+    </div>
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <h3>Baglamsal Aksiyonlar ve Zaman Cizgisi</h3>
+        </section>
+        <section class="side-panel">
+            <h4 style="margin-bottom:14px;">Hizli Aksiyonlar</h4>
+            <div class="action-buttons">
+                <button class="btn primary" type="button" onclick="createCallTask()">Arama Gorevi</button>
+                <button class="btn primary" type="button" onclick="openMailTemplate()">Mail Taslagi</button>
             </div>
-        }
-        <div class="form-grid three">
-            <div class="field"><label asp-for="DisplayName"></label><input asp-for="DisplayName" /></div>
-            <div class="field"><label asp-for="City"></label><input asp-for="City" /></div>
-            <div class="field"><label asp-for="District"></label><input asp-for="District" /></div>
-            <div class="field"><label asp-for="ContactName"></label><input asp-for="ContactName" /></div>
-            <div class="field"><label asp-for="Phone"></label><input asp-for="Phone" /></div>
-            <div class="field"><label asp-for="Email"></label><input asp-for="Email" /></div>
-            <div class="field"><label asp-for="Source"></label><input asp-for="Source" /></div>
-            <div class="field">
-                <label asp-for="Status"></label>
-                <select asp-for="Status">
-                    <option value="New">Yeni</option>
-                    <option value="Researched">Arastirildi</option>
-                    <option value="ContactFound">Kontak Bulundu</option>
-                    <option value="ReadyForAssignment">Atamaya Hazir</option>
-                    <option value="Assigned">Atandi</option>
-                    <option value="VisitScheduled">Ziyaret Planlandi</option>
-                    <option value="Visited">Ziyaret Edildi</option>
-                    <option value="ConvertedToActivity">Aktiviteye Donustu</option>
-                    <option value="Disqualified">Elenmis</option>
-                </select>
+        </section>
+        <section class="side-panel soft">
+            <h4 style="margin-bottom:16px;">Kayit Rehberi</h4>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong>Temel bilgi</strong>
+                    <div>Ad, telefon ve sehir bilgisi tam ise sonraki adimda atama veya aktivite planlama kolaylasir.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Kaynak secimi</strong>
+                    <div>Call center, referral veya diger kaynaklar raporlama tarafini etkiler.</div>
+                </div>
+                <div class="timeline-item">
+                    <strong>Sonraki adim</strong>
+                    <div>Kayit sonrasi lead detayindan atama, ziyaret veya takip aksiyonu baslatilabilir.</div>
+                </div>
             </div>
-            <div class="field"><label asp-for="Priority"></label><input asp-for="Priority" /></div>
-        </div>
-        <div class="field"><label asp-for="Note"></label><textarea asp-for="Note"></textarea></div>
-        <div class="page-actions"><button type="submit" class="btn primary">Lead Kaydet</button></div>
-    </form>
+        </section>
+    </aside>
 </div>
+
+<script>
+    function createCallTask() {
+        const noteArea = document.querySelector('textarea[name="Note"]');
+        const taskText = " [ARAMA GÖREVİ: Müşteri 24 saat içinde geri aranacak.]";
+        if (noteArea && !noteArea.value.includes(taskText)) {
+            noteArea.value += taskText;
+            appFeedback.show("Arama görevi notlara eklendi.", "success");
+        }
+    }
+
+    function openMailTemplate() {
+        const email = document.querySelector('input[name="Email"]').value;
+        const name = document.querySelector('input[name="DisplayName"]').value || "Sayın Müşterimiz";
+        const subject = encodeURIComponent("Sigorta Teklif Talebiniz Hakkında");
+        const body = encodeURIComponent(`Merhaba ${name},\n\nSigorta teklif talebiniz sistemimize ulaşmıştır. En kısa sürede uzman arkadaşlarımız sizinle iletişime geçecektir.\n\nİyi çalışmalar dileriz.`);
+        
+        if (email) {
+            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+        } else {
+            appFeedback.show("Lütfen önce e-posta adresini giriniz.", "warning");
+        }
+    }
+</script>

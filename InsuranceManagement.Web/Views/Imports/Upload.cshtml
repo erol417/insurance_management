@@ -1,27 +1,208 @@
 @model InsuranceManagement.Web.ViewModels.ImportUploadViewModel
 @{
-    ViewData["Title"] = "Import Yukleme";
-    ViewData["Subtitle"] = "Excel veya CSV referans batch yukleme ekrani";
+    ViewData["Title"] = "Veri Aktarim Merkezi";
+    ViewData["Subtitle"] = "Sisteme toplu veri girisi yapmak icin modulu secin ve dosyanizi surukleyin.";
 }
+
 <div class="panel">
-    <div class="page-actions">
-        <a class="btn secondary" asp-action="Template" asp-route-module="lead">Lead Sablonu Indir</a>
+    <div class="section-title">
+        <h3>1. Aktarim Modulu Secin</h3>
+        <p>Hangi veri grubunu yuklemek istiyorsunuz? Secime gore sablon ve kurallar guncellenir.</p>
     </div>
-    <form method="post" enctype="multipart/form-data">
+    
+    <div class="module-cards">
+        <label class="module-card">
+            <input type="radio" name="ModuleName" value="lead" class="hidden-radio" checked="@(Model.ModuleName == "lead")" onchange="updateImportModule('lead')">
+            <div class="card-content">
+                <i data-lucide="users"></i>
+                <strong>Leadler</strong>
+                <span>Potansiyel Musteriler</span>
+            </div>
+        </label>
+        <label class="module-card">
+            <input type="radio" name="ModuleName" value="employee" class="hidden-radio" checked="@(Model.ModuleName == "employee")" onchange="updateImportModule('employee')">
+            <div class="card-content">
+                <i data-lucide="user-plus"></i>
+                <strong>Personeller</strong>
+                <span>Ekip ve Kullanicilar</span>
+            </div>
+        </label>
+        <label class="module-card">
+            <input type="radio" name="ModuleName" value="account" class="hidden-radio" checked="@(Model.ModuleName == "account")" onchange="updateImportModule('account')">
+            <div class="card-content">
+                <i data-lucide="briefcase"></i>
+                <strong>Musteriler</strong>
+                <span>Hesap ve Firmalar</span>
+            </div>
+        </label>
+        <label class="module-card">
+            <input type="radio" name="ModuleName" value="activity" class="hidden-radio" checked="@(Model.ModuleName == "activity")" onchange="updateImportModule('activity')">
+            <div class="card-content">
+                <i data-lucide="calendar"></i>
+                <strong>Aktiviteler</strong>
+                <span>Ziyaret ve Gorusmeler</span>
+            </div>
+        </label>
+        <label class="module-card">
+            <input type="radio" name="ModuleName" value="sale" class="hidden-radio" checked="@(Model.ModuleName == "sale")" onchange="updateImportModule('sale')">
+            <div class="card-content">
+                <i data-lucide="trending-up"></i>
+                <strong>Satislar</strong>
+                <span>Police ve Uretim</span>
+            </div>
+        </label>
+        <label class="module-card">
+            <input type="radio" name="ModuleName" value="expense" class="hidden-radio" checked="@(Model.ModuleName == "expense")" onchange="updateImportModule('expense')">
+            <div class="card-content">
+                <i data-lucide="receipt"></i>
+                <strong>Masraflar</strong>
+                <span>Gider ve Harcamalar</span>
+            </div>
+        </label>
+    </div>
+
+    <div class="template-actions" style="margin-top: 30px;">
+        <div class="note-box info">
+            <i data-lucide="info"></i>
+            <div>
+                <strong>Ipucu:</strong> Hatasiz bir yukleme icin guncel sablonu kullanmanizi oneririz.
+                <a id="template-link" href="@Url.Action("Template", new { module = "lead" })" class="btn link-btn">
+                    <i data-lucide="download"></i> <span id="module-label">LEAD</span> Sablonunu Indir
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panel" style="margin-top: 24px;">
+    <div class="section-title">
+        <h3>2. Excel Dosyasini Yukleyin</h3>
+        <p>Dosyayi asagidaki alana surukleyin veya tıklayarak secin.</p>
+    </div>
+
+    <form id="import-form" asp-action="Upload" method="post" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
-        <div asp-validation-summary="All" class="validation-summary-errors"></div>
-        <div class="form-grid two">
-            <div class="field"><label asp-for="File"></label><input asp-for="File" type="file" accept=".xlsx,.xls,.csv" /></div>
-            <div class="field"><label asp-for="Notes"></label><input asp-for="Notes" /></div>
+        <input type="hidden" id="selected-module" name="ModuleName" value="lead" />
+        
+        <div class="drop-zone" id="drop-zone">
+            <div class="drop-zone-content">
+                <div class="drop-icon">
+                    <i data-lucide="upload-cloud"></i>
+                </div>
+                <div class="drop-text">
+                    <strong>Excel dosyasini buraya surukleyin</strong>
+                    <span>veya dosyayi secmek icin tiklayin</span>
+                </div>
+                <div id="file-info" class="file-info" style="display:none;">
+                    <i data-lucide="file-text"></i>
+                    <span id="filename-display"></span>
+                </div>
+            </div>
+            <input type="file" name="File" id="file-input" class="file-input" accept=".xlsx,.xls,.csv" />
         </div>
-        <div class="note-box">
-            <strong>Import karari</strong>
-            <p>Excel dosyalari su an nihai veri kaynagi degil; referans ve kontrollu batch mantigiyla izlenir.</p>
-            <p>Desteklenen tipler: .xlsx, .xls, .csv | Maksimum boyut: 15 MB</p>
-            <p>Lead import icin beklenen kolonlar: DisplayName, City, District, ContactName, Phone, Email, Source, Status, Priority, Note, AssignedEmployee</p>
-            <p>Sablon dosyasini indirip ayni kolon sirasiyla doldurman gerekir.</p>
-            <p>Toplu onizleme ve iceri alma su an CSV sablonu ile aktif. Excel dosyalari yuklenir ama otomatik parse edilmez.</p>
+
+        <div class="form-actions center" style="margin-top: 24px;">
+            <button type="submit" class="btn primary xl" id="upload-btn" disabled>
+                <i data-lucide="play"></i> Veriyi Analiz Et ve Onizle
+            </button>
         </div>
-        <div class="page-actions"><button type="submit" class="btn primary">Dosyayi Yukle</button></div>
     </form>
 </div>
+
+<style>
+    .module-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-top: 16px; }
+    .module-card { cursor: pointer; position: relative; }
+    .hidden-radio { display: none; }
+    .card-content { 
+        background: white; border: 2px solid var(--line); border-radius: 12px; padding: 20px;
+        display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
+        transition: all 0.2s ease;
+    }
+    .card-content i { color: var(--muted); width: 32px; height: 32px; }
+    .card-content strong { color: var(--brand); font-size: 15px; }
+    .card-content span { color: var(--muted); font-size: 12px; }
+    
+    .hidden-radio:checked + .card-content { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.05); transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .hidden-radio:checked + .card-content i { color: var(--primary); }
+
+    .drop-zone {
+        border: 2px dashed var(--line); border-radius: 16px; padding: 40px;
+        text-align: center; cursor: pointer; position: relative; transition: all 0.3s ease;
+        background: #fafafa;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.02); }
+    .drop-zone-content { display: flex; flex-direction: column; align-items: center; gap: 16px; pointer-events: none; }
+    .drop-icon { width: 64px; height: 64px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .drop-icon i { width: 32px; height: 32px; }
+    .drop-text { display: flex; flex-direction: column; gap: 4px; }
+    .drop-text strong { font-size: 18px; color: var(--brand); }
+    .drop-text span { color: var(--muted); }
+    .file-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+    .file-info { margin-top: 10px; padding: 8px 16px; background: white; border: 1px solid var(--line); border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: 500; color: var(--primary); }
+    .btn.xl { padding: 16px 32px; font-size: 16px; font-weight: 600; border-radius: 12px; box-shadow: 0 4px 20px rgba(var(--primary-rgb), 0.3); }
+    
+    .template-actions .note-box { display: flex; align-items: center; gap: 16px; }
+</style>
+
+@section Scripts {
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const filenameDisplay = document.getElementById('filename-display');
+        const uploadBtn = document.getElementById('upload-btn');
+        const templateLink = document.getElementById('template-link');
+        const moduleLabel = document.getElementById('module-label');
+        const selectedModuleInput = document.getElementById('selected-module');
+
+        function updateImportModule(module) {
+            selectedModuleInput.value = module;
+            moduleLabel.innerText = module.toUpperCase();
+            templateLink.href = `/Imports/Template?module=${module}`;
+        }
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            handleFiles(files);
+        }
+
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                filenameDisplay.innerText = file.name;
+                fileInfo.style.display = 'flex';
+                uploadBtn.disabled = false;
+                
+                // Animasyonlu onay
+                dropZone.style.borderColor = 'var(--primary)';
+                dropZone.style.background = 'rgba(var(--primary-rgb), 0.05)';
+            }
+        }
+    </script>
+}

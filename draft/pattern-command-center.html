@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Center</title>
+  <link rel="stylesheet" href="./structure-patterns.css">
+</head>
+<body class="screen-page">
+  <div class="screen-stack">
+    <a class="back-link" href="./structure-patterns.html">Yapisal kataloge don</a>
+    <section class="hero-card">
+      <span class="eyebrow">Pattern 1</span>
+      <h1>Command Center</h1>
+      <p class="caption">Bu duzende ekran bir kontrol paneli gibi davraniyor. Kullaniciya sadece veri gostermiyor; nerede sikisma var, hangi aksiyona gitmeli, hangi ekip izlenmeli bunlari da ustten dayatiyor.</p>
+    </section>
+
+    <section class="frame">
+      <div class="app">
+        <aside class="sidebar">
+          <div class="brand-mark"></div>
+          <h2 class="brand-title">Insurance Flow</h2>
+          <p class="brand-subtitle">Operations control</p>
+          <div class="nav-section">
+            <div class="nav-title">Main</div>
+            <a class="nav-link active">Command Center</a>
+            <a class="nav-link">Lead Pool</a>
+            <a class="nav-link">Assignments</a>
+            <a class="nav-link">Activities</a>
+          </div>
+          <div class="nav-section">
+            <div class="nav-title">Fast Lanes</div>
+            <a class="nav-link">Waiting Actions</a>
+            <a class="nav-link">Data Quality</a>
+            <a class="nav-link">Team Capacity</a>
+          </div>
+        </aside>
+        <main class="main">
+          <div class="sticky-bar">
+            <div class="sticky-left">
+              <span class="chip active">12 atama bekliyor</span>
+              <span class="chip">7 kayit eslesmemis</span>
+              <span class="chip">3 saha personeli limitte</span>
+            </div>
+            <div class="sticky-right">
+              <a class="btn-secondary">Filtreleri ac</a>
+              <a class="btn-secondary">Takim kapasitesi</a>
+              <a class="btn">Atama ekranina git</a>
+            </div>
+          </div>
+
+          <div class="headline" style="margin-bottom:16px;">
+            <h2>Executive command center</h2>
+            <p>Yonetici once KPI degil aksiyon gorur. Ustte acil durum cubugu, ortada kritik kartlar, sagda yonlendirme rail'i vardir.</p>
+          </div>
+
+          <div class="subnav" style="margin-bottom:16px;">
+            <a class="active">Overview</a>
+            <a>Queues</a>
+            <a>Capacity</a>
+            <a>Data Issues</a>
+            <a>Conversion</a>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card"><span class="tiny-tag">Lead Queue</span><strong>41</strong><p>Bu ay acilan yeni lead</p></div>
+            <div class="metric-card"><span class="tiny-tag">Assigned</span><strong>19</strong><p>Bu hafta saha ekibine giden</p></div>
+            <div class="metric-card"><span class="tiny-tag">At Risk</span><strong>12</strong><p>24 saatten uzun bekleyen</p></div>
+            <div class="metric-card"><span class="tiny-tag">Data Gaps</span><strong>7</strong><p>Iliski veya alan eksigi olan</p></div>
+          </div>
+
+          <div class="layout-3col" style="margin-top:18px;">
+            <div class="stack">
+              <div class="surface">
+                <div class="section-title"><h3>Kritik kuyruklar</h3><span class="tiny-tag">Tiklanabilir</span></div>
+                <div class="card-list">
+                  <div class="action-card"><strong>Atama bekleyen leadler</strong><p>12 kayit sahaya dagitilmadi. Kapasiteye gore otomatik oneriyi ac.</p></div>
+                  <div class="action-card"><strong>Yuksek oncelikli leadler</strong><p>5 kayit 24 saat icinde ilk temas bekliyor.</p></div>
+                  <div class="action-card"><strong>Aktiviteye donusmeyen atamalar</strong><p>3 personelde gecikme var. Ikinci takip aksiyonu oner.</p></div>
+                </div>
+              </div>
+              <div class="surface">
+                <div class="section-title"><h3>Haftalik akis</h3><span class="tiny-tag">Signal</span></div>
+                <div class="rail-card" style="min-height:220px;"><strong>Trend paneli</strong><p>Burada lead -> aktivite -> satis hattini gosteren daha buyuk bir grafik yer alir. Altinda da anomali yorumlari bulunur.</p></div>
+              </div>
+            </div>
+
+            <div class="stack">
+              <div class="surface">
+                <div class="section-title"><h3>Ekip kapasitesi</h3><span class="tiny-tag">Watch</span></div>
+                <div class="card-list">
+                  <div class="data-card"><strong>Ahmet Yilmaz</strong><p>6 acik is · 2 geciken takip</p></div>
+                  <div class="data-card"><strong>Elif Kara</strong><p>4 acik is · 1 yeni kurumsal gorusme</p></div>
+                  <div class="data-card"><strong>Murat Demir</strong><p>3 acik is · kapasite uygun</p></div>
+                </div>
+              </div>
+              <div class="surface-soft">
+                <div class="section-title"><h3>Hizli eylemler</h3><span class="tiny-tag">Tools</span></div>
+                <div class="quick-actions">
+                  <a class="btn-secondary">Toplu atama</a>
+                  <a class="btn-secondary">Eksik veri temizle</a>
+                  <a class="btn-secondary">Yuksek oncelik listesi</a>
+                  <a class="btn-secondary">Bolgesel rapor</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="right-rail">
+              <div class="rail-card">
+                <strong>Siradaki en iyi adim</strong>
+                <p>Atama bekleyen 12 leadin 8'i ayni bolgede. Otomatik dagitim ile 1 adimda temizlik yap.</p>
+                <div class="cta-row" style="margin-top:12px;"><a class="btn">Dagitimi baslat</a></div>
+              </div>
+              <div class="rail-card">
+                <strong>Bugun izlenecekler</strong>
+                <ul>
+                  <li>LD-142 teklif beklentide</li>
+                  <li>7 satis aktivitelerle eslesmedi</li>
+                  <li>Kocaeli donusumu %9.4</li>
+                </ul>
+              </div>
+              <div class="rail-card">
+                <strong>Context tools</strong>
+                <p>Breadcrumb, role bazli yardim, acik filtre etiketi ve kayda direkt giden mini arama burada durabilir.</p>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

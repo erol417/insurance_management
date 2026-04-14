@@ -1,6 +1,5 @@
 @model InsuranceManagement.Web.ViewModels.LeadsIndexViewModel
 @{
-    var employeeMap = ViewBag.EmployeeMap as Dictionary<int, string> ?? new Dictionary<int, string>();
     var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
     var canManage = User.IsInRole("Admin") || User.IsInRole("SalesManager") || User.IsInRole("CallCenter");
     var canAssign = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SalesManager");
@@ -9,80 +8,216 @@
     ViewData["Title"] = "Lead Havuzu";
     ViewData["Subtitle"] = "Call center tarafindan bulunan potansiyel musteriler";
 }
-<div class="page-actions">
+
+<div class="premium-strip">
+    <div>
+        <strong>Lead Yonetim Merkezi</strong>
+        <span>Filtreler, toplu aksiyonlar ve inline duzenleme tek merkezde toplandi.</span>
+    </div>
+    <div class="inline-actions">
+        @if (canAssign)
+        {
+            <a class="btn" asp-action="Assignments">Atama Ekrani</a>
+        }
+        @if (canManage)
+        {
+            <a class="btn primary" asp-action="Create">Yeni Lead</a>
+        }
+    </div>
+</div>
+
+<div class="panel filters-bar">
+    <form method="get" class="filters-inline">
+        <div class="filter-group">
+            <i data-lucide="search"></i>
+            <input type="text" name="searchTerm" placeholder="Isim, Kod veya Telefon..." value="@ViewBag.SearchTerm" />
+        </div>
+        
+        <select name="statusId" class="filter-select">
+            <option value="">-- Durum --</option>
+            @foreach (var status in (List<InsuranceManagement.Web.Domain.LeadStatusType>)ViewBag.StatusTypes)
+            {
+                <option value="@status.Id" selected="@(ViewBag.StatusId == status.Id)">@status.Name</option>
+            }
+        </select>
+
+        <select name="employeeId" class="filter-select">
+            <option value="">-- Atanan --</option>
+            @foreach (var emp in employees)
+            {
+                <option value="@emp.Id" selected="@(ViewBag.EmployeeId == emp.Id)">@emp.FullName</option>
+            }
+        </select>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn primary btn-icon-only" title="Filtrele">
+                <i data-lucide="filter"></i>
+            </button>
+            <a asp-action="Index" class="btn ghost btn-icon-only" title="Temizle">
+                <i data-lucide="rotate-ccw"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="page-actions" style="margin-bottom:14px;">
     @if (canManage)
     {
-        <button type="button" class="btn primary" onclick="toggleLeadInsertRow()">Yeni Satir Ekle</button>
+        <button type="button" class="btn" onclick="toggleLeadInsertRow()">Yeni Satir Ekle</button>
         <button type="button" class="btn secondary" id="save-all-leads-btn">Degisiklikleri Kaydet</button>
         <button type="button" class="btn ghost" id="clear-lead-draft-btn">Taslagi Temizle</button>
-        <a class="btn" asp-controller="Imports" asp-action="Upload">Excel Toplu Yukle</a>
-        <a class="btn secondary" asp-action="Create">Detayli Form</a>
-    }
-    @if (canAssign)
-    {
-        <a class="btn" asp-action="Assignments">Atama Ekrani</a>
     }
 </div>
-<div class="panel" style="margin-top:18px;">
+
+<div class="panel">
     <div class="note-box">
         <strong>Grid duzenleme</strong>
         <p>Bu ekran hizli veri girisi icin tablo uzerinden duzenlenebilir. Degisiklikler taslak olarak tutulur, tek bir kaydetme ile toplu islenir.</p>
         <p>Sayfalar arasinda gezsen bile taslak degisiklikler korunur. Kaydetmeden sayfadan ayrilirsan sistem uyarir.</p>
     </div>
     <div class="table-scroll">
-        <table class="table compact-table lead-grid">
+        <table class="data-table compact-table lead-grid">
             <thead>
                 <tr>
-                    <th>Kod</th>
-                    <th>Ad / Unvan</th>
-                    <th>Sehir</th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "code" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="code" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "code" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-statusId="@ViewBag.StatusId"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Kod @if(ViewBag.SortBy == "code") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "displayname" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="displayname" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "displayname" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-statusId="@ViewBag.StatusId"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Ad / Unvan @if(ViewBag.SortBy == "displayname") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "city" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="city" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "city" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-statusId="@ViewBag.StatusId"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Sehir @if(ViewBag.SortBy == "city") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
                     <th>Ilce</th>
                     <th>Kontak</th>
                     <th>Telefon</th>
                     <th>E-posta</th>
-                    <th>Kaynak</th>
-                    <th>Durum</th>
-                    <th>Atanan</th>
-                    <th>Oncelik</th>
-                    <th>Not</th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "source" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="source" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "source" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-statusId="@ViewBag.StatusId"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Kaynak @if(ViewBag.SortBy == "source") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "status" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="status" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "status" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-statusId="@ViewBag.StatusId"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Durum @if(ViewBag.SortBy == "status") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "employee" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="employee" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "employee" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-statusId="@ViewBag.StatusId"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Atanan @if(ViewBag.SortBy == "employee") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "priority" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="priority" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "priority" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-statusId="@ViewBag.StatusId"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Oncelik @if(ViewBag.SortBy == "priority") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sortable-link @(ViewBag.SortBy == "date" ? "active" : "")" 
+                           asp-action="Index" 
+                           asp-route-sortBy="date" 
+                           asp-route-isDescending="@(ViewBag.SortBy == "date" ? (!ViewBag.IsDescending).ToString().ToLower() : "false")"
+                           asp-route-searchTerm="@ViewBag.SearchTerm"
+                           asp-route-statusId="@ViewBag.StatusId"
+                           asp-route-employeeId="@ViewBag.EmployeeId">
+                            Tarih @if(ViewBag.SortBy == "date") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
+                        </a>
+                    </th>
                 </tr>
             </thead>
             <tbody>
             @if (canManage)
             {
                 <tr id="lead-insert-row" class="inline-entry-row" style="display:none;">
-                        <td><span class="muted">Yeni</span></td>
-                        <td><input data-field="displayName" class="cell-input" placeholder="Lead adi" /></td>
-                        <td><input data-field="city" class="cell-input" placeholder="Sehir" /></td>
-                        <td><input data-field="district" class="cell-input" placeholder="Ilce" /></td>
-                        <td><input data-field="contactName" class="cell-input" placeholder="Kontak" /></td>
-                        <td><input data-field="phone" class="cell-input" placeholder="Telefon" /></td>
-                        <td><input data-field="email" class="cell-input" placeholder="E-posta" /></td>
-                        <td><input data-field="source" class="cell-input" value="Call Center" /></td>
-                        <td>
-                            <select data-field="status" class="cell-input cell-select">
-                                <option value="New">Yeni</option>
-                                <option value="Researched">Arastirildi</option>
-                                <option value="ContactFound">Kontak Bulundu</option>
-                                <option value="ReadyForAssignment">Atamaya Hazir</option>
-                                <option value="Assigned">Atandi</option>
-                                <option value="VisitScheduled">Ziyaret Planlandi</option>
-                                <option value="Visited">Ziyaret Edildi</option>
-                                <option value="ConvertedToActivity">Aktiviteye Donustu</option>
-                                <option value="Disqualified">Elenmis</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select data-field="assignedEmployeeId" class="cell-input cell-select">
-                                <option value="">-</option>
-                                @foreach (var employee in employees)
-                                {
-                                    <option value="@employee.Id">@employee.FullName</option>
-                                }
-                            </select>
-                        </td>
-                        <td><input data-field="priority" class="cell-input" value="Medium" /></td>
-                        <td><input data-field="note" class="cell-input" placeholder="Not" /></td>
+                    <td><span class="muted">Yeni</span></td>
+                    <td><input data-field="displayName" class="cell-input" placeholder="Lead adi" /></td>
+                    <td><input data-field="city" class="cell-input" placeholder="Sehir" /></td>
+                    <td><input data-field="district" class="cell-input" placeholder="Ilce" /></td>
+                    <td><input data-field="contactName" class="cell-input" placeholder="Kontak" /></td>
+                    <td><input data-field="phone" class="cell-input" placeholder="Telefon" /></td>
+                    <td><input data-field="email" class="cell-input" placeholder="E-posta" /></td>
+                    <td>
+                        <select data-field="leadSourceTypeId" class="cell-input cell-select">
+                            @foreach (var source in (List<InsuranceManagement.Web.Domain.LeadSourceType>)ViewBag.SourceTypes)
+                            {
+                                <option value="@source.Id">@source.Name</option>
+                            }
+                        </select>
+                    </td>
+                    <td>
+                        <select data-field="leadStatusTypeId" class="cell-input cell-select">
+                            @foreach (var status in (List<InsuranceManagement.Web.Domain.LeadStatusType>)ViewBag.StatusTypes)
+                            {
+                                <option value="@status.Id">@status.Name</option>
+                            }
+                        </select>
+                    </td>
+                    <td>
+                        <select data-field="assignedEmployeeId" class="cell-input cell-select">
+                            <option value="">-</option>
+                            @foreach (var employee in employees)
+                            {
+                                <option value="@employee.Id">@employee.FullName</option>
+                            }
+                        </select>
+                    </td>
+                    <td>
+                        <select data-field="priority" class="cell-input cell-select">
+                            @foreach (var p in Enum.GetValues<InsuranceManagement.Web.Domain.LeadPriority>())
+                            {
+                                <option value="@((int)p)" selected="@(p == InsuranceManagement.Web.Domain.LeadPriority.Medium)">@p</option>
+                            }
+                        </select>
+                    </td>
+                    <td><input data-field="note" class="cell-input" placeholder="Not" /></td>
                 </tr>
             }
             @foreach (var lead in Model.Items)
@@ -97,19 +232,19 @@
                         <td><input data-field="contactName" class="cell-input" value="@lead.ContactName" /></td>
                         <td><input data-field="phone" class="cell-input" value="@lead.Phone" /></td>
                         <td><input data-field="email" class="cell-input" value="@lead.Email" /></td>
-                        <td><input data-field="source" class="cell-input" value="@lead.Source" /></td>
                         <td>
-                            <select data-field="status" class="cell-input cell-select">
-                                @foreach (InsuranceManagement.Web.Domain.LeadStatus status in Enum.GetValues(typeof(InsuranceManagement.Web.Domain.LeadStatus)))
+                            <select data-field="leadSourceTypeId" class="cell-input cell-select">
+                                @foreach (var source in (List<InsuranceManagement.Web.Domain.LeadSourceType>)ViewBag.SourceTypes)
                                 {
-                                    @if (lead.Status == status)
-                                    {
-                                        <option value="@status" selected>@status.ToDisplayText()</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@status">@status.ToDisplayText()</option>
-                                    }
+                                    <option value="@source.Id" selected="@(lead.LeadSourceTypeId == source.Id)">@source.Name</option>
+                                }
+                            </select>
+                        </td>
+                        <td>
+                            <select data-field="leadStatusTypeId" class="cell-input cell-select">
+                                @foreach (var status in (List<InsuranceManagement.Web.Domain.LeadStatusType>)ViewBag.StatusTypes)
+                                {
+                                    <option value="@status.Id" selected="@(lead.LeadStatusTypeId == status.Id)">@status.Name</option>
                                 }
                             </select>
                         </td>
@@ -129,21 +264,28 @@
                                 }
                             </select>
                         </td>
-                        <td><input data-field="priority" class="cell-input" value="@lead.Priority" /></td>
+                        <td>
+                            <select data-field="priority" class="cell-input cell-select">
+                                @foreach (var p in Enum.GetValues<InsuranceManagement.Web.Domain.LeadPriority>())
+                                {
+                                    <option value="@((int)p)" selected="@(lead.Priority == p)">@p</option>
+                                }
+                            </select>
+                        </td>
                         <td><input data-field="note" class="cell-input" value="@lead.Note" /></td>
                     }
                     else
                     {
-                        <td><a asp-action="Details" asp-route-id="@lead.Id">@lead.Code</a></td>
+                        <td>@lead.Code</td>
                         <td>@lead.DisplayName</td>
                         <td>@lead.City</td>
                         <td>@lead.District</td>
                         <td>@lead.ContactName</td>
                         <td>@lead.Phone</td>
                         <td>@lead.Email</td>
-                        <td>@lead.Source</td>
-                        <td><span class="status @(lead.Status == InsuranceManagement.Web.Domain.LeadStatus.ReadyForAssignment ? "warn" : lead.Status == InsuranceManagement.Web.Domain.LeadStatus.Assigned ? "ok" : "neutral")">@lead.Status.ToDisplayText()</span></td>
-                        <td>@(lead.AssignedEmployeeId.HasValue && employeeMap.TryGetValue(lead.AssignedEmployeeId.Value, out var employeeName) ? employeeName : "-")</td>
+                        <td>@(ViewBag.SourceTypes is List<InsuranceManagement.Web.Domain.LeadSourceType> st && st.Any(x => x.Id == lead.LeadSourceTypeId) ? st.First(x => x.Id == lead.LeadSourceTypeId).Name : "-")</td>
+                        <td><span class="status @(lead.LeadStatusTypeId == 2 ? "warn" : lead.LeadStatusTypeId == 3 ? "ok" : "neutral")">@(ViewBag.StatusTypes is List<InsuranceManagement.Web.Domain.LeadStatusType> lt && lt.Any(x => x.Id == lead.LeadStatusTypeId) ? lt.First(x => x.Id == lead.LeadStatusTypeId).Name : "-")</span></td>
+                        <td>@(lead.AssignedEmployeeId.HasValue ? employees.FirstOrDefault(x => x.Id == lead.AssignedEmployeeId.Value)?.FullName : "-")</td>
                         <td>@lead.Priority</td>
                         <td>@lead.Note</td>
                     }
@@ -152,11 +294,29 @@
             </tbody>
         </table>
     </div>
-    <div class="page-actions split-actions">
+    <div class="page-actions split-actions" style="margin-top:16px;">
         <div class="pager">
-            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" asp-action="Index" asp-route-page="@prevPage" asp-route-pageSize="@Model.PageSize">Onceki</a>
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == 1 ? "disabled-link" : "")" 
+               asp-action="Index" 
+               asp-route-page="@prevPage" 
+               asp-route-pageSize="@Model.PageSize"
+               asp-route-searchTerm="@ViewBag.SearchTerm"
+               asp-route-statusId="@ViewBag.StatusId"
+               asp-route-employeeId="@ViewBag.EmployeeId"
+               asp-route-sortBy="@ViewBag.SortBy"
+               asp-route-isDescending="@ViewBag.IsDescending">Onceki</a>
+            
             <span class="pill">Sayfa @Model.CurrentPage / @Model.TotalPages</span>
-            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" asp-action="Index" asp-route-page="@nextPage" asp-route-pageSize="@Model.PageSize">Sonraki</a>
+            
+            <a class="btn ghost grid-page-link @(Model.CurrentPage == Model.TotalPages ? "disabled-link" : "")" 
+               asp-action="Index" 
+               asp-route-page="@nextPage" 
+               asp-route-pageSize="@Model.PageSize"
+               asp-route-searchTerm="@ViewBag.SearchTerm"
+               asp-route-statusId="@ViewBag.StatusId"
+               asp-route-employeeId="@ViewBag.EmployeeId"
+               asp-route-sortBy="@ViewBag.SortBy"
+               asp-route-isDescending="@ViewBag.IsDescending">Sonraki</a>
         </div>
         <div class="muted">Toplam @Model.TotalCount kayit</div>
     </div>

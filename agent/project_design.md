@@ -1,6 +1,6 @@
 # Insurance Management Project Design
 
-## 1. Projenin Amacı
+## 1. Projenin Amacı ve Temel Vizyonu
 
 Bu projenin amacı, sigorta şirketinin saha satış ve operasyon süreçlerini tek merkezden takip edebileceği web tabanlı bir uygulama oluşturmaktır. Sistem; saha personelinin günlük ziyaretlerini, müşteri/firma görüşmelerini, bu görüşmelerin sonuçlarını, satış dönüşümlerini ve yapılan masrafları kayıt altına almalı; yöneticilere de operasyonel karar almayı destekleyen raporlar ve dashboard'lar sunmalıdır.
 
@@ -224,7 +224,7 @@ Bu üç eksen ortak boyutlarla ilişkilendirilir:
 - Tarih
 - Rol/Kullanıcı
 
-Domain yaklaşımı şu prensipleri korumalıdır:
+Domain yaklaşımı şu prensipleri korumalımalıdır:
 
 - Aktivite, satıştan ayrı bir kavramdır.
 - Satış, mümkün olduğunda bir aktiviteye bağlanmalıdır.
@@ -453,27 +453,11 @@ Excel dosyaları ilk aşamada analiz ve geçiş desteği için kullanılmalıdı
 
 ## 16. Rol ve Yetki Mantığı
 
-İlk sürüm için RBAC yaklaşımı uygundur.
+Mevcut sistem, hem statik rütbe koruması hem de dinamik modül yetkilendirmesi (RBAC) içeren hibrit bir yapı kullanır.
 
-Önerilen roller:
-
-- Admin
-- Manager
-- Operations
-- FieldSales
-
-Örnek yetki çerçevesi:
-
-- `FieldSales`: kendi aktivite, satış ve masraf kayıtlarını oluşturma/görüntüleme
-- `Operations`: satış ve müşteri kayıtlarını düzenleme, import yönetimi
-- `Manager`: tüm rapor ve dashboard erişimi
-- `Admin`: kullanıcı, rol ve sistem ayarları yönetimi
-
-Yetki tasarımında dikkat edilecekler:
-
-- Kayıt sahipliği bazlı erişim gerekebilir
-- Kendi kaydını görme ile tüm takımı görme ayrımı açık olmalı
-- Audit erişimi sınırlı rol bazlı tanımlanmalı
+- **Admin**: Sistemdeki tüm yetkilere ve "Master Key" (Süper Yetki) bypass mekanizmasına sahiptir.
+- **Dinamik Modüller**: Dashboard, Leads, Accounts, Activities, Sales, Expenses ve Imports modülleri, veritabanındaki `RolePermission` tablosu üzerinden rollere atanabilir.
+- **Güvenlik Katmanı**: Yetki kontrolleri `CanAccessPermission` metodu ile merkezi olarak gerçekleştirilir, UI elemanları yetkiye göre otomatik gizlenir.
 
 ## 17. Veri Doğrulama Prensipleri
 
@@ -502,93 +486,56 @@ Gerekli audit başlıkları:
 - Hangi alan değişti
 - Eski ve yeni değer neydi
 
-Loglama başlıkları:
-
-- API hata logları
-- Import hata logları
-- Yetkisiz erişim denemeleri
-- Kritik iş aksiyonu logları
-
 ## 19. Teknik Mimari Önerisi
 
-MVP için sade ama büyümeye uygun katmanlı mimari önerilir.
+### 19.1 Uygulanan Mimari İyileştirmeler
 
-Önerilen mantıksal katmanlar:
+#### Sprint 1 — Temel Temizlik ve Güvenlik (Tamamlandı)
+- **AppDataStore kaldırıldı**: In-memory singleton veri deposu tamamen kaldırılmış, tüm veri erişimi `AppDbContext` üzerinden sağlanmaktadır.
+- **BaseEntity sınıfı oluşturuldu**: Audit alanları (`CreatedAt`, `CreatedBy` vb.) tüm transaction entity'lerine eklendi.
+- **Şifre güvenliği**: Kullanıcı şifreleri BCrypt ile hash'lenerek saklanmaktadır.
 
-- Presentation / API
-- Application
-- Domain
-- Infrastructure
-- Reporting / Query katmanı
+#### Sprint 2 — İlişkisel Refaktör (Enum → FK Geçişi) (Tamamlandı)
+- **Referans Tablo Mimarisi**: Sabit Enum yapıları veritabanı seviyesinde bağımsız referans tablolarına taşınmıştır.
+- **Foreign Key Entegrasyonu**: Tüm transaction tabloları bu yeni referans tablolarına FK ile bağlanmıştır.
 
-Temel prensipler:
+#### Sprint 3 — Performans, Planlama ve Servis Katmanı (Tamamlandı)
+- **Servis Katmanı Entegrasyonu**: İş mantığı Controller'lardan ayıklanarak servis sınıflarına taşınmıştır.
+- **Aktivite Planlama**: İleriye dönük "PLANNED" statüsü ve ajanda akışı eklenmiştir.
+- **Soft Delete**: `ISoftDeletable` arayüzü ile veri silme yerine işaretleme altyapısı kurulmuştur.
 
-- Domain kuralları backend tarafında korunmalı
-- Frontend yalnızca ekran akışı ve kullanıcı deneyimi sorumluluğu taşımalı
-- Raporlama sorguları operasyonel transaction akışlarından ayrıştırılmalı
-- Gereksiz karmaşık mikroservis mimarisinden kaçınılmalı
+#### Sprint 4 — Dinamik Yetkilendirme ve Yönetim (Tamamlandı)
+- **Dinamik RBAC**: Modül erişimleri veritabanındaki `RolePermission` tablosu üzerinden canlı yönetilebilir hale getirilmiştir.
+- **Admin Master Key**: Sistem yöneticileri için veritabanı hatalarına karşı "Master Key" bypass mekanizması eklenmiştir.
+- **Database Transition**: Geliştirme kolaylığı için SQLite altyapısına geçilmiş ve veriler kalıcı hale getirilmiştir.
+- **Finansal Lokalizasyon**: Ondalık sayı formatlama sorunları `InvariantCulture` ile çözülmüştür.
+
+#### Sprint 5 — Dashboard ve KPI Güçlendirme (TAMAMLANDI)
+- **Görsel Analitik (Parça B)**: `Chart.js` ile trend çizgileri, ürün portföyü ve tahsilat dağılım grafikleri.
+- **Performans Matrisi (Parça B)**: 7 kolonlu detaylı personel verimlilik tablosu.
+- **Gelişmiş Filtreleme (Parça C)**: Tarih + Personel + Ürün Tipi kompozit filtreleme yapısı.
+- **Finansal Raporlama (Parça C)**: Ürün bazlı APE, Prim ve Üretim toplamlarını gösteren derinlemesine finansal analiz tablosu.
+- **UX/UI Standartları**: "Dashboard Tab-Navigation" ve "Shared Filter Partial" ile premium arayüz deneyimi.
+- **Saha/Ofis Veri Ayrıştırma**: Satışların saha aktiviteleriyle olan dijital bağlantısı (Linkage) üzerinden veri kalitesi ölçülmeye başlanmıştır.
 
 ## 20. Backend Önerisi
-
-Önerilen teknoloji:
-
-- ASP.NET Core Web API
-- Entity Framework Core
-- FluentValidation veya benzeri validation yaklaşımı
-- JWT tabanlı authentication
-- Katmanlı ve modüler yapı
-
-Backend sorumlulukları:
-
-- CRUD ve iş kuralları
-- Rol/yetki kontrolü
-- Import işlemleri
-- Dashboard sorguları
-- Audit üretimi
-
-API tasarım prensipleri:
-
-- DTO kullanımı
-- Standart response yapısı
-- Tutarlı hata modeli
-- Sayfalama, sıralama ve filtreleme desteği
+- ASP.NET Core MVC / Web API + EF Core
+- Dinamik RBAC ve Servis Katmanı Mimarisi
+- IHttpContextAccessor tabanlı otomatik Audit Log
+- Merkezi Hata ve Yetki Yönetimi
 
 ## 21. Frontend Önerisi
+- Razor Pages & Vanilla JS (InsuranceGridDraft)
+- Lucide Icons & Premium CSS Aesthetics
+- Dinamik menü ve buton gizleme (Yetki bazlı)
+- Responsive ve interaktif Dashboard öğeleri
 
-Önerilen teknoloji:
+## 22. Veritabanı Stratejisi
 
-- React
-- TypeScript
-- Modül bazlı klasörleme
-- Form yönetimi için güçlü ama sade bir yaklaşım
-- Grafik ve dashboard bileşenleri için ölçeklenebilir kütüphane seçimi
-
-Frontend prensipleri:
-
-- Hızlı veri girişi önceliği
-- Liste, filtre ve form deneyimi sade olmalı
-- Yönetici dashboard'u görsel olarak güçlü ama anlaşılır olmalı
-- Mobil tarayıcı kullanım ihtimali dikkate alınmalı
-
-## 22. Veritabanı Önerisi
-
-Önerilen veritabanı:
-
-- PostgreSQL
-
-Tercih nedenleri:
-
-- Güçlü ilişkisel model
-- Raporlama ve sorgu esnekliği
-- Açık kaynak ve yaygın kullanım
-- ASP.NET Core ile olgun entegrasyon
-
-Veritabanı prensipleri:
-
-- Normalize ana transaction tabloları
-- Referans tabloları net ayrılmalı
-- Soft delete gerçekten gereken yerlerde uygulanmalı
-- Audit ve import tabloları ayrı düşünülmeli
+Sistem gelişim aşamalarına göre hibrit bir veritabanı yaklaşımı izler:
+- **Development (Geliştirme): SQLite** (Zero-Config, taşınabilirlik ve hızlı geliştirme deneyimi için).
+- **Production (Üretim): PostgreSQL** (Yüksek ölçeklenebilirlik, kurumsal güvenlik ve çoklu bağlantı desteği için).
+- **Süreç**: Proje tamamlandığında bağlantı dizesi değişikliği ile PostgreSQL'e geçiş hedeflenmektedir.
 
 ## 23. Fazlara Ayrılmış Geliştirme Planı
 

@@ -1,37 +1,125 @@
 @model InsuranceManagement.Web.Domain.Sale
 @{
-    var employee = ViewBag.Employee as InsuranceManagement.Web.Domain.Employee;
-    var account = ViewBag.Account as InsuranceManagement.Web.Domain.Account;
-    var activity = ViewBag.Activity as InsuranceManagement.Web.Domain.Activity;
-    ViewData["Title"] = "Satis Detayi";
-    ViewData["Subtitle"] = "Urun bazli finansal alanlari ayrik tutar";
+    var employee = Model.Employee;
+    var account = Model.Account;
+    var activity = Model.Activity;
+    var lead = activity?.Lead;
+    ViewData["Title"] = "Satış Detayı";
+    ViewData["Subtitle"] = Model.Code;
 }
-<div class="grid equal-2">
-    <div class="panel">
-        <div class="list">
-            <div class="list-item"><strong>Satis</strong><span>@Model.Code</span></div>
-            <div class="list-item"><strong>Urun</strong><span>@Model.ProductType.ToDisplayText()</span></div>
-            <div class="list-item"><strong>Personel</strong><span>@employee?.FullName</span></div>
-            <div class="list-item"><strong>Account</strong><span>@account?.DisplayName</span></div>
-            <div class="list-item"><strong>Aktivite</strong><span>@(activity?.Code ?? "Bagimsiz")</span></div>
+
+<div class="form-layout">
+    <div class="layout-main">
+        <div class="grid equal-2">
+            <section class="section-block">
+                <h3>Genel Bilgiler</h3>
+                <div class="list">
+                    <div class="list-item">
+                        <strong>Kayıt Kodu</strong>
+                        <span class="pill highlight">@Model.Code</span>
+                    </div>
+                    <div class="list-item">
+                        <strong>Satış Tarihi</strong>
+                        <span>@Model.SaleDate.ToString("dd.MM.yyyy")</span>
+                    </div>
+                    <div class="list-item">
+                        <strong>Ürün Tipi</strong>
+                        <span>@(Model.InsuranceProductType?.Name ?? "-")</span>
+                    </div>
+                    <div class="list-item">
+                        <strong>Satış Adedi</strong>
+                        <span>@Model.SaleCount Adet</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section-block premium" style="border-top: 4px solid var(--accent);">
+                <h3>Finansal Özet</h3>
+                <div class="list">
+                    <div class="list-item">
+                        <strong>Tahsilat Tutarı</strong>
+                        <span class="text-bold">@Model.CollectionAmount?.ToString("N2") TL</span>
+                    </div>
+                    <div class="list-item">
+                        <strong>APE</strong>
+                        <span>@Model.ApeAmount?.ToString("N2") TL</span>
+                    </div>
+                    <div class="list-item">
+                        <strong>Toplu Para</strong>
+                        <span>@Model.LumpSumAmount?.ToString("N2") TL</span>
+                    </div>
+                    <div class="list-item">
+                        <strong>Aylık Ödeme</strong>
+                        <span>@Model.MonthlyPaymentAmount?.ToString("N2") TL</span>
+                    </div>
+                    <div class="list-item highlight">
+                        <strong>Prim / Üretim</strong>
+                        <span class="pill info">@((Model.PremiumAmount ?? Model.ProductionAmount ?? Model.SaleAmount ?? 0).ToString("N2")) TL</span>
+                    </div>
+                </div>
+            </section>
         </div>
+
+        <section class="section-block" style="margin-top: 24px;">
+            <h3>İlişkili Bağlantılar</h3>
+            <div class="grid equal-3">
+                <div class="note-box highlight">
+                    <strong>Müşteri (Account)</strong>
+                    <p>@account?.DisplayName</p>
+                    <a asp-controller="Accounts" asp-action="Details" asp-route-id="@account?.Id" class="btn ghost small" style="margin-top:8px;">Müşteri Kartına Git →</a>
+                </div>
+                <div class="note-box">
+                    <strong>Aktivite / Görüşme</strong>
+                    <p>@(activity?.Code ?? "Bağımsız Satış")</p>
+                    @if (activity != null)
+                    {
+                        <a asp-controller="Activities" asp-action="Edit" asp-route-id="@activity.Id" class="btn ghost small" style="margin-top:8px;">Aktivite Detayı →</a>
+                    }
+                </div>
+                <div class="note-box info">
+                    <strong>Lead / Kaynak</strong>
+                    <p>@(lead?.Code ?? "Lead Bağlantısı Yok")</p>
+                    @if (lead != null)
+                    {
+                        <a asp-controller="Leads" asp-action="Details" asp-route-id="@lead.Id" class="btn ghost small" style="margin-top:8px;">Lead Kartına Git →</a>
+                    }
+                </div>
+            </div>
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <section class="section-block" style="margin-top: 24px;">
+                <h3>Satış Notları</h3>
+                <div class="note-box">
+                    <p>@Model.Notes</p>
+                </div>
+            </section>
+        }
     </div>
-    <div class="panel">
-        <div class="list">
-            <div class="list-item"><strong>Tahsilat</strong><span>@Model.CollectionAmount</span></div>
-            <div class="list-item"><strong>APE</strong><span>@Model.ApeAmount</span></div>
-            <div class="list-item"><strong>Toplu Para</strong><span>@Model.LumpSumAmount</span></div>
-            <div class="list-item"><strong>Aylik Odeme</strong><span>@Model.MonthlyPaymentAmount</span></div>
-            <div class="list-item"><strong>Prim / Uretim</strong><span>@(Model.PremiumAmount ?? Model.ProductionAmount ?? Model.SaleAmount)</span></div>
-        </div>
-        <div class="note-box"><strong>Not</strong><p>@Model.Notes</p></div>
-    </div>
-</div>
-<div class="page-actions">
-    <a class="btn" asp-action="Edit" asp-route-id="@Model.Id">Duzenle</a>
-    <form asp-action="Delete" method="post" class="inline-form">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="id" value="@Model.Id" />
-        <button type="submit" class="btn secondary">Sil</button>
-    </form>
+
+    <aside class="side-stack">
+        <section class="side-panel soft">
+            <div class="user-lockup" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                <label class="muted small">Satış Temsilcisi</label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="avatar"></div>
+                    <strong>@employee?.FullName</strong>
+                </div>
+                <a asp-controller="Employees" asp-action="Details" asp-route-id="@employee?.Id" class="btn ghost small" style="width:100%; margin-top:10px;">Personel Performansı</a>
+            </div>
+        </section>
+
+        <section class="side-panel">
+            <h4>İşlemler</h4>
+            <div class="action-buttons" style="flex-direction:column;">
+                <a class="btn primary" style="width:100%; text-align:center;" asp-action="Edit" asp-route-id="@Model.Id">Kaydı Düzenle</a>
+                <form asp-action="Delete" method="post" onsubmit="return confirm('Bu satis kaydini silmek istediginizden emin misiniz?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn secondary" style="width:100%;">Kaydı Sil</button>
+                </form>
+            </div>
+        </section>
+    </aside>
 </div>
