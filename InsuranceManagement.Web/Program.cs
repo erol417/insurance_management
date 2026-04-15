@@ -24,15 +24,20 @@ builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<DashboardService>();
-// Hard-enforce persistence settings before anything else reads them
-var provider = "Sqlite";
-builder.Configuration["Persistence:Provider"] = "Sqlite";
-builder.Configuration["ConnectionStrings:DefaultConnection"] = "Data Source=insurance.db";
-var connectionString = "Data Source=insurance.db";
+// Dynamic persistence provider
+var provider = builder.Configuration["Persistence:Provider"] ?? "Sqlite";
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseSqlite(connectionString);
+    if (provider == "Postgres")
+    {
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        options.UseSqlite(connectionString);
+    }
 });
 
 var dataProtectionPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
@@ -61,7 +66,7 @@ using (var scope = app.Services.CreateScope())
     try 
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        if (string.Equals(provider, "PostgreSql", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(provider, "Postgres", StringComparison.OrdinalIgnoreCase))
         {
             db.Database.Migrate();
         }

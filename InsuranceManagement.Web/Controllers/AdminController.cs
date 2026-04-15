@@ -61,7 +61,7 @@ public class AdminController : AppController
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult EditUser(int id, string fullName, string userName, InsuranceManagement.Web.Domain.RoleType role)
+    public IActionResult EditUser(int id, string fullName, string userName, InsuranceManagement.Web.Domain.RoleType role, string? password)
     {
         var user = Db.Users.FirstOrDefault(x => x.Id == id);
         if (user == null) return NotFound();
@@ -69,6 +69,11 @@ public class AdminController : AppController
         user.FullName = fullName;
         user.UserName = userName;
         user.Role = role;
+
+        if (!string.IsNullOrWhiteSpace(password))
+        {
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+        }
 
         Db.SaveChanges();
         TempData["Success"] = "Kullanıcı başarıyla güncellendi.";

@@ -108,7 +108,7 @@ namespace InsuranceManagement.Web.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AccountId")
+                    b.Property<int?>("AccountId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("ActivityDate")
@@ -982,8 +982,7 @@ namespace InsuranceManagement.Web.Migrations
                     b.HasOne("InsuranceManagement.Web.Domain.Account", "Account")
                         .WithMany("Activities")
                         .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("InsuranceManagement.Web.Domain.ActivityContactStatusType", "ContactStatusType")
                         .WithMany()

@@ -96,11 +96,17 @@
     - **Yetki Bazlı Filtreleme:** Saha satış personelinin filtrelemesi sadece kendi verileriyle kısıtlandı (Admin/Manager tam yetkili).
     - **Finansal Detay Tablosu:** Ürün bazlı APE, Prim ve Üretim değerlerini ayrıştıran çapraz finansal matris tablosu oluşturuldu.
     - **Kod Standardizasyonu:** Filtreleme bloğu `shared partial` yapıya dönüştürülerek UI tutarlılığı ve bakım kolaylığı sağlandı.
-- **Sprint 6 — Lead Detail Hub (360° Lead Sayfası)**
+- **Sprint 6 — Lead Detail Hub (360° Lead Sayfası):**
     - **Hub Mimarisi:** Lead'in tüm verilerini (Bilgi, Müşteri, Atama, Randevu, Satış) tek sayfada birleştiren Hub tasarımı yayınlandı.
     - **Analitik Paneller:** Aktivite Timeline formuna (Real-time history) ve Satış özetlerine Lead Hub üzerinden hızlı bakış sağlandı.
     - **Dinamik Aksiyon Çubuğu:** Durum geçiş mekanizmaları Hub üzerinden rol bazlı butonlarla (Ziyaret Başlat, İptal, Planla vb.) fonksiyonel hale getirildi.
     - **Ziyaret Planlama & Çakışma Yönetimi:** Personel ataması yapılarak planlanan ziyaretler (saat, dakika, süre), takvimsel çakışma uyarıları (Conflict checking API) kullanılarak modal/inline arayüz üzerinden sağlandı.
+- **Sprint 7 — Enterprise Infrastructure & Support:**
+    - **PostgreSQL Transition:** Uygulama tamamen Docker tabanlı PostgreSQL altyapısına taşındı; yüksek ölçeklenebilirlik ve veri bütünlüğü sağlandı.
+    - **Multi-Provider DB Support:** `Program.cs` ve `appsettings` yapılandırması dinamik hale getirilerek Postgres ve Sqlite arasında geçiş imkanı sağlandı.
+    - **Help Center (Yardım Merkezi):** Tüm roller (CallCenter, FieldSales vb.) için adım adım dijital kullanım kılavuzları ve hızlı yardım sayfası (/Help) eklendi.
+    - **Layout & Header Stability:** Navigasyon barı (header) ve grid yerleşimleri, dinamik içerik artışına karşı stabilize edildi; taşma ve kayma sorunları giderildi.
+    - **Security Clean-up:** Giriş sayfasındaki demo/hızlı erişim bilgileri kaldırılarak kurumsal standartlara geçildi.
 - **Görsel Analitik**: `Chart.js` kütüphanesi ile zenginleştirilmiş ana dashboard:
     - Günlük bazlı Aktivite vs Satış trend çizgileri.
     - Ürün portföyü ve tahsilat dağılımı (Donut/Bar chart).
