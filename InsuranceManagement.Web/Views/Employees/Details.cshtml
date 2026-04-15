@@ -10,12 +10,41 @@
     var relatedSales = ViewBag.RelatedSales as List<InsuranceManagement.Web.Domain.Sale> ?? [];
     var relatedExpenses = ViewBag.RelatedExpenses as List<InsuranceManagement.Web.Domain.Expense> ?? [];
     
-    ViewData["Title"] = Model.FullName;
-    ViewData["Subtitle"] = "Personel performansı, üretim verileri ve masraf özeti";
+    ViewData["Title"] = "";
+    ViewData["Subtitle"] = "";
 }
 
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; border-bottom: 1px solid var(--line); padding-bottom: 24px;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <h1 style="margin: 0; font-size: 32px; font-weight: 800; color: var(--text);">@Model.FullName</h1>
+            <div style="display: flex; gap: 8px;">
+                @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn primary-outline" style="padding: 6px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px;" title="Personeli Düzenle">
+                        <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i> <span class="hide-mobile">Düzenle</span>
+                    </a>
+                }
+                <a asp-controller="LeadAssignments" asp-action="Index" asp-route-employeeId="@Model.Id" class="btn primary" style="padding: 6px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px;" title="Yeni İş Ata">
+                    <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i> <span class="hide-mobile">İş Ata</span>
+                </a>
+            </div>
+        </div>
+        <div style="margin-top: 10px; display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; flex-wrap: wrap;">
+            <span style="display: flex; align-items: center; gap: 4px;">
+                <i data-lucide="map-pin" style="width: 14px;"></i> @Model.Region / @Model.City
+            </span>
+            <span class="v-divider" style="width: 4px; height: 4px; border-radius: 50%; background: var(--line);"></span>
+            <span style="display: flex; align-items: center; gap: 4px; color: var(--success); font-weight: 600;">
+                <i data-lucide="check-circle-2" style="width: 14px;"></i> Aktif Çalışan
+            </span>
+        </div>
+    </div>
+</div>
+
 <div class="form-layout">
-    <div class="layout-main">
+    <div class="layout-main" style="width: 100%;">
+
         <!-- Metric Overview -->
         <section class="section-block">
             <div class="panel-title">
@@ -229,36 +258,6 @@
             </div>
         </section>
     </div>
-
-    <!-- Sidebar Info -->
-    <aside class="side-stack">
-        <section class="side-panel">
-            <h4 style="margin-bottom:16px;">Personel Bilgileri</h4>
-            <div class="mini-summary">
-                <label>AD SOYAD</label>
-                <strong>@Model.FullName</strong>
-            </div>
-            <div class="mini-summary">
-                <label>BÖLGE / ŞEHİR</label>
-                <strong>@Model.Region / @Model.City</strong>
-            </div>
-            <div class="mini-summary">
-                <label>DURUM</label>
-                <strong style="color:var(--success)">Aktif Çalışan</strong>
-            </div>
-        </section>
-
-        <section class="side-panel">
-            <h4 style="margin-bottom:16px;">Hızlı İşlemler</h4>
-            <div class="action-stack">
-                @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
-                {
-                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn primary" style="width:100%; margin-bottom:8px; display:block; text-align:center;">Personeli Düzenle</a>
-                }
-                <a asp-controller="LeadAssignments" asp-action="Index" asp-route-employeeId="@Model.Id" class="btn primary-outline" style="width:100%; display:block; text-align:center;">Yeni İş Ata</a>
-            </div>
-        </section>
-    </aside>
 </div>
 
 <script>

@@ -194,14 +194,17 @@
                             }
                         </nav>
                     }
-                    <div class="page-header">
-                        <div class="breadcrumb">@(navigationLabels.TryGetValue(controller ?? string.Empty, out var breadcrumbLabel) ? breadcrumbLabel : (controller ?? "Ana Sayfa")) / @(ViewData["Title"] ?? action ?? "Dashboard")</div>
-                        <h1>@ViewData["Title"]</h1>
-                        @if (ViewData["Subtitle"] is string subtitle && !string.IsNullOrWhiteSpace(subtitle))
-                        {
-                            <p>@subtitle</p>
-                        }
-                    </div>
+                    @if (ViewData["Title"] is string title && !string.IsNullOrWhiteSpace(title))
+                    {
+                        <div class="page-header">
+                            <div class="breadcrumb">@(navigationLabels.TryGetValue(controller ?? string.Empty, out var breadcrumbLabel) ? breadcrumbLabel : (controller ?? "Ana Sayfa")) / @title</div>
+                            <h1>@title</h1>
+                            @if (ViewData["Subtitle"] is string subtitle && !string.IsNullOrWhiteSpace(subtitle))
+                            {
+                                <p>@subtitle</p>
+                            }
+                        </div>
+                    }
                     @if (TempData["Flash"] is string flash)
                     {
                         <div class="flash">@flash</div>
