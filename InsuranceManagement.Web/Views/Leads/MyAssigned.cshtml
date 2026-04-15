@@ -13,7 +13,7 @@
                     <div class="muted">@lead.City · @lead.ContactName · @lead.ScheduledVisitDate?.ToString("dd.MM.yyyy")</div>
                 </div>
                 <div class="toolbar">
-                    <a class="btn" asp-action="Details" asp-route-id="@lead.Id">Detay</a>
+                    <a class="btn" asp-action="Hub" asp-route-id="@lead.Id">Detay</a>
                     <form asp-action="StartVisit" method="post" class="inline-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@lead.Id" />

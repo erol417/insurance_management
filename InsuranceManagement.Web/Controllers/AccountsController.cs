@@ -211,6 +211,7 @@ public class AccountsController : AppController
         ViewBag.Sales = account.Sales
             .OrderByDescending(x => x.SaleDate)
             .ToList();
+        ViewBag.PlannedVisits = _accountService.GetPlannedVisits(id);
         return View(account);
     }
 

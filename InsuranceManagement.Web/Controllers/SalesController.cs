@@ -232,7 +232,7 @@ public class SalesController : AppController
             if (activity != null)
             {
                 model.ActivityId = activity.Id;
-                model.AccountId = activity.AccountId;
+                model.AccountId = activity.AccountId ?? 0;
                 model.EmployeeId = activity.EmployeeId;
             }
         }

@@ -92,10 +92,13 @@ public class Activity : BaseEntity, ISoftDeletable
     public DateTime ActivityDate { get; set; }
     public int EmployeeId { get; set; }
     public Employee? Employee { get; set; }
-    public int AccountId { get; set; }
+    public int? AccountId { get; set; }
     public Account? Account { get; set; }
     public int? LeadId { get; set; }
     public Lead? Lead { get; set; }
+
+    public DateTime? PlannedAt { get; set; }
+    public int? DurationMinutes { get; set; }
 
     public string ContactName { get; set; } = string.Empty;
 

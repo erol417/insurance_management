@@ -12,4 +12,5 @@ public interface IAccountService
     bool Delete(int id);
     (bool isValid, Dictionary<string, string> errors) Validate(Account account);
     List<string> CheckDuplicate(string displayName, string? phone, string? email, string? taxNumber, int? currentId);
+    List<Activity> GetPlannedVisits(int accountId);
 }

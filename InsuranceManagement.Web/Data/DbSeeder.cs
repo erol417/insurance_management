@@ -1,4 +1,5 @@
 using InsuranceManagement.Web.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace InsuranceManagement.Web.Data;
 
@@ -6,26 +7,53 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db)
     {
+        // Ensure all required LeadStatusTypes exist
+        var requiredLeadStatuses = new List<LeadStatusType>
+        {
+            new LeadStatusType { Id = 1, Code = "NEW", Name = "Yeni", DisplayOrder = 1 },
+            new LeadStatusType { Id = 6, Code = "RESEARCHED", Name = "Araştırılmış", DisplayOrder = 2 },
+            new LeadStatusType { Id = 7, Code = "CONTACT_FOUND", Name = "İletişim Bulundu", DisplayOrder = 3 },
+            new LeadStatusType { Id = 2, Code = "READY_FOR_ASSIGNMENT", Name = "Atamaya Hazır", DisplayOrder = 4 },
+            new LeadStatusType { Id = 3, Code = "ASSIGNED", Name = "Atandı", DisplayOrder = 5 },
+            new LeadStatusType { Id = 8, Code = "VISIT_SCHEDULED", Name = "Ziyaret Planlandı", DisplayOrder = 6 },
+            new LeadStatusType { Id = 4, Code = "VISITED", Name = "Ziyaret Edildi", DisplayOrder = 7 },
+            new LeadStatusType { Id = 5, Code = "CONVERTED_TO_ACTIVITY", Name = "Aktiviteye Dönüştürüldü", DisplayOrder = 8 },
+            new LeadStatusType { Id = 9, Code = "DISQUALIFIED", Name = "Elenmiş", DisplayOrder = 9 }
+        };
+
+        var existingStatusCodes = await db.LeadStatusTypes.Select(s => s.Code).ToListAsync();
+        foreach (var status in requiredLeadStatuses)
+        {
+            if (!existingStatusCodes.Contains(status.Code))
+            {
+                db.LeadStatusTypes.Add(status);
+            }
+        }
+
+        if (!db.LeadSourceTypes.Any())
+        {
+            db.LeadSourceTypes.AddRange([
+                new LeadSourceType { Id = 1, Code = "CALL_CENTER", Name = "Çağrı Merkezi", DisplayOrder = 1 },
+                new LeadSourceType { Id = 2, Code = "MANUAL", Name = "Manuel", DisplayOrder = 2 },
+                new LeadSourceType { Id = 3, Code = "REFERRAL", Name = "Referans", DisplayOrder = 3 }
+            ]);
+        }
+        
+        await db.SaveChangesAsync();
+
+        var leadsToUpdate = await db.Leads.ToListAsync();
+        foreach (var l in leadsToUpdate)
+        {
+            if (l.Id == 101) l.ConvertedAccountId = 101;
+            if (l.Id == 103) l.ConvertedAccountId = 102;
+            if (l.Id == 104) l.ConvertedAccountId = 103;
+        }
+        await db.SaveChangesAsync();
+
         if (db.Users.Any())
         {
             return;
         }
-
-        // 1. SEED REFERENCE TABLES FIRST
-        db.LeadStatusTypes.AddRange([
-            new LeadStatusType { Id = 1, Code = "NEW", Name = "Yeni", DisplayOrder = 1 },
-            new LeadStatusType { Id = 2, Code = "READY_FOR_ASSIGNMENT", Name = "Atamaya Hazır", DisplayOrder = 2 },
-            new LeadStatusType { Id = 3, Code = "ASSIGNED", Name = "Atandı", DisplayOrder = 3 },
-            new LeadStatusType { Id = 4, Code = "VISITED", Name = "Ziyaret Edildi", DisplayOrder = 4 },
-            new LeadStatusType { Id = 5, Code = "CONVERTED_TO_ACTIVITY", Name = "Aktiviteye Dönüştürüldü", DisplayOrder = 5 },
-            new LeadStatusType { Id = 9, Code = "DISQUALIFIED", Name = "Elenmiş", DisplayOrder = 9 }
-        ]);
-
-        db.LeadSourceTypes.AddRange([
-            new LeadSourceType { Id = 1, Code = "CALL_CENTER", Name = "Çağrı Merkezi", DisplayOrder = 1 },
-            new LeadSourceType { Id = 2, Code = "MANUAL", Name = "Manuel", DisplayOrder = 2 },
-            new LeadSourceType { Id = 3, Code = "REFERRAL", Name = "Referans", DisplayOrder = 3 }
-        ]);
 
         db.ActivityContactStatusTypes.AddRange([
             new ActivityContactStatusType { Id = 1, Code = "CONTACTED", Name = "Görüşüldü", DisplayOrder = 1 },
@@ -89,16 +117,19 @@ public static class DbSeeder
         [
             new Lead { Id = 101, Code = "LD-101", DisplayName = "A Plus Holding", City = "Istanbul", District = "Sisli", ContactName = "Gizem Tan", Phone = "0532 111 20 20", Email = "gizem@aplus.com", Priority = LeadPriority.High, Note = "IK muduruyle gorusme zemini hazir.", AssignedEmployeeId = 1, CreatedAt = DateTime.Today.AddDays(-5), ScheduledVisitDate = DateTime.Today.AddDays(1),
                 LeadStatusTypeId = 3, 
-                LeadSourceTypeId = 1 },
+                LeadSourceTypeId = 1,
+                ConvertedAccountId = 101 },
             new Lead { Id = 102, Code = "LD-102", DisplayName = "Acme aday kaydi", City = "Istanbul", District = "Besiktas", ContactName = "Merve Karahan", Phone = "0533 222 33 44", Email = "merve@acme.com", Priority = LeadPriority.High, Note = "IK muduru kontagi alindi.", CreatedAt = DateTime.Today.AddDays(-3),
                 LeadStatusTypeId = 2,
                 LeadSourceTypeId = 1 },
             new Lead { Id = 103, Code = "LD-103", DisplayName = "Nova Lojistik", City = "Kocaeli", District = "Izmit", ContactName = "Sinem Yalcin", Phone = "0532 888 77 66", Email = "sinem@nova.com", Priority = LeadPriority.Medium, Note = "Sali gunu ziyaret bekleniyor.", AssignedEmployeeId = 1, CreatedAt = DateTime.Today.AddDays(-4), ScheduledVisitDate = DateTime.Today.AddDays(2),
                 LeadStatusTypeId = 3,
-                LeadSourceTypeId = 1 },
+                LeadSourceTypeId = 1,
+                ConvertedAccountId = 102 },
             new Lead { Id = 104, Code = "LD-104", DisplayName = "Burcu Cetin", City = "Istanbul", District = "Kadikoy", ContactName = "Burcu Cetin", Phone = "0532 555 11 22", Email = "burcu@example.com", Priority = LeadPriority.Medium, Note = "Arama geri donusu bekliyor.", CreatedAt = DateTime.Today.AddDays(-1),
                 LeadStatusTypeId = 1,
-                LeadSourceTypeId = 3 }
+                LeadSourceTypeId = 3,
+                ConvertedAccountId = 103 }
         ]);
 
         db.Activities.AddRange(
@@ -158,7 +189,6 @@ public static class DbSeeder
         foreach (RoleType role in Enum.GetValues(typeof(RoleType)))
         {
             string roleStr = role.ToString();
-            Console.WriteLine($"[SEED-CHECK] {roleStr} kontrol ediliyor...");
             
             foreach (var mod in modules)
             {
@@ -202,11 +232,6 @@ public static class DbSeeder
         if (addedCount > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[SEED-OK] Başarıyla {addedCount} yeni kayıt eklendi.");
-        }
-        else
-        {
-            Console.WriteLine("[SEED-INFO] Herhangi bir yeni kayıt eklenmedi (Zaten güncel).");
         }
     }
 }

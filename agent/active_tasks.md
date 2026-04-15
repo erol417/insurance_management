@@ -96,6 +96,11 @@
     - **Yetki Bazlı Filtreleme:** Saha satış personelinin filtrelemesi sadece kendi verileriyle kısıtlandı (Admin/Manager tam yetkili).
     - **Finansal Detay Tablosu:** Ürün bazlı APE, Prim ve Üretim değerlerini ayrıştıran çapraz finansal matris tablosu oluşturuldu.
     - **Kod Standardizasyonu:** Filtreleme bloğu `shared partial` yapıya dönüştürülerek UI tutarlılığı ve bakım kolaylığı sağlandı.
+- **Sprint 6 — Lead Detail Hub (360° Lead Sayfası)**
+    - **Hub Mimarisi:** Lead'in tüm verilerini (Bilgi, Müşteri, Atama, Randevu, Satış) tek sayfada birleştiren Hub tasarımı yayınlandı.
+    - **Analitik Paneller:** Aktivite Timeline formuna (Real-time history) ve Satış özetlerine Lead Hub üzerinden hızlı bakış sağlandı.
+    - **Dinamik Aksiyon Çubuğu:** Durum geçiş mekanizmaları Hub üzerinden rol bazlı butonlarla (Ziyaret Başlat, İptal, Planla vb.) fonksiyonel hale getirildi.
+    - **Ziyaret Planlama & Çakışma Yönetimi:** Personel ataması yapılarak planlanan ziyaretler (saat, dakika, süre), takvimsel çakışma uyarıları (Conflict checking API) kullanılarak modal/inline arayüz üzerinden sağlandı.
 - **Görsel Analitik**: `Chart.js` kütüphanesi ile zenginleştirilmiş ana dashboard:
     - Günlük bazlı Aktivite vs Satış trend çizgileri.
     - Ürün portföyü ve tahsilat dağılımı (Donut/Bar chart).

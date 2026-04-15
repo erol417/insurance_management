@@ -1,4 +1,5 @@
 using InsuranceManagement.Web.Domain;
+using InsuranceManagement.Web.ViewModels;
 using System.Collections.Generic;
 
 namespace InsuranceManagement.Web.Services;
@@ -16,4 +17,8 @@ public interface ILeadService
     (bool isValid, Dictionary<string, string> errors) Validate(Lead lead);
     bool CheckDuplicate(string displayName, string? phone, int? excludeId = null);
     void AddNote(int leadId, string content, string? author = null);
+    
+    // Hub methods
+    LeadHubViewModel? GetHubData(int leadId);
+    bool ChangeStatus(int leadId, string newStatusCode, string? note = null);
 }

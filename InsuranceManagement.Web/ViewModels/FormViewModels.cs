@@ -157,9 +157,8 @@ public class ActivityFormViewModel
     [Display(Name = "Personel")]
     public int EmployeeId { get; set; }
 
-    [Required]
     [Display(Name = "Musteri")]
-    public int AccountId { get; set; }
+    public int? AccountId { get; set; }
 
     [Display(Name = "Bagli Lead")]
     public int? LeadId { get; set; }
@@ -182,7 +181,7 @@ public class ActivityInlineEditViewModel
     public string Code { get; set; } = string.Empty;
     public DateTime ActivityDate { get; set; } = DateTime.Today;
     public int EmployeeId { get; set; }
-    public int AccountId { get; set; }
+    public int? AccountId { get; set; }
     public int? LeadId { get; set; }
     public string ContactName { get; set; } = string.Empty;
     

@@ -279,20 +279,33 @@ public class LeadsController : AppController
         return RedirectToAction(nameof(Index));
     }
 
-    public IActionResult Details(int id)
+    public IActionResult Details(int id) => RedirectToAction(nameof(Hub), new { id });
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AddNote(int id, string content)
     {
-        BuildShell();
-        var lead = _leadService.GetById(id, CurrentEmployeeScopeId());
-        if (lead is null)
+        if (string.IsNullOrWhiteSpace(content))
         {
-            return NotFound();
+            TempData["Warning"] = "Not içeriği boş olamaz.";
+            return RedirectToAction(nameof(Hub), new { id });
         }
 
-        ViewBag.Employee = lead.AssignedEmployee;
-        ViewBag.ConvertedAccount = lead.ConvertedAccountId.HasValue ? Db.Accounts.FirstOrDefault(x => x.Id == lead.ConvertedAccountId.Value) : null;
-        ViewBag.ConvertedActivity = lead.ConvertedActivityId.HasValue ? Db.Activities.FirstOrDefault(x => x.Id == lead.ConvertedActivityId.Value) : null;
-        ViewBag.Employees = Db.Employees.Where(x => x.IsActive).OrderBy(x => x.FullName).ToList();
-        return View(lead);
+        _leadService.AddNote(id, content);
+        TempData["Success"] = "Not eklendi.";
+        return RedirectToAction(nameof(Hub), new { id });
+    }
+
+    public IActionResult Hub(int id)
+    {
+        var model = _leadService.GetHubData(id);
+        if (model == null)
+        {
+            TempData["Warning"] = "Lead bulunamadi.";
+            return RedirectToAction(nameof(Index));
+        }
+        BuildShell();
+        return View(model);
     }
 
     [Authorize(Roles = "Admin,CallCenter,Operations")]
@@ -455,6 +468,142 @@ public class LeadsController : AppController
         return View(leads.OrderByDescending(x => x.LeadStatusTypeId).ToList());
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ChangeStatus(int id, string newStatus, string? note)
+    {
+        var result = _leadService.ChangeStatus(id, newStatus, note);
+        if (!result)
+        {
+            TempData["Warning"] = "Durum degisikligi yapilamadi. Gecis gecersiz olabilir.";
+        }
+        else
+        {
+            TempData["Success"] = "Lead durumu guncellendi.";
+        }
+        return RedirectToAction(nameof(Hub), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult PlanVisit(int leadId, DateTime plannedDate, string plannedTime, int durationMinutes, string? note)
+    {
+        var lead = _leadService.GetById(leadId);
+        if (lead == null) return NotFound();
+
+        if (!lead.AssignedEmployeeId.HasValue) 
+        {
+            TempData["Warning"] = "Ziyaret planlamak için önce personel atanmalıdır.";
+            return RedirectToAction(nameof(Hub), new { id = leadId });
+        }
+
+        var timeParts = plannedTime.Split(':');
+        var plannedAt = plannedDate.Date.AddHours(int.Parse(timeParts[0])).AddMinutes(int.Parse(timeParts[1]));
+
+        var activity = new Activity
+        {
+            Code = $"ACT-{DateTime.Now.Ticks.ToString().Substring(8)}",
+            LeadId = lead.Id,
+            AccountId = lead.ConvertedAccountId,
+            EmployeeId = lead.AssignedEmployeeId.Value,
+            ActivityDate = DateTime.Now,
+            PlannedAt = plannedAt,
+            DurationMinutes = durationMinutes,
+            Summary = note ?? "Hub üzerinden ziyaret planlandı.",
+            ContactStatusTypeId = 3, // PLANNED
+            ContactName = lead.ContactName ?? string.Empty
+        };
+
+        Db.Activities.Add(activity);
+        Db.SaveChanges();
+        
+        _leadService.ChangeStatus(leadId, "VISIT_SCHEDULED", $"Ziyaret Planlandı: {plannedAt:g}");
+
+        TempData["Success"] = "Ziyaret başarıyla planlandı.";
+        return RedirectToAction(nameof(Hub), new { id = leadId });
+    }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult CompleteVisit(int leadId, int contactStatusTypeId, int? outcomeStatusTypeId, string note)
+    {
+        var lead = Db.Leads.FirstOrDefault(l => l.Id == leadId);
+        if (lead == null) return NotFound();
+
+        // Find the most recent planned visit
+        var activity = Db.Activities.OrderByDescending(x => x.PlannedAt ?? x.ActivityDate).FirstOrDefault(a => a.LeadId == leadId && a.ContactStatusTypeId == 3);
+        if (activity != null)
+        {
+            activity.ActivityDate = DateTime.Now;
+            activity.ContactStatusTypeId = contactStatusTypeId;
+            if (contactStatusTypeId == 1 && outcomeStatusTypeId.HasValue) // CONTACTED = 1
+            {
+                activity.OutcomeStatusTypeId = outcomeStatusTypeId;
+            }
+            else
+            {
+                activity.OutcomeStatusTypeId = null;
+            }
+            activity.Summary = note;
+            Db.SaveChanges();
+        }
+        else
+        {
+             // Fallback if no planned activity exists for some reason
+             activity = new Activity
+             {
+                 Code = $"ACT-{DateTime.Now.Ticks.ToString().Substring(8)}",
+                 LeadId = lead.Id,
+                 AccountId = lead.ConvertedAccountId,
+                 EmployeeId = (lead.AssignedEmployeeId ?? CurrentEmployeeScopeId()) ?? 0,
+                 ActivityDate = DateTime.Now,
+                 ContactStatusTypeId = contactStatusTypeId,
+                 OutcomeStatusTypeId = (contactStatusTypeId == 1) ? outcomeStatusTypeId : null,
+                 Summary = note,
+                 ContactName = lead.ContactName ?? string.Empty
+             };
+             Db.Activities.Add(activity);
+             Db.SaveChanges();
+        }
+
+        _leadService.ChangeStatus(leadId, "VISITED", "Saha Ziyareti tamamlandı.");
+        TempData["Success"] = "Görüşme kaydedildi, Lead durumu güncellendi.";
+        return RedirectToAction(nameof(Hub), new { id = leadId });
+    }
+
+    [HttpGet]
+    public IActionResult CheckVisitConflict(int leadId, string datetimeStr)
+    {
+        if (!DateTime.TryParse(datetimeStr, out var datetime)) return Json(new { hasConflict = false });
+
+        var lead = _leadService.GetById(leadId);
+        if (lead == null || !lead.AssignedEmployeeId.HasValue) return Json(new { hasConflict = false });
+
+        var employeeId = lead.AssignedEmployeeId.Value;
+        var startRange = datetime.AddMinutes(-30);
+        var endRange = datetime.AddMinutes(30);
+
+        var conflict = Db.Activities
+            .Include(a => a.Lead)
+            .Include(a => a.Account)
+            .FirstOrDefault(a => 
+                a.EmployeeId == employeeId && 
+                a.ContactStatusTypeId == 3 && // PLANNED
+                a.PlannedAt != null && 
+                a.PlannedAt >= startRange && 
+                a.PlannedAt <= endRange);
+
+        if (conflict != null)
+        {
+            var targetName = conflict.Lead != null ? conflict.Lead.DisplayName : (conflict.Account != null ? conflict.Account.DisplayName : "Bilinmeyen Firma");
+            return Json(new { 
+                hasConflict = true, 
+                message = $"Bu personelin {conflict.PlannedAt:g} saatinde zaten planlanmış bir ziyareti var ({targetName}). Yine de planlamak istiyor musunuz?" 
+            });
+        }
+
+        return Json(new { hasConflict = false });
+    }
+
     [Authorize(Roles = "Admin,SalesManager,Manager")]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -480,7 +629,7 @@ public class LeadsController : AppController
         {
             return LocalRedirect(returnUrl);
         }
-        return RedirectToAction(nameof(Assignments));
+        return RedirectToAction(nameof(Hub), new { id = leadId });
     }
 
     [Authorize(Roles = "FieldSales")]
@@ -535,8 +684,8 @@ public class LeadsController : AppController
             return NotFound();
         }
 
-        TempData["Success"] = "Lead account + activity zincirine donusturuldu.";
-        return RedirectToAction("Details", "Activities", new { id = leadResult.ConvertedActivityId });
+        TempData["Success"] = "Lead ziyareti baslatildi ve donusturuldu.";
+        return RedirectToAction(nameof(Hub), new { id = id });
     }
 
     private List<string> BuildDuplicateWarnings(LeadFormViewModel model, int? currentId)
@@ -616,19 +765,5 @@ public class LeadsController : AppController
         }
 
         return errors;
-    }
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult AddNote(int leadId, string content)
-    {
-        if (!string.IsNullOrWhiteSpace(content))
-        {
-            var lead = _leadService.GetById(leadId, CurrentEmployeeScopeId());
-            if (lead == null) return NotFound();
-
-            _leadService.AddNote(leadId, content);
-            TempData["Success"] = "Not kaydedildi.";
-        }
-        return Redirect(Url.Action(nameof(Details), new { id = leadId }) + "#notes-section");
     }
 }

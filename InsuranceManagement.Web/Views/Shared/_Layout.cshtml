@@ -14,7 +14,8 @@
         ["Expenses"] = "Masraflar",
         ["Employees"] = "Personeller",
         ["Admin"] = "Yonetim",
-        ["Imports"] = "Veri Aktarımı"
+        ["Imports"] = "Veri Aktarımı",
+        ["Help"] = "Yardım"
     };
 
     var topNavItems = shell.Groups
@@ -90,6 +91,9 @@
                 </nav>
             </div>
             <div class="topnav-right">
+                <a asp-controller="Help" asp-action="Index" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:#f1f5f9; color:var(--text); text-decoration:none; margin-right:8px;" title="Yardım Merkezi">
+                    <i data-lucide="help-circle" style="width:18px;"></i>
+                </a>
                 <input class="search-input" value="Ara" />
                 <div class="user-lockup">
                     <div class="avatar"></div>

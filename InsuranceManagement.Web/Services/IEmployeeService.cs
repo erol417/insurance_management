@@ -11,4 +11,5 @@ public interface IEmployeeService
     Employee? Update(int id, Employee updated);
     bool Delete(int id);
     (bool isValid, Dictionary<string, string> errors) Validate(Employee employee);
+    List<Activity> GetWeeklyCalendar(int employeeId, DateTime weekStart);
 }

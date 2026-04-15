@@ -1,0 +1,590 @@
+@using InsuranceManagement.Web.Domain
+@model RoleType
+@{
+    ViewData["Title"] = "Uygulama Kullanım Kılavuzu";
+    ViewData["Subtitle"] = "Sistem özelliklerini ve rol bazlı iş akışlarını buradan öğrenebilirsiniz.";
+    var currentRole = Model;
+    var isAdmin = User.IsInRole("Admin");
+}
+
+<div class="container-fluid" style="padding: 24px;">
+    <div class="row g-4" style="display: grid; grid-template-columns: 280px 1fr; gap: 24px;">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside>
+            <div class="panel" style="position: sticky; top: 24px; padding: 12px;">
+                <div style="padding: 12px; font-weight: 700; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Kılavuzlar</div>
+                
+                <div class="help-nav-list" style="display: flex; flex-direction: column; gap: 4px;">
+                    @if (isAdmin || currentRole == RoleType.CallCenter) {
+                        <a href="#call-center" class="help-nav-item @(currentRole == RoleType.CallCenter ? "active" : "")">
+                            <i data-lucide="phone-call" style="width:18px;"></i> Call Center
+                        </a>
+                    }
+                    @if (isAdmin || currentRole == RoleType.FieldSales) {
+                        <a href="#field-sales" class="help-nav-item @(currentRole == RoleType.FieldSales ? "active" : "")">
+                            <i data-lucide="map-pin" style="width:18px;"></i> Saha Personeli
+                        </a>
+                    }
+                    @if (isAdmin || currentRole == RoleType.SalesManager) {
+                        <a href="#sales-manager" class="help-nav-item @(currentRole == RoleType.SalesManager ? "active" : "")">
+                            <i data-lucide="users" style="width:18px;"></i> Satış Müdürü
+                        </a>
+                    }
+                    @if (isAdmin || currentRole == RoleType.Operations) {
+                        <a href="#operations" class="help-nav-item @(currentRole == RoleType.Operations ? "active" : "")">
+                            <i data-lucide="settings-2" style="width:18px;"></i> Operasyon
+                        </a>
+                    }
+                    @if (isAdmin || currentRole == RoleType.Manager) {
+                        <a href="#manager" class="help-nav-item @(currentRole == RoleType.Manager ? "active" : "")">
+                            <i data-lucide="bar-chart-3" style="width:18px;"></i> Yönetici
+                        </a>
+                    }
+                    @if (isAdmin || currentRole == RoleType.Admin) {
+                        <a href="#admin" class="help-nav-item @(currentRole == RoleType.Admin ? "active" : "")">
+                            <i data-lucide="shield-check" style="width:18px;"></i> Sistem Yöneticisi
+                        </a>
+                    }
+                </div>
+
+                <div style="margin-top: 24px; padding: 16px; background: #f0f7ff; border-radius: 12px; border: 1px solid #cce3ff;">
+                    <div style="display: flex; align-items: flex-start; gap: 10px;">
+                        <i data-lucide="info" style="color: var(--brand); width: 20px; flex-shrink: 0;"></i>
+                        <div style="font-size: 12px; line-height: 1.5; color: #1e3a8a;">
+                            Sistemle ilgili teknik bir sorun yaşıyorsanız lütfen BT destek birimi ile iletişime geçin.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENT AREA -->
+        <main class="help-content-container">
+            
+            @if (isAdmin || currentRole == RoleType.CallCenter) {
+                <!-- CALL CENTER GUIDE -->
+                <section id="call-center" class="help-section panel" style="@(currentRole == RoleType.CallCenter ? "" : "display:none;")">
+                    <div class="panel-title" style="background:#f0faf2;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:32px; height:32px; border-radius:8px; background:var(--success); color:white; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="phone-call" style="width:18px;"></i>
+                            </div>
+                            <h2 style="color:#065f46;">Call Center Hızlı Başlangıç Rehberi</h2>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 24px;">
+                        <div class="role-badge" style="background:#d1fae5; color:#065f46; display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-bottom:16px;">
+                            Hedef: Potansiyel müşteri bulmak ve lead havuzuna eklemek.
+                        </div>
+
+                        <div class="guide-steps">
+                            <div class="step">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h4>Sisteme Giriş Yap</h4>
+                                    <p>Size verilen kullanıcı adı ve şifrenizle sisteme giriş yapın.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h4>Lead Havuzu'na Git</h4>
+                                    <p>Ana menüden <strong>Leadler</strong> sekmesine tıklayarak havuzu açın.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h4>Yeni Lead Oluştur</h4>
+                                    <p><strong>Yeni Lead</strong> butonuna basın ve formu doldurun:</p>
+                                    <ul class="sub-list">
+                                        <li>Müşteri adını girin.</li>
+                                        <li>Telefon, e-posta, şehir ve ilçe bilgilerini doldurun.</li>
+                                        <li>Kaynağı <strong>Çağrı Merkezi</strong> olarak seçin.</li>
+                                        <li>Eklemek istediğiniz notları yazın ve kaydedin.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">4</div>
+                                <div class="step-content">
+                                    <h4>Lead'i Yönet</h4>
+                                    <p>Lead Hub sayfasındaki butonları kullanarak süreci ilerletin:</p>
+                                    <ul class="sub-list">
+                                        <li><strong>Araştır</strong>: İlk inceleme tamamlandığında basın.</li>
+                                        <li><strong>İletişim Bulundu</strong>: Gerekli kontak kişisi netleştiğinde basın.</li>
+                                        <li><strong>Atamaya Hazır</strong>: Araştırma bittiyse ve satışçıya yönlendirilmeye hazırsa basın.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tip-box info">
+                            <div class="tip-title"><i data-lucide="lightbulb" style="width:16px;"></i> İpuçları</div>
+                            <ul class="tip-list">
+                                <li>Aynı isimde lead oluşturmamaya (mükerrer kayıt) dikkat edin.</li>
+                                <li>Telefon numarasını girmek saha personeli için kritiktir.</li>
+                                <li>Lead durumunu güncel tutun, müdürleriniz atama bekleyen leadleri takip ediyor.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            }
+
+            @if (isAdmin || currentRole == RoleType.SalesManager) {
+                <!-- SALES MANAGER GUIDE -->
+                <section id="sales-manager" class="help-section panel" style="@(currentRole == RoleType.SalesManager ? "" : "display:none;")">
+                    <div class="panel-title" style="background:#eff6ff;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:32px; height:32px; border-radius:8px; background:var(--brand); color:white; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="users" style="width:18px;"></i>
+                            </div>
+                            <h2 style="color:#1e40af;">Satış Müdürü Hızlı Başlangıç Rehberi</h2>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 24px;">
+                        <div class="role-badge" style="background:#dbeafe; color:#1e40af; display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-bottom:16px;">
+                            Hedef: Lead'leri personele atamak ve ekip performansını izlemek.
+                        </div>
+
+                        <div class="guide-steps">
+                            <div class="step">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h4>Lead Havuzunu Filtreleyin</h4>
+                                    <p>Havuzda <strong>Atamaya Hazır</strong> durumundaki lead'leri bularak başlayın.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h4>Personele Atama Yapın</h4>
+                                    <p>Lead Hub sayfasındaki <strong>Atama Bilgisi</strong> panelini açın:</p>
+                                    <ul class="sub-list">
+                                        <li>Uygun saha personelini seçin.</li>
+                                        <li>Öncelik (Yüksek/Orta/Düşük) belirleyin.</li>
+                                        <li>İlgili notu yazarak <strong>Atamayı Tamamla</strong> deyin.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h4>Ziyaret Planlayın</h4>
+                                    <p>Dilerseniz personele direkt iş paketi olarak ziyaret atayabilirsiniz:</p>
+                                    <ul class="sub-list">
+                                        <li>Personel takvimini Hub sayfasından kontrol edin.</li>
+                                        <li><strong>Ziyaret Planla</strong> diyerek tarih ve saati kaydedin.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">4</div>
+                                <div class="step-content">
+                                    <h4>Performans Analizi</h4>
+                                    <p>Dashboard üzerinden <strong>Personel Performansı</strong> sekmesini kullanarak aktivite ve satış dönüşümlerini kıyaslayın.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tip-box warning">
+                            <div class="tip-title"><i data-lucide="alert-triangle" style="width:16px;"></i> Kritik Noktalar</div>
+                            <ul class="tip-list">
+                                <li>Personel takvimini kontrol etmeden atama yapmayın (çakışma kontrolü).</li>
+                                <li>Öncelik (High/Medium) alanını kullanın; bu saha personeline bildirim olarak gider.</li>
+                                <li>Dönüşüm oranlarını düzenli kontrol edin.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            }
+
+            @if (isAdmin || currentRole == RoleType.FieldSales) {
+                <!-- FIELD SALES GUIDE -->
+                <section id="field-sales" class="help-section panel" style="@(currentRole == RoleType.FieldSales ? "" : "display:none;")">
+                    <div class="panel-title" style="background:#fff7ed;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:32px; height:32px; border-radius:8px; background:var(--warn); color:white; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="map-pin" style="width:18px;"></i>
+                            </div>
+                            <h2 style="color:#9a3412;">Saha Personeli Hızlı Başlangıç Rehberi</h2>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 24px;">
+                        <div class="role-badge" style="background:#ffedd5; color:#9a3412; display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-bottom:16px;">
+                            Hedef: Ziyaretleri tamamlamak ve satış kayıtlarını girmek.
+                        </div>
+
+                        <div class="guide-steps">
+                            <div class="step">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h4>Günü Planlayın (Ajanda)</h4>
+                                    <p><strong>Profilim / Ajandam</strong> sayfanıza giderek bugünkü planlanmış randevularınızı görün.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h4>Ziyareti Başlatın ve Bitirin</h4>
+                                    <p>Müşteriye gittiğinizde Lead Hub üzerinden <strong>Ziyareti Başlat</strong> diyerek formu açın:</p>
+                                    <ul class="sub-list">
+                                        <li>Görüşme sonucunu seçin (Olumlu, Olumsuz, Satış Oldu vb.).</li>
+                                        <li>Görüşme notlarını mutlaka detaylıca ekleyin.</li>
+                                        <li><strong>Kaydet ve Tamamla</strong> diyerek süreci Visited durumuna çekin.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h4>Satış ve Masraf Kaydı</h4>
+                                    <ul class="sub-list">
+                                        <li>Satış gerçekleştiyse <strong>Satışlar > Yeni Satış</strong> ekranından veri girişini yapın.</li>
+                                        <li>İlgili gün için yemek, yol vb. giderlerinizi <strong>Masraflar</strong> menüsünden sisteme işletin.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tip-box info">
+                            <div class="tip-title"><i data-lucide="check-circle" style="width:16px;"></i> İpuçları</div>
+                            <ul class="tip-list">
+                                <li>Aktiviteyi ziyaret günü girin; taze veri her zaman daha değerlidir.</li>
+                                <li>Görüşme notları, bir sonraki ziyarette ajandanıza düşen en önemli veridir.</li>
+                                <li>Satışı bir aktiviteye bağlamayı (Activity Link) unutmayın.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            }
+
+            @if (isAdmin || currentRole == RoleType.Operations) {
+                <!-- OPERATIONS GUIDE -->
+                <section id="operations" class="help-section panel" style="@(currentRole == RoleType.Operations ? "" : "display:none;")">
+                    <div class="panel-title" style="background:#f5f3ff;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:32px; height:32px; border-radius:8px; background:#7c3aed; color:white; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="settings-2" style="width:18px;"></i>
+                            </div>
+                            <h2 style="color:#5b21b6;">Operasyon Hızlı Başlangıç Rehberi</h2>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 24px;">
+                        <div class="role-badge" style="background:#ede9fe; color:#5b21b6; display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-bottom:16px;">
+                            Hedef: Veri kalitesini kontrol etmek ve toplu veri yönetimini sağlamak.
+                        </div>
+
+                        <div class="guide-steps">
+                            <div class="step">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h4>Satış ve Veri Denetimi</h4>
+                                    <p>Satışlar listesinden eksik poliçe veya tutar olan kayıtları revize edin.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h4>Excel Import İşlemleri</h4>
+                                    <p><strong>Veri Aktarımı</strong> menüsünü kullanın:</p>
+                                    <ul class="sub-list">
+                                        <li>Gerekli şablonu indirin.</li>
+                                        <li>Excel'i kurallara göre doldurup geri yükleyin.</li>
+                                        <li>Önizleme ekranındaki hataları (kırmızı satırlar) giderdikten sonra onaylayın.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tip-box">
+                            <div class="tip-title"><i data-lucide="info" style="width:16px;"></i> Bilgi</div>
+                            <p style="font-size:12px; margin:0 0 10px 0;">Haftalık olarak "Bağımsız Satış" (Lead/Aktivite bağlantısı olmayan satış) sayısını kontrol ederek veri bütünlüğünü sağlayın.</p>
+                        </div>
+                    </div>
+                </section>
+            }
+
+            @if (isAdmin || currentRole == RoleType.Manager) {
+                <!-- MANAGER GUIDE -->
+                <section id="manager" class="help-section panel" style="@(currentRole == RoleType.Manager ? "" : "display:none;")">
+                    <div class="panel-title" style="background:#fff1f2;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:32px; height:32px; border-radius:8px; background:var(--danger); color:white; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="bar-chart-3" style="width:18px;"></i>
+                            </div>
+                            <h2 style="color:#9f1239;">Yönetici Hızlı Başlangıç Rehberi</h2>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 24px;">
+                        <div class="role-badge" style="background:#ffe4e6; color:#9f1239; display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; margin-bottom:16px;">
+                            Hedef: Ekip performansını izlemek ve stratejik verileri analiz etmek.
+                        </div>
+
+                        <div class="guide-steps">
+                            <div class="step">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h4>Genel Özeti İzleyin</h4>
+                                    <p>Dashboard'da Toplam Aktivite, Dönüşüm Oranı ve BES Tahsilat tutarlarını anlık takip edin.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h4>KPI Filtreleme</h4>
+                                    <p>Dashboard üzerindeki tarih ve personel filtrelerini kullanarak "Bu Ay" veya belirli bir ekip bazlı karşılaştırmalar yapın.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h4>Ürün ve Masraf Analizi</h4>
+                                    <p>Hangi ürün grubunda satışın yoğunlaştığını ve hangi bölge personellerinin daha yüksek masraf oranına sahip olduğunu grafiklerden analiz edin.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            }
+
+            @if (isAdmin || currentRole == RoleType.Admin) {
+                <!-- ADMIN GUIDE -->
+                <section id="admin" class="help-section panel" style="@(currentRole == RoleType.Admin ? "" : "display:none;")">
+                    <div class="panel-title" style="background:#f8fafc;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:32px; height:32px; border-radius:8px; background:#334155; color:white; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="shield-check" style="width:18px;"></i>
+                            </div>
+                            <h2 style="color:#0f172a;">Sistem Yöneticisi Rehberi</h2>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="padding: 24px;">
+                        <p style="font-size:14px; margin-bottom:20px;">Sistem yönetimi, kullanıcı tanımlamaları ve güvenlik ayarlarını içerir.</p>
+
+                        <div class="guide-steps">
+                            <div class="step">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h4>Kullanıcı Yönetimi</h4>
+                                    <p><strong>Yönetim > Kullanıcılar</strong> sayfasından yeni personel tanımlayın veya mevcut personelin şifresini/rolünü güncelleyin.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h4>Rol Yetkileri</h4>
+                                    <p>Her rolün hangi modüle (Lead, Satış vb.) hangi seviyede erişebileceğini (Tam Yetki/İzleme) belirleyin.</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h4>Sistem İzleme</h4>
+                                    <p>Audit Log modülünden sistemdeki tüm kritik işlemleri (silme, guncelleme vb.) kullanıcı ve tarih bazlı inceleyin.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            }
+
+        </main>
+    </div>
+</div>
+
+<style>
+    .help-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .help-nav-item i {
+        color: var(--muted);
+        transition: color 0.2s;
+    }
+
+    .help-nav-item:hover {
+        background: #f8fafc;
+        color: var(--brand);
+    }
+
+    .help-nav-item.active {
+        background: var(--brand-faded);
+        color: var(--brand);
+        font-weight: 600;
+    }
+
+    .help-nav-item.active i {
+        color: var(--brand);
+    }
+
+    .guide-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-top: 24px;
+    }
+
+    .step {
+        display: flex;
+        gap: 20px;
+        position: relative;
+    }
+
+    .step::before {
+        content: '';
+        position: absolute;
+        left: 17px;
+        top: 36px;
+        bottom: -20px;
+        width: 2px;
+        background: var(--line);
+        z-index: 1;
+    }
+
+    .step:last-child::before {
+        display: none;
+    }
+
+    .step-num {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--brand-faded);
+        color: var(--brand);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        flex-shrink: 0;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        z-index: 2;
+    }
+
+    .step-content {
+        padding-top: 4px;
+    }
+
+    .step-content h4 {
+        margin: 0 0 8px 0;
+        font-size: 15px;
+        color: var(--text-dark);
+        font-weight: 600;
+    }
+
+    .step-content p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--text);
+        line-height: 1.5;
+    }
+
+    .sub-list {
+        margin: 12px 0 0 0;
+        padding-left: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        list-style-type: none;
+    }
+
+    .sub-list li {
+        font-size: 13px;
+        color: var(--muted);
+        position: relative;
+    }
+
+    .sub-list li::before {
+        content: '•';
+        position: absolute;
+        left: -14px;
+        color: var(--brand);
+        font-weight: bold;
+    }
+
+    .tip-box {
+        margin-top: 32px;
+        padding: 20px;
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+    }
+
+    .tip-box.info {
+        background: #f0f9ff;
+        border-color: #bae6fd;
+    }
+
+    .tip-box.warning {
+        background: #fffef2;
+        border-color: #fef3c7;
+    }
+
+    .tip-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+        color: var(--text-dark);
+    }
+
+    .tip-list {
+        margin: 0;
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .tip-list li {
+        font-size: 13px;
+        color: var(--text);
+    }
+
+    .help-section {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<script>
+    document.querySelectorAll('.help-nav-item').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('href').substring(1);
+            
+            // Update active state in nav
+            document.querySelectorAll('.help-nav-item').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            
+            // Show target section
+            document.querySelectorAll('.help-section').forEach(sec => sec.style.display = 'none');
+            document.getElementById(targetId).style.display = 'block';
+            
+            // Re-render lucide icons in the new section if needed
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    });
+</script>

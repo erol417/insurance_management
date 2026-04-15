@@ -73,6 +73,43 @@
             </div>
         </section>
 
+        @{ 
+            var plannedVisits = ViewBag.PlannedVisits as List<InsuranceManagement.Web.Domain.Activity> ?? new(); 
+        }
+        <section class="section-block" style="border-left: 4px solid var(--success);">
+            <div class="section-title">
+                <h3>Planlanan Ziyaretler</h3>
+                <span class="pill">@plannedVisits.Count kayit</span>
+            </div>
+            <div class="table-scroll">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Saat</th>
+                            <th>Personel</th>
+                            <th>Not / Odak</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pv in plannedVisits)
+                        {
+                            <tr style="background: #f0fdf4;">
+                                <td><strong>@pv.PlannedAt?.ToString("dd.MM.yyyy")</strong></td>
+                                <td>@pv.PlannedAt?.ToString("HH:mm")</td>
+                                <td>@(pv.Employee?.FullName ?? "-")</td>
+                                <td>@pv.Summary</td>
+                            </tr>
+                        }
+                        @if (!plannedVisits.Any())
+                        {
+                            <tr><td colspan="4" class="muted" style="text-align:center;">Planlanmış bir ziyaret bulunmuyor.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <section class="section-block">
             <div class="section-title">
                 <h3>Bagli Satislar</h3>

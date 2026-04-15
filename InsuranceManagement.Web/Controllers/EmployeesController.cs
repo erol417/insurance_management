@@ -151,7 +151,7 @@ public class EmployeesController : AppController
         return RedirectToAction(nameof(Index));
     }
 
-    public IActionResult Details(int id)
+    public IActionResult Details(int id, DateTime? weekStart = null)
     {
         BuildShell();
         
@@ -210,6 +210,14 @@ public class EmployeesController : AppController
             .Where(x => x.EmployeeId == id && x.ContactStatusTypeId == 3) // 3 is PLANNED
             .OrderBy(x => x.ActivityDate)
             .ToList();
+
+        // Calculate start of current week (Monday) if weekStart not provided
+        var today = DateTime.Today;
+        var startOfWeek = weekStart ?? today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
+        if (today.DayOfWeek == DayOfWeek.Sunday) startOfWeek = startOfWeek.AddDays(-7);
+        
+        ViewBag.WeekStart = startOfWeek;
+        ViewBag.WeeklyCalendar = _employeeService.GetWeeklyCalendar(id, startOfWeek);
 
         return View(employee);
     }

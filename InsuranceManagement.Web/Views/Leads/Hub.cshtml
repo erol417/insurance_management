@@ -1,0 +1,857 @@
+@model InsuranceManagement.Web.ViewModels.LeadHubViewModel
+@{
+    ViewData["Title"] = $"Lead Hub - {Model.DisplayName}";
+    var canAssign = User.IsInRole("Admin") || User.IsInRole("SalesManager") || User.IsInRole("Manager");
+    
+    // Pipeline Steps for Stepper
+    var pipelineSteps = new[] {
+        new { Code = "NEW", Name = "Yeni" },
+        new { Code = "RESEARCHED", Name = "Araştırılmış" },
+        new { Code = "CONTACT_FOUND", Name = "İletişim Bulundu" },
+        new { Code = "READY_FOR_ASSIGNMENT", Name = "Atamaya Hazır" },
+        new { Code = "ASSIGNED", Name = "Atandı" },
+        new { Code = "VISIT_SCHEDULED", Name = "Ziyaret Planlandı" },
+        new { Code = "VISITED", Name = "Ziyaret Edildi" },
+        new { Code = "CONVERTED_TO_ACTIVITY", Name = "Dönüştürüldü" }
+    };
+
+    var currentStepIndex = Array.FindIndex(pipelineSteps, s => s.Code == Model.StatusCode);
+}
+
+<!-- Premium Header Strip -->
+<section class="premium-strip">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div class="brand-icon-new" style="background: var(--brand); color: white; width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="zap"></i>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 2px;">
+                <a asp-action="Index" style="color:inherit; text-decoration:none;">Lead Havuzu</a> / Lead Hub
+            </div>
+            <strong>#@Model.Code - @Model.DisplayName</strong>
+        </div>
+    </div>
+    <div class="inline-actions">
+        <a asp-action="Index" class="btn ghost">
+            <i data-lucide="arrow-left"></i> Listeye Dön
+        </a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn">
+            <i data-lucide="edit-3"></i> Düzenle
+        </a>
+    </div>
+</section>
+
+<div class="container-fluid" style="padding: 24px;">
+    
+    <!-- 1. LEAD INFORMATION PANEL -->
+    <section class="panel" style="margin-bottom: 24px;">
+        <div class="panel-title">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <i data-lucide="user" style="color:var(--brand);"></i>
+                <h2>Lead Detay Bilgileri</h2>
+            </div>
+            <span class="pill @GetStatusClass(Model.StatusCode)">
+                @Model.StatusName
+            </span>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 20px;">
+            <div style="border-right: 1px solid var(--line); padding-right: 32px;">
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; font-size:11px; font-weight:700; color:var(--muted); text-uppercase; margin-bottom:8px;">İLETİŞİM BİLGİLERİ</label>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                        <i data-lucide="phone" style="width:16px; color:var(--brand);"></i>
+                        @if(!string.IsNullOrEmpty(Model.Phone)) {
+                            <a href="tel:@Model.Phone" style="color:var(--text); text-decoration:none; font-weight:600;">@Model.Phone</a>
+                        } else {
+                            <span class="muted">Belirtilmedi</span>
+                        }
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                        <i data-lucide="mail" style="width:16px; color:var(--brand);"></i>
+                        @if(!string.IsNullOrEmpty(Model.Email)) {
+                            <a href="mailto:@Model.Email" style="color:var(--text); text-decoration:none; font-weight:600;">@Model.Email</a>
+                        } else {
+                            <span class="muted">Belirtilmedi</span>
+                        }
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i data-lucide="user" style="width:16px; color:var(--info);"></i>
+                        @if(!string.IsNullOrEmpty(Model.ContactName)) {
+                            <span style="font-weight:600;">@Model.ContactName</span>
+                        } else {
+                            <span class="muted">İlgili kişi belirtilmedi</span>
+                        }
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block; font-size:11px; font-weight:700; color:var(--muted); text-uppercase; margin-bottom:8px;">LOKASYON</label>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i data-lucide="map-pin" style="width:16px; color:var(--danger);"></i>
+                        <span>@Model.City / @Model.District</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; font-size:11px; font-weight:700; color:var(--muted); text-uppercase; margin-bottom:8px;">KAYNAK VE KAYIT</label>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                        <i data-lucide="external-link" style="width:16px; color:var(--info);"></i>
+                        <span style="font-weight:600;">@Model.SourceName</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                        <i data-lucide="alert-circle" style="width:16px; color:var(--brand);"></i>
+                        <span class="priority-pill @GetPriorityClass(Model.Priority).ToLower()">@(Model.Priority == "High" ? "Yüksek" : Model.Priority == "Medium" ? "Orta" : "Düşük") Öncelik</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i data-lucide="calendar" style="width:16px; color:var(--muted);"></i>
+                        <span style="font-size:13px;">@Model.CreatedAt.ToString("g")</span>
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block; font-size:11px; font-weight:700; color:var(--muted); text-uppercase; margin-bottom:8px;">SİSTEM NOTU</label>
+                    <p style="font-size:13px; line-height:1.5; color:var(--text); margin:0;">
+                        @(string.IsNullOrEmpty(Model.Note) ? "Eklenmiş bir detay/sistem notu bulunmuyor." : Model.Note)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PIPELINE STEPPER -->
+    <section class="panel" style="margin-bottom: 24px;">
+        <div class="stepper-container">
+            @for (int i = 0; i < pipelineSteps.Length; i++)
+            {
+                var step = pipelineSteps[i];
+                var isCompleted = i < currentStepIndex;
+                var isActive = i == currentStepIndex;
+                var isDisqualified = Model.StatusCode == "DISQUALIFIED";
+
+                <div class="step-item @(isActive ? "active" : "") @(isCompleted ? "completed" : "") @(isDisqualified ? "disqualified" : "")">
+                    <div class="step-icon">
+                        @if (isCompleted) { <i data-lucide="check"></i> }
+                        else if (isActive) { <div class="dot"></div> }
+                        else { <span>@(i + 1)</span> }
+                    </div>
+                    <div class="step-label">@step.Name</div>
+                    @if (i < pipelineSteps.Length - 1)
+                    {
+                        <div class="step-line"></div>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <div class="row g-4" style="display: grid; grid-template-columns: 1fr 380px; gap: 24px;">
+        
+        <!-- LEFT COLUMN -->
+        <div class="main-hub-content" style="display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- 2. LEAD STATUS MANAGEMENT BAR -->
+            <section class="panel">
+                <div class="panel-title">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i data-lucide="git-branch" style="color:var(--info);"></i>
+                        <h3>Sonraki Adım / Durum Yönetimi</h3>
+                    </div>
+                </div>
+                <div class="panel-body" style="padding: 20px;">
+                    <p style="font-size:13px; color:var(--muted); margin-bottom:20px;">
+                         Bu lead şu an <strong>@Model.StatusName</strong> durumunda. 
+                         @if (Model.StatusCode == "CONVERTED_TO_ACTIVITY") {
+                             <span style="color:var(--success);"><i data-lucide="check-circle" style="width:14px; vertical-align:middle; margin-right:4px;"></i> Bu lead başarıyla aktiviteye dönüştürülerek süreç tamamlanmıştır.</span>
+                             @if (Model.ConvertedActivityId.HasValue) {
+                                 <a href="/Activities/Details/@Model.ConvertedActivityId" class="btn primary-outline" style="margin-top:12px; height:36px; padding: 4px 16px; font-size:13px; display:inline-flex; align-items:center; gap:8px;">
+                                     <i data-lucide="external-link" style="width:14px;"></i> Aktivite Kartına Git
+                                 </a>
+                             }
+                         } else if (Model.StatusCode == "DISQUALIFIED") {
+                             <span style="color:var(--danger);"><i data-lucide="x-circle" style="width:14px; vertical-align:middle; margin-right:4px;"></i> Bu lead elenmiş olarak işaretlenmiştir.</span>
+                         } else if (Model.AvailableActions.Any()) {
+                             <span>Aşağıdaki butonlarla bir sonraki adıma geçirebilirsiniz.</span>
+                         } else {
+                             <span>Bu lead için aktif bir sonraki adım bulunmamaktadır.</span>
+                         }
+                    </p>
+                    
+                    <div style="display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap;">
+                        @foreach (var action in Model.AvailableActions)
+                        {
+                            @if(action == "VISIT_SCHEDULED")
+                            {
+                                <div style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
+                                    <button type="button" class="btn primary" style="width:100%; height:42px; font-size:14px; font-weight:600;" onclick="togglePlanVisitForm()">
+                                        @GetActionLabel(action)
+                                    </button>
+                                    <small style="font-size: 11px; color: var(--muted); line-height: 1.3;">@GetActionHint(action)</small>
+                                </div>
+                            }
+                            else if(action != "DISQUALIFIED")
+                            {
+                                <div style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
+                                    <form asp-action="ChangeStatus" method="post" style="margin:0;">
+                                        <input type="hidden" name="id" value="@Model.Id" />
+                                        <input type="hidden" name="newStatus" value="@action" />
+                                        <button type="submit" class="btn primary" style="width:100%; height:42px; font-size:14px; font-weight:600;">
+                                            @GetActionLabel(action)
+                                        </button>
+                                    </form>
+                                    <small style="font-size: 11px; color: var(--muted); line-height: 1.3;">@GetActionHint(action)</small>
+                                </div>
+                            }
+                        }
+
+                        @if (Model.StatusCode != "CONVERTED_TO_ACTIVITY" && Model.StatusCode != "DISQUALIFIED")
+                        {
+                            <div style="margin-left: auto; display:flex; flex-direction:column; gap:6px; min-width:140px; text-align:right;">
+                                <form asp-action="ChangeStatus" method="post" style="margin:0;" onsubmit="return confirm('Bu lead\'i elendi olarak işaretlemek istediğinizden emin misiniz?');">
+                                    <input type="hidden" name="id" value="@Model.Id" />
+                                    <input type="hidden" name="newStatus" value="DISQUALIFIED" />
+                                    <button type="submit" class="btn danger" style="width:100%; height:42px; font-size:14px; font-weight:600;">
+                                        Elendi İşaretle
+                                    </button>
+                                </form>
+                                <small style="font-size: 11px; color: var(--muted); line-height: 1.3;">Potansiyel müşteri uygun değilse sistemden çıkar.</small>
+                            </div>
+                        }
+
+                        @if (Model.StatusCode == "ASSIGNED" || Model.StatusCode == "VISIT_SCHEDULED")
+                        {
+                            <div style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
+                                <button type="button" class="btn success" style="width:100%; height:42px; font-size:14px; font-weight:600;" onclick="toggleStartVisitForm()">
+                                    <i data-lucide="play-circle" style="width:16px; margin-right:6px;"></i> Ziyareti Başlat
+                                </button>
+                                <small style="font-size: 11px; color: var(--muted); line-height: 1.3;">Saha ziyaretini ve görüşmeyi tamamlar.</small>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Start Visit Form (Collapsible) -->
+                    <div id="start-visit-collapse" style="display:none; margin-top: 20px; padding: 20px; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;">
+                        <h4 style="margin:0 0 16px 0; font-size:14px; color:var(--text); display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="play-circle" style="width:16px; color:var(--success);"></i> Ziyaret Tamamla
+                        </h4>
+                        <form asp-action="CompleteVisit" method="post" class="stunning-form">
+                            <input type="hidden" name="leadId" value="@Model.Id" />
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+                                <div class="field">
+                                    <label style="font-size:11px;">Temas Durumu *</label>
+                                    <select name="contactStatusTypeId" id="contactStatusTypeId" required style="font-size:13px; height:34px;" onchange="toggleOutcomeStatus()">
+                                        <option value="1">Görüşüldü</option>
+                                        <option value="2">Görüşülemedi</option>
+                                    </select>
+                                </div>
+                                <div class="field" id="outcomeField">
+                                    <label style="font-size:11px;">Görüşme Sonucu *</label>
+                                    <select name="outcomeStatusTypeId" id="outcomeStatusTypeId" required style="font-size:13px; height:34px;">
+                                        <option value="1">Uygulanamaz</option>
+                                        <option value="2">Olumlu (Satışa Dönebilir)</option>
+                                        <option value="3">Olumsuz</option>
+                                        <option value="4">Ertelendi</option>
+                                        <option value="5">Satış Oldu</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="field" style="margin-bottom:16px;">
+                                <label style="font-size:11px;">Görüşme Özeti / Not *</label>
+                                <textarea name="note" rows="3" required style="font-size:12px; padding:8px;" placeholder="Görüşme detayları..."></textarea>
+                            </div>
+                            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                                <button type="button" class="btn ghost" onclick="toggleStartVisitForm()">İptal</button>
+                                <button type="submit" class="btn success">Kaydet ve Tamamla <i data-lucide="check" style="width:16px; margin-left:4px;"></i></button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Plan Visit Form (Collapsible) -->
+                    <div id="plan-visit-collapse" style="display:none; margin-top: 20px; padding: 20px; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;">
+                        <h4 style="margin:0 0 16px 0; font-size:14px; color:var(--text); display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="calendar" style="width:16px; color:var(--brand);"></i> Ziyaret Planla
+                        </h4>
+                        <form id="planVisitForm" asp-action="PlanVisit" method="post" class="stunning-form" onsubmit="return validatePlanVisit(event)">
+                            <input type="hidden" id="planLeadId" name="leadId" value="@Model.Id" />
+                            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px; margin-bottom:16px;">
+                                <div class="field">
+                                    <label style="font-size:11px;">Tarih *</label>
+                                    <input type="date" id="plannedDate" name="plannedDate" required style="font-size:13px; height:34px; border:1px solid var(--line); border-radius:6px; width:100%; padding:0 8px;" min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                </div>
+                                <div class="field">
+                                    <label style="font-size:11px;">Saat *</label>
+                                    <select id="plannedTime" name="plannedTime" required style="font-size:13px; height:34px;">
+                                        <option value="">Seçiniz...</option>
+                                        @for (int h = 8; h <= 18; h++)
+                                        {
+                                            <option value="@h.ToString("00"):00">@h.ToString("00"):00</option>
+                                            <option value="@h.ToString("00"):30">@h.ToString("00"):30</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label style="font-size:11px;">Süre (Opsiyonel)</label>
+                                    <select name="durationMinutes" style="font-size:13px; height:34px;">
+                                        <option value="30">30 Dakika</option>
+                                        <option value="60">1 Saat</option>
+                                        <option value="90">1.5 Saat</option>
+                                        <option value="120">2 Saat</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="field" style="margin-bottom:16px;">
+                                <label style="font-size:11px;">Not</label>
+                                <textarea name="note" rows="2" style="font-size:12px; padding:8px;" placeholder="Görüşme içeriği veya hatırlatmalar..."></textarea>
+                            </div>
+                            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                                <button type="button" class="btn ghost" onclick="togglePlanVisitForm()">İptal</button>
+                                <button id="btnSubmitPlan" type="submit" class="btn primary">Planı Kaydet <i data-lucide="check" style="width:16px; margin-left:4px;"></i></button>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 5. ACTIVITY TIMELINE — REAL DATA -->
+            <section class="panel">
+                <div class="panel-title">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <i data-lucide="clock" style="color:var(--success);"></i>
+                        <h2>Aktivite Zaman Çizelgesi</h2>
+                    </div>
+                    @if (Model.Activities.Any())
+                    {
+                        <span class="pill">@Model.Activities.Count kayıt</span>
+                    }
+                </div>
+
+                @if (Model.Activities.Any())
+                {
+                    <div class="hub-timeline" style="padding: 20px 20px 20px 40px; position: relative;">
+                        <!-- Timeline vertical line -->
+                        <div class="timeline-line" style="position:absolute; left:30px; top:20px; bottom:20px; width:2px; background:var(--line);"></div>
+
+                        @foreach (var act in Model.Activities)
+                        {
+                            var contactBadge = GetContactBadgeClass(act.ContactStatusCode);
+                            <a href="/Activities/Details/@act.Id" class="timeline-card" style="display:flex; gap:16px; padding:16px; margin-bottom:16px; border:1px solid var(--line); border-radius:12px; cursor:pointer; text-decoration:none; color:inherit; transition: all 0.2s ease; position:relative;">
+                                <!-- Timeline dot -->
+                                <div style="position:absolute; left:-22px; top:22px; width:12px; height:12px; border-radius:50%; background:@contactBadge.bg; border:2px solid white; z-index:2;"></div>
+                                
+                                <!-- Date column -->
+                                <div style="min-width:70px; text-align:center; flex-shrink:0;">
+                                    <div style="font-size:22px; font-weight:700; color:var(--text); line-height:1;">@act.ActivityDate.Day</div>
+                                    <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">@act.ActivityDate.ToString("MMM yyyy")</div>
+                                </div>
+                                
+                                <!-- Content -->
+                                <div style="flex:1; min-width:0;">
+                                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+                                        <span class="pill" style="background:@contactBadge.bg; color:@contactBadge.fg; border:none; font-size:10px; padding:2px 8px;">@act.ContactStatus</span>
+                                        @if (act.OutcomeStatus != "-")
+                                        {
+                                            <span class="pill" style="font-size:10px; padding:2px 8px;">@act.OutcomeStatus</span>
+                                        }
+                                    </div>
+                                    <p style="font-size:13px; color:var(--text); margin:0 0 6px 0; line-height:1.4;">
+                                        @(act.Summary ?? "Aktivite özeti girilmemiş.")
+                                    </p>
+                                    <div style="font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px;">
+                                        <i data-lucide="user" style="width:12px;"></i> @act.EmployeeName
+                                    </div>
+                                </div>
+
+                                <!-- Arrow -->
+                                <div style="display:flex; align-items:center; color:var(--muted); flex-shrink:0;">
+                                    <i data-lucide="chevron-right" style="width:16px;"></i>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div style="padding: 30px; text-align: center;">
+                        <div class="note-box" style="border-style: dashed; padding: 40px;">
+                            <i data-lucide="calendar-off" style="width:40px; height:40px; color:var(--muted); margin-bottom:16px; opacity:0.3;"></i>
+                            <p style="color:var(--muted); margin:0; font-size:14px;">Bu lead için henüz bir aktivite kaydı oluşturulmadı.</p>
+                            @if (Model.StatusCode == "ASSIGNED" || Model.StatusCode == "VISIT_SCHEDULED") {
+                                <small style="color:var(--muted);">Saha personeli ziyareti başlattığında burada aktiviteler görünecektir.</small>
+                            }
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <section class="panel">
+                <div class="panel-title">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i data-lucide="message-square" style="color:var(--info);"></i>
+                        <h3>Lead Notları</h3>
+                    </div>
+                    <span class="pill">@Model.Notes.Count not</span>
+                </div>
+                <div class="panel-body" style="padding: 20px;">
+                    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom: 20px; max-height:400px; overflow-y:auto; padding-right:10px;">
+                        @foreach(var n in Model.Notes) {
+                            <div style="background: @(n.IsSystemNote ? "#f1f5f9" : "#f8fafc"); border: 1px solid var(--line); border-radius:8px; padding:12px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                    <strong style="font-size:12px; color:var(--text);">@n.CreatedBy</strong>
+                                    <span style="font-size:11px; color:var(--muted);">@n.CreatedAt.ToString("g")</span>
+                                </div>
+                                <div style="font-size:13px; color:var(--text); white-space:pre-wrap;">@n.Content</div>
+                            </div>
+                        }
+                        @if(!Model.Notes.Any()){
+                            <div class="muted" style="text-align:center; padding:12px; font-size:13px;">Henüz not eklenmemiş.</div>
+                        }
+                    </div>
+
+                    <form asp-action="AddNote" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <textarea name="content" class="input-field" rows="3" placeholder="Yeni bir not yazın..." style="width:100%; margin-bottom:12px;" required></textarea>
+                        <button type="submit" class="btn primary" style="float:right;">Notu Kaydet</button>
+                        <div style="clear:both;"></div>
+                    </form>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="side-hub-panels" style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- 3. ASSIGNMENT PANEL -->
+            <section class="panel">
+                <div class="panel-title">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i data-lucide="user-check" style="color:var(--warn);"></i>
+                        <h3>Atama Bilgisi</h3>
+                    </div>
+                    @if (canAssign && Model.StatusCode != "CONVERTED_TO_ACTIVITY" && Model.StatusCode != "DISQUALIFIED")
+                    {
+                        <button class="btn ghost btn-icon-only" style="padding:0; height:24px; min-width:24px; color: var(--brand);" 
+                                id="btn-toggle-assign"
+                                onclick="toggleAssignForm()"
+                                title="Atama Yap / Değiştir">
+                            <i data-lucide="plus-circle" style="width:18px;"></i>
+                        </button>
+                    }
+                </div>
+                <div style="padding: 0 20px 20px 20px;">
+                    <!-- Assignment Form (Collapsible) -->
+                    <div id="assign-collapse" style="display:none; margin-bottom: 20px; padding: 16px; background: #fafafa; border: 1px dashed var(--line); border-radius: 8px;">
+                        <form asp-action="Assign" method="post" class="stunning-form">
+                            <input type="hidden" name="leadId" value="@Model.Id" />
+                            <div class="field" style="margin-bottom:12px;">
+                                <label style="font-size:11px;">Hangi Personel?</label>
+                                <select name="employeeId" required style="font-size:13px; height:34px;">
+                                    <option value="">Personel Seçiniz...</option>
+                                    @foreach (var emp in Model.AvailableEmployees)
+                                    {
+                                        <option value="@emp.Id">@emp.FullName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field" style="margin-bottom:12px;">
+                                <label style="font-size:11px;">Öncelik</label>
+                                <select name="priority" style="font-size:13px; height:34px;">
+                                    <option value="Medium">Orta</option>
+                                    <option value="High">Yüksek</option>
+                                    <option value="Urgent">Acil</option>
+                                    <option value="Low">Düşük</option>
+                                </select>
+                            </div>
+                            <div class="field" style="margin-bottom:16px;">
+                                <label style="font-size:11px;">Atama Notu</label>
+                                <textarea name="note" rows="2" style="font-size:12px; padding:8px;" placeholder="Kısa talimat..."></textarea>
+                            </div>
+                            <button type="submit" class="btn primary" style="width:100%; font-size:13px; font-weight:600;">Atamayı Kaydet</button>
+                        </form>
+                    </div>
+
+                    @if (Model.CurrentAssignment != null)
+                    {
+                        <div style="display:flex; align-items:center; gap:16px; padding: 12px; background: white; border: 1px solid var(--line); border-radius: 12px;">
+                            <div style="width:40px; height:40px; border-radius:50%; background:var(--brand); color:white; display:flex; align-items:center; justify-content:center; font-weight:700;">
+                                @Model.CurrentAssignment.EmployeeName.Substring(0, 1).ToUpper()
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-weight:700; font-size:14px; color:var(--text);"><a href="/Employees/Details/@Model.CurrentAssignment.EmployeeId" style="color:inherit; text-decoration:none;">@Model.CurrentAssignment.EmployeeName</a></div>
+                                <div style="font-size:12px; color:var(--muted);">Atanan Saha Personeli</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:16px; font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>Atama Tarihi:</span>
+                                <span style="font-weight:600; color:var(--text);">@Model.CurrentAssignment.AssignedAt.ToString("d")</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>Öncelik:</span>
+                                <span class="pill @(GetPriorityClass(Model.CurrentAssignment.Priority))" style="font-size:10px; padding: 1px 8px;">@Model.CurrentAssignment.Priority</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; border-top:1px solid var(--line); padding-top:8px;">
+                                <span>Atayan:</span>
+                                <span style="font-weight:600; color:var(--text);">@Model.CurrentAssignment.AssignedByName</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="note-box" style="padding: 20px; text-align: center; border-style: dashed;">
+                            <p style="font-size:13px; color:var(--muted); margin:0;">Henüz atama yapılmadı.</p>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <!-- 3.5 UPCOMING VISITS CALENDAR -->
+            @if (Model.EmployeeUpcomingVisits != null && Model.EmployeeUpcomingVisits.Any())
+            {
+                <section class="panel">
+                    <div class="panel-title">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <i data-lucide="calendar-clock" style="color:var(--brand);"></i>
+                            <h3>Personelin Yaklaşan Ziyaretleri</h3>
+                        </div>
+                    </div>
+                    <div style="padding: 0 20px 20px 20px;">
+                        <div style="display:flex; flex-direction:column; gap:12px;">
+                            @foreach (var visit in Model.EmployeeUpcomingVisits)
+                            {
+                                <div style="display:flex; align-items:flex-start; gap:12px; padding:12px; border:1px solid var(--line); border-radius:8px; background:#f8fafc;">
+                                    <div style="display:flex; flex-direction:column; align-items:center; background:white; border:1px solid var(--line); border-radius:6px; padding:4px 8px; min-width:48px;">
+                                        <span style="font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase;">@visit.PlannedDate.ToString("MMM")</span>
+                                        <span style="font-size:16px; font-weight:700; color:var(--brand); line-height:1;">@visit.PlannedDate.Day</span>
+                                    </div>
+                                    <div>
+                                        <div style="font-size:12px; font-weight:600; color:var(--text); margin-bottom:2px;">@visit.LeadName</div>
+                                        <div style="font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px;">
+                                            <i data-lucide="clock" style="width:12px;"></i> @visit.PlannedDate.ToString("HH:mm") 
+                                            @if(visit.DurationMinutes.HasValue) {
+                                                <span>(@visit.DurationMinutes dk)</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </section>
+            }
+
+            <!-- 4. LINKED ACCOUNT PANEL -->
+            <section class="panel">
+                <div class="panel-title">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i data-lucide="building" style="color:var(--info);"></i>
+                        <h3>Bağlı Müşteri / Firma</h3>
+                    </div>
+                </div>
+                <div style="padding: 0 20px 20px 20px;">
+                    @if (Model.LinkedAccount != null)
+                    {
+                        <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+                            <div class="brand-icon-new" style="background:var(--info); color:white; width:40px; height:40px; border-radius:10px;">
+                                <i data-lucide="home"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700; font-size:14px; color:var(--text);">@Model.LinkedAccount.Name</div>
+                                <span class="pill info" style="font-size:10px; padding:1px 8px;">@Model.LinkedAccount.AccountType</span>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:16px; font-size:12px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 12px 0;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <span style="color:var(--muted);">Şehir:</span>
+                                <span style="font-weight:600;">@Model.LinkedAccount.City</span>
+                            </div>
+                             <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--muted);">Telefon:</span>
+                                <span style="font-weight:600;">@(Model.LinkedAccount.Phone ?? "-")</span>
+                            </div>
+                        </div>
+                        <a href="/Accounts/Details/@Model.LinkedAccount.Id" class="btn primary" style="width:100%; height:36px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                            <i data-lucide="external-link" style="width:14px;"></i> Müşteri Kartına Git
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="note-box" style="padding: 20px; text-align: center; border-style: dashed;">
+                            <p style="font-size:13px; color:var(--muted); margin:0;">Henüz bir firma kaydı ile ilişkilendirilmemiş.</p>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <!-- 6. SALES PANEL — REAL DATA -->
+            <section class="panel">
+                <div class="panel-title">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i data-lucide="shopping-cart" style="color:var(--brand);"></i>
+                        <h3>Satış Bilgileri</h3>
+                    </div>
+                    @if (Model.Sales.Any())
+                    {
+                        <span class="pill">@Model.Sales.Count satış</span>
+                    }
+                </div>
+                <div style="padding: 0 20px 20px 20px;">
+                    @if (Model.Sales.Any())
+                    {
+                        <div style="display:flex; flex-direction:column; gap:12px;">
+                            @foreach (var sale in Model.Sales)
+                            {
+                                <a href="/Sales/Details/@sale.Id" class="sale-card" style="display:flex; align-items:center; gap:16px; padding:14px; border:1px solid var(--line); border-radius:12px; text-decoration:none; color:inherit; transition: all 0.2s ease;">
+                                    <div style="width:40px; height:40px; border-radius:10px; background:#dcfce7; color:#15803d; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                        <i data-lucide="receipt" style="width:18px;"></i>
+                                    </div>
+                                    <div style="flex:1; min-width:0;">
+                                        <div style="font-weight:600; font-size:13px; color:var(--text); margin-bottom:2px;">@sale.ProductType</div>
+                                        <div style="font-size:11px; color:var(--muted); display:flex; align-items:center; gap:8px;">
+                                            <span>@sale.SaleDate.ToString("dd.MM.yyyy")</span>
+                                            <span>•</span>
+                                            <span>@sale.EmployeeName</span>
+                                        </div>
+                                    </div>
+                                    <div style="text-align:right; flex-shrink:0;">
+                                        <div style="font-weight:700; font-size:15px; color:var(--success);">₺@((sale.Amount ?? 0m).ToString("N0"))</div>
+                                    </div>
+                                    <i data-lucide="chevron-right" style="width:14px; color:var(--muted); flex-shrink:0;"></i>
+                                </a>
+                            }
+                        </div>
+
+                        @if (Model.Sales.Count > 0)
+                        {
+                            <div style="margin-top:16px; padding:12px; background:#f8fdf9; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:12px; color:var(--muted);">Toplam Tutar:</span>
+                                <span style="font-size:16px; font-weight:700; color:var(--success);">₺@Model.Sales.Sum(s => s.Amount ?? 0m).ToString("N0")</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="note-box" style="border-style: dashed; padding: 20px; text-align:center;">
+                            <p style="color:var(--muted); margin:0; font-size:13px;">Henüz bir satış kaydı bulunmuyor.</p>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <!-- 7. ACQUISITION AND REGISTRATION PANEL -->
+            <section class="panel">
+                <div class="panel-title">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i data-lucide="info" style="color:var(--brand);"></i>
+                        <h3>Edinim ve Kayıt</h3>
+                    </div>
+                </div>
+                <div style="padding: 20px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom: 1px dashed var(--line); padding-bottom:12px;">
+                        <span style="color:var(--muted); font-size:13px;">Kaynak:</span>
+                        <span style="font-weight:600; font-size:13px;">@Model.SourceName</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom: 1px dashed var(--line); padding-bottom:12px; align-items:center;">
+                        <span style="color:var(--muted); font-size:13px;">Öncelik:</span>
+                        <span class="priority-pill @GetPriorityClass(Model.Priority).ToLower()">@(Model.Priority == "High" ? "Yüksek" : Model.Priority == "Medium" ? "Orta" : "Düşük")</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:12px; border-bottom: 1px dashed var(--line); padding-bottom:12px;">
+                        <span style="color:var(--muted); font-size:13px;">Sisteme Giriş:</span>
+                        <span style="font-weight:600; font-size:13px;">@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:var(--muted); font-size:13px;">Oluşturan:</span>
+                        <span style="font-weight:600; font-size:13px;">@(Model.CreatedBy ?? "Sistem")</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetStatusClass(string code) => code switch {
+        "NEW" => "success",
+        "ASSIGNED" => "primary",
+        "VISITED" => "success",
+        "DISQUALIFIED" => "danger",
+        "READY_FOR_ASSIGNMENT" => "warn",
+        "CONVERTED_TO_ACTIVITY" => "info",
+        "RESEARCHED" => "primary",
+        "CONTACT_FOUND" => "primary",
+        "VISIT_SCHEDULED" => "primary",
+         _ => "info"
+    };
+
+    string GetPriorityClass(string? p) => p switch {
+        "Urgent" => "danger",
+        "High" => "danger",
+        "Medium" => "warn",
+        "Low" => "info",
+        _ => ""
+    };
+
+    string GetActionLabel(string code) => code switch {
+        "RESEARCHED" => "Araştır",
+        "CONTACT_FOUND" => "İletişim Bulundu",
+        "READY_FOR_ASSIGNMENT" => "Atamaya Hazır",
+        "ASSIGNED" => "Atandı",
+        "VISIT_SCHEDULED" => "Ziyaret Planla",
+        "VISITED" => "Ziyaret Edildi",
+        "CONVERTED_TO_ACTIVITY" => "Dönüştür",
+        _ => code
+    };
+
+    string GetActionHint(string code) => code switch {
+        "RESEARCHED" => "Lead araştırıldı olarak işaretle. Call center ön araştırmasını tamamladığında kullanılır.",
+        "CONTACT_FOUND" => "Karar vericiye ulaşıldı ve iletişim kanalı doğrulandı.",
+        "READY_FOR_ASSIGNMENT" => "Tüm veriler hazır, saha operasyonuna devredilmeye uygun.",
+        "ASSIGNED" => "Personel atamasını gerçekleştir.",
+        "VISIT_SCHEDULED" => "Randevu alındı ve takvime işlendi.",
+        "VISITED" => "Saha ziyareti fiziksel olarak gerçekleştirildi.",
+        "CONVERTED_TO_ACTIVITY" => "Adayı satış fırsatı yaratmak üzere aktiviteye dönüştür.",
+        _ => ""
+    };
+
+    (string bg, string fg) GetContactBadgeClass(string code) => code switch {
+        "CONTACTED" => ("#dcfce7", "#15803d"),
+        "NOT_CONTACTED" => ("#fee2e2", "#b91c1c"),
+        "PLANNED" => ("#e0e7ff", "#4338ca"),
+        _ => ("#f1f5f9", "#475569")
+    };
+}
+
+<style>
+    /* Pipeline Stepper Styling */
+    .stepper-container { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 40px; overflow-x: auto; }
+    .step-item { position: relative; display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 100px; }
+    .step-icon { 
+        width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line); background: white; 
+        display: flex; align-items: center; justify-content: center; z-index: 2; margin-bottom: 8px;
+        transition: all 0.3s ease;
+    }
+    .step-icon span { font-size: 12px; font-weight: 700; color: var(--muted); }
+    .step-icon i { width: 14px; height: 14px; color: white; stroke-width: 3; }
+    .step-icon .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+    
+    .step-label { font-size: 11px; font-weight: 600; color: var(--muted); text-align: center; }
+    .step-line { 
+        position: absolute; top: 16px; left: calc(50% + 16px); width: calc(100% - 32px); height: 2px; 
+        background: var(--line); z-index: 1; 
+    }
+    
+    /* Active & Completed States */
+    .step-item.active .step-icon { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(var(--brand-rgb), 0.1); }
+    .step-item.active .step-label { color: var(--brand); font-weight: 700; }
+    
+    .step-item.completed .step-icon { border-color: var(--success); background: var(--success); }
+    .step-item.completed .step-label { color: var(--success); }
+    .step-item.completed .step-line { background: var(--success); }
+
+    .step-item.disqualified .step-icon { border-color: var(--danger); background: var(--danger); }
+    .step-item.disqualified .step-label { color: var(--danger); }
+
+    /* Timeline Card Hover */
+    .timeline-card:hover { border-color: var(--brand) !important; transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+    /* Sale Card Hover */
+    .sale-card:hover { border-color: var(--brand) !important; transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+    /* General Overrides */
+    .brand-icon-new i { width: 24px; height: 24px; stroke-width: 2.5; }
+    .panel { overflow: hidden; border: 1px solid var(--line); }
+    .stunning-form textarea { border: 1px solid var(--line); border-radius: 8px; width: 100%; resize: none; font-family: inherit; }
+    .btn i { stroke-width: 2.5; }
+    .pill.success { background: var(--success); color: white; border: none; }
+    .pill.primary { background: var(--brand); color: white; border: none; }
+    .pill.danger { background: var(--danger); color: white; border: none; }
+    .pill.warn { background: var(--warn); color: white; border: none; }
+</style>
+
+<script>
+    function toggleAssignForm() {
+        const pnl = document.getElementById('assign-collapse');
+        pnl.style.display = pnl.style.display === 'none' ? 'block' : 'none';
+        
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    function togglePlanVisitForm() {
+        const pnl = document.getElementById('plan-visit-collapse');
+        pnl.style.display = pnl.style.display === 'none' ? 'block' : 'none';
+        
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
+    async function validatePlanVisit(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const btn = document.getElementById('btnSubmitPlan');
+        const dateVal = document.getElementById('plannedDate').value;
+        const timeVal = document.getElementById('plannedTime').value;
+        const leadId = document.getElementById('planLeadId').value;
+
+        if(!dateVal || !timeVal) {
+            alert('Lütfen tarih ve saat seçiniz.');
+            return false;
+        }
+
+        const datetimeStr = dateVal + 'T' + timeVal + ':00';
+        
+        btn.disabled = true;
+        btn.innerHTML = 'Kontrol Ediliyor...';
+
+        try {
+            const res = await fetch(`/Leads/CheckVisitConflict?leadId=${leadId}&datetimeStr=${datetimeStr}`);
+            const data = await res.json();
+
+            if(data.hasConflict) {
+                const proceed = confirm(data.message);
+                if(!proceed) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Planı Kaydet <i data-lucide="check" style="width:16px; margin-left:4px;"></i>';
+                    if (window.lucide) window.lucide.createIcons();
+                    return false;
+                }
+            }
+
+            // All good / confirmed
+            form.submit();
+        } catch (error) {
+            console.error('Conflict check failed', error);
+            // Submit anyway if validation check fails technically
+            form.submit();
+        }
+        
+        return false;
+    }
+
+    function toggleStartVisitForm() {
+        var form = document.getElementById('start-visit-collapse');
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            document.getElementById('plan-visit-collapse').style.display = 'none';
+        } else {
+            form.style.display = 'none';
+        }
+    }
+
+    function toggleOutcomeStatus() {
+        var status = document.getElementById('contactStatusTypeId').value;
+        var outcomeField = document.getElementById('outcomeField');
+        var outcomeSelect = document.getElementById('outcomeStatusTypeId');
+        if (status === '1') { // Görüşüldü
+            outcomeField.style.display = 'block';
+            outcomeSelect.required = true;
+        } else { // Görüşülemedi
+            outcomeField.style.display = 'none';
+            outcomeSelect.required = false;
+        }
+    }
+</script>

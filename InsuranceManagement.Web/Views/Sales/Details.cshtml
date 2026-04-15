@@ -81,7 +81,7 @@
                     <p>@(lead?.Code ?? "Lead Bağlantısı Yok")</p>
                     @if (lead != null)
                     {
-                        <a asp-controller="Leads" asp-action="Details" asp-route-id="@lead.Id" class="btn ghost small" style="margin-top:8px;">Lead Kartına Git →</a>
+                        <a asp-controller="Leads" asp-action="Hub" asp-route-id="@lead.Id" class="btn ghost small" style="margin-top:8px;">Lead Kartına Git →</a>
                     }
                 </div>
             </div>

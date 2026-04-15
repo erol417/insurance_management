@@ -181,4 +181,14 @@ public class AccountService : IAccountService
 
         return warnings;
     }
+
+    public List<Activity> GetPlannedVisits(int accountId)
+    {
+        return _db.Activities
+            .Include(a => a.Employee)
+            .Include(a => a.Lead)
+            .Where(a => a.AccountId == accountId && a.ContactStatusTypeId == 3) // PLANNED
+            .OrderBy(a => a.PlannedAt ?? a.ActivityDate)
+            .ToList();
+    }
 }

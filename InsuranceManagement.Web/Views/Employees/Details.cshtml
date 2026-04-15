@@ -46,40 +46,77 @@
             </div>
         </section>
 
-        <!-- Planned Activities / Tasks -->
+        <!-- Ziyaret Takvimi -->
+        @{
+            bool showCalendarDefault = Context.Request.Query.ContainsKey("weekStart");
+        }
         <section class="section-block" style="border-left: 4px solid var(--primary);">
-            <div class="panel-title">
-                <h3>Yaklaşan Randevular / Planlanan İşler</h3>
-                <div class="pill highlight">Planlama</div>
+            <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleCalendar()">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <h3>Haftalık Ziyaret Takvimi</h3>
+                    <div class="pill highlight">Planlama</div>
+                    <i id="calendar-icon" data-lucide="@(showCalendarDefault ? "chevron-up" : "chevron-down")" style="width:18px; color:var(--muted);"></i>
+                </div>
             </div>
-            <div class="table-scroll">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Tarih</th>
-                            <th>Müşteri</th>
-                            <th>İlgili İş (Lead)</th>
-                            <th style="text-align:right;">İşlem</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var act in plannedActivities)
-                        {
-                            <tr style="background: #f0f7ff;">
-                                <td><strong>@act.ActivityDate.ToString("dd.MM.yyyy")</strong></td>
-                                <td>@act.Account?.DisplayName</td>
-                                <td>@(act.Lead != null ? act.Lead.DisplayName : "-")</td>
-                                <td style="text-align:right;">
-                                    <a asp-controller="Activities" asp-action="Edit" asp-route-id="@act.Id" class="btn primary">Gerçekleştir</a>
-                                </td>
+            
+            <div id="calendar-container" style="display:@(showCalendarDefault ? "block" : "none");">
+                @{
+                    var ws = (DateTime)ViewBag.WeekStart;
+                    var prevWs = ws.AddDays(-7).ToString("yyyy-MM-dd");
+                    var nextWs = ws.AddDays(7).ToString("yyyy-MM-dd");
+                    var todayWs = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday).ToString("yyyy-MM-dd");
+                    var weeklyActs = ViewBag.WeeklyCalendar as List<InsuranceManagement.Web.Domain.Activity> ?? new();
+                }
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div style="color:var(--muted); font-size:13px; font-weight:600;">
+                        @ws.ToString("dd.MM.yyyy") - @ws.AddDays(4).ToString("dd.MM.yyyy")
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <a asp-action="Details" asp-route-id="@Model.Id" asp-route-weekStart="@prevWs" class="btn primary-outline" style="padding: 4px 12px; font-size:12px;" onclick="event.stopPropagation();">&lt; Önceki Hafta</a>
+                        <a asp-action="Details" asp-route-id="@Model.Id" asp-route-weekStart="@todayWs" class="btn ghost" style="padding: 4px 12px; font-size:12px;" onclick="event.stopPropagation();">Bu Hafta</a>
+                        <a asp-action="Details" asp-route-id="@Model.Id" asp-route-weekStart="@nextWs" class="btn primary-outline" style="padding: 4px 12px; font-size:12px;" onclick="event.stopPropagation();">Sonraki Hafta &gt;</a>
+                    </div>
+                </div>
+                <div class="table-scroll">
+                    <table class="data-table" style="table-layout: fixed; min-width: 800px;">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px; text-align:center;">Saat</th>
+                                <th>Pazartesi</th>
+                                <th>Salı</th>
+                                <th>Çarşamba</th>
+                                <th>Perşembe</th>
+                                <th>Cuma</th>
                             </tr>
-                        }
-                        @if (!plannedActivities.Any())
-                        {
-                            <tr><td colspan="4" class="muted" style="text-align:center; padding:20px;">Yakın zamanda planlanmış bir randevu bulunmuyor.</td></tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @for (int h = 8; h <= 18; h++)
+                            {
+                                <tr>
+                                    <td style="text-align:center; font-weight:600; color:var(--muted); font-size:12px; background:#f8fafc; border-right: 1px solid var(--line);">@h.ToString("00"):00</td>
+                                    @for (int d = 0; d < 5; d++)
+                                    {
+                                        var dayDate = ws.AddDays(d).Date;
+                                        var cellActs = weeklyActs.Where(a => a.PlannedAt.HasValue && a.PlannedAt.Value.Date == dayDate && a.PlannedAt.Value.Hour == h).ToList();
+                                        
+                                        <td style="vertical-align:top; padding:4px; height: 60px; border-right: 1px dashed var(--line);">
+                                            @foreach (var act in cellActs)
+                                            {
+                                                var targetClass = act.LeadId.HasValue ? "success" : "primary";
+                                                var targetName = act.Lead != null ? act.Lead.DisplayName : (act.Account != null ? act.Account.DisplayName : "Bilinmiyor");
+                                                <div style="background:var(--@(targetClass)-light, #ecfdf5); border-left: 3px solid var(--@targetClass); padding: 4px 8px; border-radius:4px; margin-bottom:4px; font-size:11px; cursor:pointer;" title="@act.Summary">
+                                                    <div style="font-weight:700; color:var(--text); margin-bottom:2px;">@act.PlannedAt?.ToString("HH:mm")</div>
+                                                    <div style="color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@targetName</div>
+                                                </div>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -109,7 +146,7 @@
                                 <td><span class="priority-pill @lead.Priority.ToString().ToLower()">@lead.Priority</span></td>
                                 <td>@lead.LeadStatusType.Name</td>
                                 <td style="text-align:right;">
-                                    <a asp-controller="Leads" asp-action="Details" asp-route-id="@lead.Id" class="btn primary-outline" style="font-size:11px; padding:4px 8px;">Detay</a>
+                                    <a asp-controller="Leads" asp-action="Hub" asp-route-id="@lead.Id" class="btn primary-outline" style="font-size:11px; padding:4px 8px;">Detay</a>
                                 </td>
                             </tr>
                         }
@@ -223,3 +260,18 @@
         </section>
     </aside>
 </div>
+
+<script>
+    function toggleCalendar() {
+        var container = document.getElementById('calendar-container');
+        var icon = document.getElementById('calendar-icon');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            icon.setAttribute('data-lucide', 'chevron-up');
+        } else {
+            container.style.display = 'none';
+            icon.setAttribute('data-lucide', 'chevron-down');
+        }
+        if (window.lucide) window.lucide.createIcons();
+    }
+</script>

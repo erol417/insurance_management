@@ -225,7 +225,7 @@
                 <tr data-lead-id="@lead.Id">
                     @if (canManage)
                     {
-                        <td><a asp-action="Details" asp-route-id="@lead.Id">@lead.Code</a></td>
+                        <td><a asp-action="Hub" asp-route-id="@lead.Id">@lead.Code</a></td>
                         <td><input data-field="displayName" class="cell-input" value="@lead.DisplayName" /></td>
                         <td><input data-field="city" class="cell-input" value="@lead.City" /></td>
                         <td><input data-field="district" class="cell-input" value="@lead.District" /></td>
@@ -276,7 +276,7 @@
                     }
                     else
                     {
-                        <td>@lead.Code</td>
+                        <td><a asp-action="Hub" asp-route-id="@lead.Id">@lead.Code</a></td>
                         <td>@lead.DisplayName</td>
                         <td>@lead.City</td>
                         <td>@lead.District</td>

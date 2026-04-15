@@ -107,4 +107,20 @@ public class EmployeeService : IEmployeeService
 
         return (errors.Count == 0, errors);
     }
+
+    public List<Activity> GetWeeklyCalendar(int employeeId, DateTime weekStart)
+    {
+        // weekStart is assumed to be Monday
+        var weekEnd = weekStart.AddDays(7);
+        return _db.Activities
+            .Include(a => a.Lead)
+            .Include(a => a.Account)
+            .Where(a => a.EmployeeId == employeeId &&
+                        a.ContactStatusTypeId == 3 && // PLANNED
+                        a.PlannedAt != null &&
+                        a.PlannedAt >= weekStart &&
+                        a.PlannedAt < weekEnd)
+            .OrderBy(a => a.PlannedAt)
+            .ToList();
+    }
 }
