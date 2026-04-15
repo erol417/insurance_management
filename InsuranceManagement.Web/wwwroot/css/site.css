@@ -796,7 +796,9 @@ textarea {
 }
 
 .table-scroll {
+  width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin-top: 16px;
 }
 
@@ -814,7 +816,14 @@ textarea {
 }
 
 .table-wrap {
+  width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table, 
+.table-wrap table {
+  min-width: 900px;
 }
 
 .list-toolbar {
@@ -1886,10 +1895,26 @@ button.btn.ghost {
     overflow-x: hidden;
   }
 
-  .metric-grid, .cards-4, .cards-3, .equal-2, .two, .chart-grid-2 {
+  .metric-grid, .cards-4, .cards-3, .equal-2, .two, .chart-grid-2, .form-layout, .detail-grid {
     grid-template-columns: 1fr !important;
     gap: 16px;
     width: 100% !important;
+  }
+
+  .layout-main, .side-stack {
+    width: 100% !important;
+  }
+
+  /* Calendar Controls Fix */
+  #calendar-container div[style*="justify-content: space-between"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  #calendar-container .btn {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
   }
 
   .page-header h1 {
