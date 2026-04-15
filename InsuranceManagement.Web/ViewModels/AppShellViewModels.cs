@@ -19,6 +19,8 @@ public class NavGroupVm
 public class AppShellViewModel
 {
     public string CurrentUserName { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public int? CurrentEmployeeId { get; set; }
     public RoleType? CurrentRole { get; set; }
     public List<NavGroupVm> Groups { get; set; } = [];
 }

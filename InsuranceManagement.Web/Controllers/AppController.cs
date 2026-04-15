@@ -39,9 +39,12 @@ public abstract class AppController : Controller
         var role = User.GetRoleType();
         if (role == null) return;
 
+        var user = CurrentAppUser;
         ViewBag.AppShell = new AppShellViewModel
         {
             CurrentUserName = User.Identity?.Name ?? "Kullanici",
+            FullName = user?.FullName ?? User.Identity?.Name ?? "Kullanici",
+            CurrentEmployeeId = user?.EmployeeId,
             CurrentRole = role,
             Groups = BuildNavigation(role.Value, User.GetEmployeeId())
         };
@@ -117,24 +120,21 @@ public abstract class AppController : Controller
                 groups.Add(new NavGroupVm { Title = "Gosterge Panelleri", Items = dashboardItems });
         }
 
-        // Leads
-        if (CanAccessPermission("Leads"))
+        // Leads - Everyone should have access to Lead entry
+        var leadItems = new List<NavItemVm>();
+        leadItems.Add(new NavItemVm { Label = "Lead Havuzu", Controller = "Leads", Action = "Index" });
+        
+        if (role is RoleType.Admin or RoleType.Manager or RoleType.SalesManager)
         {
-            var leadItems = new List<NavItemVm>();
-            leadItems.Add(new NavItemVm { Label = "Lead Havuzu", Controller = "Leads", Action = "Index" });
-            
-            if (role is RoleType.Admin or RoleType.Manager or RoleType.SalesManager)
-            {
-                leadItems.Add(new NavItemVm { Label = "Atamalar", Controller = "Leads", Action = "Assignments" });
-            }
-            
-            if (role == RoleType.FieldSales)
-            {
-                leadItems.Add(new NavItemVm { Label = "Atanan Leadlerim", Controller = "Leads", Action = "MyAssigned" });
-            }
-
-            groups.Add(new NavGroupVm { Title = "Lead Akisi", Items = leadItems });
+            leadItems.Add(new NavItemVm { Label = "Atamalar", Controller = "Leads", Action = "Assignments" });
         }
+        
+        if (role == RoleType.FieldSales)
+        {
+            leadItems.Add(new NavItemVm { Label = "Atanan Leadlerim", Controller = "Leads", Action = "MyAssigned" });
+        }
+
+        groups.Add(new NavGroupVm { Title = "Lead Akisi", Items = leadItems });
 
         // Operation
         var operationItems = new List<NavItemVm>();

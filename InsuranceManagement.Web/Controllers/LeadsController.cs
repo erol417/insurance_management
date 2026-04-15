@@ -188,7 +188,6 @@ public class LeadsController : AppController
         return RedirectToAction(nameof(Index), new { page = model.Page });
     }
 
-    [Authorize(Roles = "Admin,SalesManager,CallCenter")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult QuickCreate(LeadInlineEditViewModel model)
@@ -308,7 +307,6 @@ public class LeadsController : AppController
         return View(model);
     }
 
-    [Authorize(Roles = "Admin,CallCenter,Operations")]
     [HttpGet]
     public IActionResult Create()
     {
@@ -319,7 +317,6 @@ public class LeadsController : AppController
         return View(new LeadFormViewModel());
     }
 
-    [Authorize(Roles = "Admin,CallCenter,Operations")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Create(LeadFormViewModel model)

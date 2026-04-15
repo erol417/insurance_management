@@ -1,10 +1,10 @@
 @model dynamic
 
-<form method="get" class="inline-actions" id="dashboardFilter" style="background:rgba(255,255,255,0.5); padding:8px 12px; border-radius:14px; border:1px solid var(--line);">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <i data-lucide="filter" style="width:16px; color:var(--muted);"></i>
+<form method="get" class="dashboard-filters" id="dashboardFilter">
+    <div class="dashboard-filters-inner">
+        <i data-lucide="filter" class="filter-icon"></i>
         
-        <select name="range" class="filter-select" onchange="this.form.submit()" style="height:34px; border:none; background:transparent; font-weight:600; min-width:120px;">
+        <select name="range" class="filter-select-minimal" onchange="this.form.submit()">
             <option value="thisweek" selected="@(Model.DateRange == "thisweek")">Bu Hafta</option>
             <option value="thismonth" selected="@(Model.DateRange == "thismonth")">Bu Ay</option>
             <option value="last30" selected="@(Model.DateRange == "last30")">Son 30 Gün</option>
@@ -13,9 +13,9 @@
             <option value="custom" selected="@(Model.DateRange == "custom")">Özel Aralık</option>
         </select>
 
-        <div style="width:1px; height:20px; background:var(--line);"></div>
+        <div class="v-divider"></div>
 
-        <select name="employeeId" class="filter-select" onchange="this.form.submit()" style="height:34px; border:none; background:transparent; font-weight:600; min-width:140px;">
+        <select name="employeeId" class="filter-select-minimal" onchange="this.form.submit()">
             <option value="">Tum Personel</option>
             @foreach (var item in Model.PersonnelList)
             {
@@ -23,9 +23,9 @@
             }
         </select>
 
-        <div style="width:1px; height:20px; background:var(--line);"></div>
+        <div class="v-divider"></div>
 
-        <select name="productTypeId" class="filter-select" onchange="this.form.submit()" style="height:34px; border:none; background:transparent; font-weight:600; min-width:140px;">
+        <select name="productTypeId" class="filter-select-minimal" onchange="this.form.submit()">
             <option value="">Tum Urunler</option>
             @foreach (var item in Model.ProductTypeList)
             {
@@ -35,9 +35,9 @@
 
         @if (Model.DateRange == "custom")
         {
-            <div style="display:flex; gap:4px;">
-                <input type="date" name="start" value="@Model.StartDate.ToString("yyyy-MM-dd")" class="filter-select" style="height:34px; border:1px solid var(--line); border-radius:8px; background:var(--bg-soft); padding:0 8px;" onchange="this.form.submit()" />
-                <input type="date" name="end" value="@Model.EndDate.ToString("yyyy-MM-dd")" class="filter-select" style="height:34px; border:1px solid var(--line); border-radius:8px; background:var(--bg-soft); padding:0 8px;" onchange="this.form.submit()" />
+            <div class="custom-date-inputs">
+                <input type="date" name="start" value="@Model.StartDate.ToString("yyyy-MM-dd")" class="filter-input-date" onchange="this.form.submit()" />
+                <input type="date" name="end" value="@Model.EndDate.ToString("yyyy-MM-dd")" class="filter-input-date" onchange="this.form.submit()" />
             </div>
         }
     </div>

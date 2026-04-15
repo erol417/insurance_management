@@ -131,8 +131,12 @@
         </aside>
 
         <div class="main-content">
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
             <header class="topbar">
                 <div class="topbar-left">
+                    <button class="menu-toggle" id="sidebarToggle">
+                        <i data-lucide="menu"></i>
+                    </button>
                     <div class="search-input-wrapper">
                         <i data-lucide="search"></i>
                         <input class="search-input" placeholder="Hızlıca ara..." />
@@ -142,9 +146,32 @@
                     <a asp-controller="Help" asp-action="Index" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:#f1f5f9; color:var(--text); text-decoration:none;" title="Yardım Merkezi">
                         <i data-lucide="help-circle" style="width:18px;"></i>
                     </a>
-                    <div class="user-lockup">
+                    <div class="user-lockup" id="userMenuTrigger">
                         <div class="avatar"></div>
-                        <div style="font-weight: 500; font-size: 14px;">@shell.CurrentUserName</div>
+                        <div style="font-weight: 500; font-size: 14px;">@shell.FullName</div>
+                        <i data-lucide="chevron-down" style="width: 14px; color: var(--muted);"></i>
+
+                        <div class="user-dropdown" id="userDropdown">
+                            @if (shell.CurrentEmployeeId.HasValue)
+                            {
+                                <a asp-controller="Employees" asp-action="Details" asp-route-id="@shell.CurrentEmployeeId">
+                                    <i data-lucide="user"></i>
+                                    Profilim
+                                </a>
+                                <a asp-controller="Employees" asp-action="Edit" asp-route-id="@shell.CurrentEmployeeId">
+                                    <i data-lucide="user-cog"></i>
+                                    Hesabımı Düzenle
+                                </a>
+                            }
+                            <div class="divider"></div>
+                            <form asp-controller="Auth" asp-action="Logout" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit">
+                                    <i data-lucide="log-out"></i>
+                                    Güvenli Çıkış
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -193,6 +220,47 @@
     <script src="~/js/gridDraft.js" asp-append-version="true"></script>
     <script>
         lucide.createIcons();
+
+        // Constants
+        const shell = document.querySelector('.app-shell');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const userMenuTrigger = document.getElementById('userMenuTrigger');
+        const userDropdown = document.getElementById('userDropdown');
+
+        // Sidebar Toggle (Mobile)
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                shell.classList.add('sidebar-open');
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => {
+                shell.classList.remove('sidebar-open');
+            });
+        }
+
+        // User Dropdown Toggle
+        if (userMenuTrigger && userDropdown) {
+            userMenuTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userDropdown.classList.toggle('show');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!userMenuTrigger.contains(e.target)) {
+                    userDropdown.classList.remove('show');
+                }
+            });
+        }
+
+        // Close sidebar on navigation (mobile)
+        document.querySelectorAll('.sidebar-nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                shell.classList.remove('sidebar-open');
+            });
+        });
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
