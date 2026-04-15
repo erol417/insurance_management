@@ -37,8 +37,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "8080:8080"
+    # Ports removed here to enforce traffic through Caddy (HTTPS)
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - Persistence__Provider=Postgres
@@ -46,6 +45,22 @@ services:
     env_file:
       - .env
 
+  caddy:
+    image: caddy:2
+    container_name: insurance-management-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
 volumes:
   insurance-management-postgres-data:
   insurance-management-pgadmin-data:
+  caddy_data:
+  caddy_config:
