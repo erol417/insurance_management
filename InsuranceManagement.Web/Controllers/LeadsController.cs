@@ -65,7 +65,7 @@ public class LeadsController : AppController
         });
     }
 
-    [Authorize(Roles = "Admin,SalesManager,CallCenter")]
+    [Authorize(Roles = "Admin,SalesManager,CallCenter,Manager,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult BulkSave(LeadGridSaveViewModel model)
@@ -228,7 +228,7 @@ public class LeadsController : AppController
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Roles = "Admin,SalesManager,CallCenter")]
+    [Authorize(Roles = "Admin,SalesManager,CallCenter,Manager,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult QuickUpdate(LeadInlineEditViewModel model)
@@ -358,7 +358,7 @@ public class LeadsController : AppController
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Roles = "Admin,SalesManager,CallCenter")]
+    [Authorize(Roles = "Admin,SalesManager,CallCenter,Manager,FieldSales")]
     [HttpGet]
     public IActionResult Edit(int id)
     {
@@ -390,7 +390,7 @@ public class LeadsController : AppController
         return View(model);
     }
 
-    [Authorize(Roles = "Admin,SalesManager,CallCenter")]
+    [Authorize(Roles = "Admin,SalesManager,CallCenter,Manager,FieldSales")]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Edit(int id, LeadFormViewModel model)

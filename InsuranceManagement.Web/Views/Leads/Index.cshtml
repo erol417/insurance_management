@@ -1,7 +1,7 @@
 @model InsuranceManagement.Web.ViewModels.LeadsIndexViewModel
 @{
     var employees = ViewBag.Employees as List<InsuranceManagement.Web.Domain.Employee> ?? [];
-    var canManage = User.IsInRole("Admin") || User.IsInRole("SalesManager") || User.IsInRole("CallCenter");
+    var canManage = User.IsInRole("Admin") || User.IsInRole("SalesManager") || User.IsInRole("CallCenter") || User.IsInRole("Manager") || User.IsInRole("FieldSales");
     var canAssign = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("SalesManager");
     var prevPage = Math.Max(1, Model.CurrentPage - 1);
     var nextPage = Math.Min(Model.TotalPages, Model.CurrentPage + 1);
