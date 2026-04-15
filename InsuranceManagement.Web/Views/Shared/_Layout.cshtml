@@ -63,86 +63,132 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
+    @{
+        var iconMapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Dashboard"] = "layout-dashboard",
+            ["Leads"] = "users",
+            ["Accounts"] = "building-2",
+            ["Activities"] = "list-todo",
+            ["Sales"] = "file-spreadsheet",
+            ["Expenses"] = "receipt",
+            ["Employees"] = "user-round-cog",
+            ["Admin"] = "settings",
+            ["Imports"] = "upload-cloud",
+            ["Help"] = "help-circle",
+            ["Kisisel"] = "user"
+        };
+    }
     <div class="app-shell">
-        <header class="topnav">
-            <div class="topnav-left">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
                 <div class="brand-lockup">
                     <div class="brand-icon-new">
                         <i data-lucide="shield-check"></i>
                     </div>
-                    <div class="brand-title">Sigorta <span>Operasyon</span> <small>@(shell.CurrentRole?.ToDisplayText() ?? "MVP")</small></div>
+                    <div class="brand-title">
+                        Sigorta <span>Operasyon</span>
+                        <small>@(shell.CurrentRole?.ToDisplayText() ?? "MVP")</small>
+                    </div>
                 </div>
-                <nav class="mainnav">
-                    @if (kisiselGroup != null)
-                    {
-                        @foreach (var item in kisiselGroup.Items)
-                        {
-                            var activeClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase) && string.Equals(action, item.Action, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
-                            var routeData = item.RouteValues != null ? new RouteValueDictionary(item.RouteValues).ToDictionary(x => x.Key, x => x.Value?.ToString() ?? string.Empty) : null;
-                            <a class="@activeClass" style="border-right: 1px solid var(--line); padding-right: 15px; margin-right: 5px; color: var(--brand); font-weight: 600;" 
-                               asp-controller="@item.Controller" asp-action="@item.Action" asp-all-route-data="routeData">@item.Label</a>
-                        }
-                    }
-                    @foreach (var item in topNavItems)
-                    {
-                        var activeClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
-                        <a class="@activeClass" asp-controller="@item.Controller" asp-action="@item.Action">@item.Label</a>
-                    }
-                </nav>
             </div>
-            <div class="topnav-right">
-                <a asp-controller="Help" asp-action="Index" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:#f1f5f9; color:var(--text); text-decoration:none; margin-right:8px;" title="Yardım Merkezi">
-                    <i data-lucide="help-circle" style="width:18px;"></i>
-                </a>
-                <input class="search-input" value="Ara" />
-                <div class="user-lockup">
-                    <div class="avatar"></div>
-                    <div>@shell.CurrentUserName</div>
-                </div>
+            <nav class="sidebar-nav">
+                @if (kisiselGroup != null)
+                {
+                    @foreach (var item in kisiselGroup.Items)
+                    {
+                        var activeClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase) && string.Equals(action, item.Action, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+                        var routeData = item.RouteValues != null ? new RouteValueDictionary(item.RouteValues).ToDictionary(x => x.Key, x => x.Value?.ToString() ?? string.Empty) : null;
+                        var icon = iconMapping.TryGetValue(item.Controller ?? "Kisisel", out var ic) ? ic : "circle";
+                        <a class="@activeClass" asp-controller="@item.Controller" asp-action="@item.Action" asp-all-route-data="routeData">
+                            <i data-lucide="@icon"></i>
+                            <span>@item.Label</span>
+                        </a>
+                    }
+                }
+                
+                <div style="height: 1px; background: var(--line); margin: 8px 16px;"></div>
+
+                @foreach (var item in topNavItems)
+                {
+                    var activeClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+                    var icon = iconMapping.TryGetValue(item.Controller ?? string.Empty, out var ic) ? ic : "circle";
+                    <a class="@activeClass" asp-controller="@item.Controller" asp-action="@item.Action">
+                        <i data-lucide="@icon"></i>
+                        <span>@item.Label</span>
+                    </a>
+                }
+            </nav>
+            <div class="sidebar-footer">
                 <form asp-controller="Auth" asp-action="Logout" method="post" class="inline-form">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn primary">Cikis</button>
+                    <button type="submit" class="btn secondary" style="width: 100%; display: flex; align-items: center; gap: 8px; justify-content: center;">
+                        <i data-lucide="log-out" style="width: 16px;"></i>
+                        Cikis Yap
+                    </button>
                 </form>
             </div>
-        </header>
-        <main class="page">
-            <div class="page-inner">
-                @if (subNavControllers.Contains(controller ?? string.Empty) && subNavItems.Count > 1)
-                {
-                    <nav class="subnav">
-                        @foreach (var item in subNavItems)
-                        {
-                            var subActiveClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase)
-                                && string.Equals(action, item.Action, StringComparison.OrdinalIgnoreCase)
-                                ? "active"
-                                : string.Empty;
-                            var subRouteData = item.RouteValues != null 
-                                ? new RouteValueDictionary(item.RouteValues).ToDictionary(x => x.Key, x => x.Value?.ToString() ?? string.Empty) 
-                                : null;
-                            <a class="@subActiveClass" asp-controller="@item.Controller" asp-action="@item.Action" asp-all-route-data="subRouteData">@item.Label</a>
-                        }
-                    </nav>
-                }
-                <div class="page-header">
-                    <div class="breadcrumb">@(navigationLabels.TryGetValue(controller ?? string.Empty, out var breadcrumbLabel) ? breadcrumbLabel : (controller ?? "Ana Sayfa")) / @(ViewData["Title"] ?? action ?? "Dashboard")</div>
-                    <h1>@ViewData["Title"]</h1>
-                    @if (ViewData["Subtitle"] is string subtitle && !string.IsNullOrWhiteSpace(subtitle))
-                    {
-                        <p>@subtitle</p>
-                    }
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <div class="search-input-wrapper">
+                        <i data-lucide="search"></i>
+                        <input class="search-input" placeholder="Hızlıca ara..." />
+                    </div>
                 </div>
-            @if (TempData["Flash"] is string flash)
-            {
-                <div class="flash">@flash</div>
-            }
-            @if (TempData["Warning"] is string warning)
-            {
-                <div class="note-box" style="margin-bottom:16px;"><strong>Uyari</strong><p>@warning</p></div>
-            }
-            @RenderBody()
-            </div>
-        </main>
+                <div class="topbar-right">
+                    <a asp-controller="Help" asp-action="Index" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; background:#f1f5f9; color:var(--text); text-decoration:none;" title="Yardım Merkezi">
+                        <i data-lucide="help-circle" style="width:18px;"></i>
+                    </a>
+                    <div class="user-lockup">
+                        <div class="avatar"></div>
+                        <div style="font-weight: 500; font-size: 14px;">@shell.CurrentUserName</div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page">
+                <div class="page-inner">
+                    @if (subNavControllers.Contains(controller ?? string.Empty) && subNavItems.Count > 1)
+                    {
+                        <nav class="subnav">
+                            @foreach (var item in subNavItems)
+                            {
+                                var subActiveClass = string.Equals(controller, item.Controller, StringComparison.OrdinalIgnoreCase)
+                                    && string.Equals(action, item.Action, StringComparison.OrdinalIgnoreCase)
+                                    ? "active"
+                                    : string.Empty;
+                                var subRouteData = item.RouteValues != null 
+                                    ? new RouteValueDictionary(item.RouteValues).ToDictionary(x => x.Key, x => x.Value?.ToString() ?? string.Empty) 
+                                    : null;
+                                <a class="@subActiveClass" asp-controller="@item.Controller" asp-action="@item.Action" asp-all-route-data="subRouteData">@item.Label</a>
+                            }
+                        </nav>
+                    }
+                    <div class="page-header">
+                        <div class="breadcrumb">@(navigationLabels.TryGetValue(controller ?? string.Empty, out var breadcrumbLabel) ? breadcrumbLabel : (controller ?? "Ana Sayfa")) / @(ViewData["Title"] ?? action ?? "Dashboard")</div>
+                        <h1>@ViewData["Title"]</h1>
+                        @if (ViewData["Subtitle"] is string subtitle && !string.IsNullOrWhiteSpace(subtitle))
+                        {
+                            <p>@subtitle</p>
+                        }
+                    </div>
+                    @if (TempData["Flash"] is string flash)
+                    {
+                        <div class="flash">@flash</div>
+                    }
+                    @if (TempData["Warning"] is string warning)
+                    {
+                        <div class="note-box" style="margin-bottom:16px;"><strong>Uyari</strong><p>@warning</p></div>
+                    }
+                    @RenderBody()
+                </div>
+            </main>
+        </div>
     </div>
+
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/gridDraft.js" asp-append-version="true"></script>
     <script>
