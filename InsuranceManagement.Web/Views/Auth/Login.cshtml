@@ -30,14 +30,14 @@
             border-radius: 24px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
             overflow: hidden;
+            margin: auto;
         }
         .auth-card {
-            padding: 60px;
-            border: none;
-            box-shadow: none;
+            padding: 40px 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            width: 100%;
         }
         .auth-side {
             background: linear-gradient(135deg, var(--brand), var(--brand-dark));
@@ -61,6 +61,7 @@
         }
         .input-group input {
             padding-left: 44px !important;
+            height: 48px;
         }
         .brand-pill {
             display: inline-flex;
@@ -76,10 +77,17 @@
         }
 
         /* Responsive Improvements */
+        @@media (max-width: 1024px) {
+            .hero {
+                max-width: 900px;
+            }
+        }
+
         @@media (max-width: 900px) {
             .hero {
                 grid-template-columns: 1fr;
                 max-width: 500px;
+                min-height: auto;
             }
             .auth-side {
                 display: none;
@@ -98,6 +106,7 @@
             }
             .hero {
                 border-radius: 16px;
+                width: 100%;
             }
         }
 
