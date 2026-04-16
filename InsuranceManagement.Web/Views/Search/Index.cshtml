@@ -1,0 +1,126 @@
+@model InsuranceManagement.Web.Controllers.SearchResultsViewModel
+@{
+    ViewData["Title"] = "Arama Sonuclari";
+    var query = ViewBag.Query as string;
+}
+
+<div class="page-inner">
+    <div style="margin-bottom: 32px;">
+        <h1 style="font-family:'Outfit'; margin-bottom:8px;">Arama Sonuclari</h1>
+        <p class="muted">"@query" ifadesi için @Model.TotalCount sonuc bulundu.</p>
+    </div>
+
+    @if (Model.TotalCount == 0)
+    {
+        <div class="panel" style="padding: 60px; text-align: center;">
+            <div style="width: 80px; height: 80px; background: var(--bg-soft); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                <i data-lucide="search-x" style="width: 40px; height: 40px; color: var(--muted);"></i>
+            </div>
+            <h2 style="margin-bottom: 12px;">Eslesme Bulunamadi</h2>
+            <p class="muted">Aradiginiz kriterlere uygun herhangi bir kayit sisteme kaydedilmemis.</p>
+            <a href="javascript:history.back()" class="btn secondary" style="margin-top: 24px;">Geri Don</a>
+        </div>
+    }
+    else
+    {
+        <div style="display: grid; gap: 32px;">
+            @if (Model.Leads.Any())
+            {
+                <section>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="padding: 8px; background: var(--brand-soft); color: var(--brand); border-radius: 8px;">
+                            <i data-lucide="target" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <h3 style="margin: 0; font-family: 'Outfit';">Leadler (@Model.Leads.Count)</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                        @foreach (var lead in Model.Leads)
+                        {
+                            <a asp-controller="Leads" asp-action="Hub" asp-route-id="@lead.Id" class="panel hover-card" style="text-decoration: none; color: inherit; display: block; padding: 16px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                    <strong>@lead.DisplayName</strong>
+                                    <span class="pill">@lead.Code</span>
+                                </div>
+                                <div style="font-size: 13px; color: var(--muted); display: grid; gap: 4px;">
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <i data-lucide="map-pin" style="width: 14px;"></i> @lead.City / @lead.District
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <i data-lucide="phone" style="width: 14px;"></i> @lead.Phone
+                                    </div>
+                                    <div style="margin-top: 8px; font-weight: 500; color: var(--brand);">
+                                        Durum: @lead.LeadStatusType.Name
+                                    </div>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                </section>
+            }
+
+            @if (Model.Accounts.Any())
+            {
+                <section>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="padding: 8px; background: #dcfce7; color: #15803d; border-radius: 8px;">
+                            <i data-lucide="building-2" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <h3 style="margin: 0; font-family: 'Outfit';">Musteriler (@Model.Accounts.Count)</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                        @foreach (var account in Model.Accounts)
+                        {
+                            <a asp-controller="Accounts" asp-action="Details" asp-route-id="@account.Id" class="panel hover-card" style="text-decoration: none; color: inherit; display: block; padding: 16px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                                    <strong>@account.DisplayName</strong>
+                                    <span class="pill" style="background:#f1f5f9; color:#475569;">@account.Code</span>
+                                </div>
+                                <div style="font-size: 13px; color: var(--muted); display: grid; gap: 4px;">
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <i data-lucide="map-pin" style="width: 14px;"></i> @account.City
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <i data-lucide="phone" style="width: 14px;"></i> @account.Phone
+                                    </div>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                </section>
+            }
+
+            @if (Model.Employees.Any())
+            {
+                <section>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="padding: 8px; background: #fef9c3; color: #a16207; border-radius: 8px;">
+                            <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <h3 style="margin: 0; font-family: 'Outfit';">Personeller (@Model.Employees.Count)</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                        @foreach (var emp in Model.Employees)
+                        {
+                            <a asp-controller="Employees" asp-action="Details" asp-route-id="@emp.Id" class="panel hover-card" style="text-decoration: none; color: inherit; display: block; padding: 16px;">
+                                <div style="display: flex; align-items: center; gap: 16px;">
+                                    <div style="width: 48px; height: 48px; background: var(--bg-soft); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--brand);">
+                                        @emp.FullName.Substring(0, 1)
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600;">@emp.FullName</div>
+                                        <div style="font-size: 13px; color: var(--muted);">@emp.Region - @emp.City</div>
+                                    </div>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .hover-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--line); }
+    .hover-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--brand); }
+</style>

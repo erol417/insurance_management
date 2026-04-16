@@ -59,7 +59,8 @@ public class LeadsController : AppController
                     LeadStatusTypeId = x.LeadStatusTypeId,
                     Priority = x.Priority,
                     Note = x.Note,
-                    AssignedEmployeeId = x.AssignedEmployeeId
+                    AssignedEmployeeId = x.AssignedEmployeeId,
+                    CreatedAt = x.CreatedAt
                 })
                 .ToList()
         });

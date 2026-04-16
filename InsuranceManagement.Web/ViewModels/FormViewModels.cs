@@ -56,6 +56,7 @@ public class LeadInlineEditViewModel
     public LeadPriority Priority { get; set; } = LeadPriority.Medium;
     public string Note { get; set; } = string.Empty;
     public int? AssignedEmployeeId { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public class LeadsIndexViewModel

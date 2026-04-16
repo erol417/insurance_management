@@ -11,8 +11,8 @@ public static class DbSeeder
         var requiredLeadStatuses = new List<LeadStatusType>
         {
             new LeadStatusType { Id = 1, Code = "NEW", Name = "Yeni", DisplayOrder = 1 },
-            new LeadStatusType { Id = 6, Code = "RESEARCHED", Name = "Araştırılmış", DisplayOrder = 2 },
-            new LeadStatusType { Id = 7, Code = "CONTACT_FOUND", Name = "İletişim Bulundu", DisplayOrder = 3 },
+            new LeadStatusType { Id = 6, Code = "RESEARCHED", Name = "Araştırma", DisplayOrder = 2 },
+            new LeadStatusType { Id = 7, Code = "CONTACT_FOUND", Name = "İletişim", DisplayOrder = 3 },
             new LeadStatusType { Id = 2, Code = "READY_FOR_ASSIGNMENT", Name = "Atamaya Hazır", DisplayOrder = 4 },
             new LeadStatusType { Id = 3, Code = "ASSIGNED", Name = "Atandı", DisplayOrder = 5 },
             new LeadStatusType { Id = 8, Code = "VISIT_SCHEDULED", Name = "Ziyaret Planlandı", DisplayOrder = 6 },
@@ -24,9 +24,16 @@ public static class DbSeeder
         var existingStatusCodes = await db.LeadStatusTypes.Select(s => s.Code).ToListAsync();
         foreach (var status in requiredLeadStatuses)
         {
-            if (!existingStatusCodes.Contains(status.Code))
+            var existing = await db.LeadStatusTypes.FirstOrDefaultAsync(s => s.Code == status.Code);
+            if (existing == null)
             {
                 db.LeadStatusTypes.Add(status);
+            }
+            else
+            {
+                // Update name if changed
+                existing.Name = status.Name;
+                existing.DisplayOrder = status.DisplayOrder;
             }
         }
 

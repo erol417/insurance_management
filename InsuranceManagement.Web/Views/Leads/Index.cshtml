@@ -160,6 +160,7 @@
                             Oncelik @if(ViewBag.SortBy == "priority") { <i data-lucide="@(ViewBag.IsDescending ? "chevron-down" : "chevron-up")"></i> }
                         </a>
                     </th>
+                    <th>Not</th>
                     <th>
                         <a class="sortable-link @(ViewBag.SortBy == "date" ? "active" : "")" 
                            asp-action="Index" 
@@ -218,6 +219,7 @@
                         </select>
                     </td>
                     <td><input data-field="note" class="cell-input" placeholder="Not" /></td>
+                    <td><span class="muted">@DateTime.Now.ToString("dd.MM.yyyy")</span></td>
                 </tr>
             }
             @foreach (var lead in Model.Items)
@@ -273,6 +275,7 @@
                             </select>
                         </td>
                         <td><input data-field="note" class="cell-input" value="@lead.Note" /></td>
+                        <td><small class="muted">@lead.CreatedAt.ToString("dd.MM.yyyy")</small></td>
                     }
                     else
                     {
@@ -288,6 +291,7 @@
                         <td>@(lead.AssignedEmployeeId.HasValue ? employees.FirstOrDefault(x => x.Id == lead.AssignedEmployeeId.Value)?.FullName : "-")</td>
                         <td>@lead.Priority</td>
                         <td>@lead.Note</td>
+                        <td><small class="muted">@lead.CreatedAt.ToString("dd.MM.yyyy")</small></td>
                     }
                 </tr>
             }
