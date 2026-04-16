@@ -21,8 +21,7 @@
             padding: 20px;
         }
         .hero {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            display: flex;
             width: 100%;
             max-width: 1000px;
             min-height: 640px;
@@ -33,13 +32,15 @@
             margin: auto;
         }
         .auth-card {
-            padding: 40px 60px;
+            flex: 1;
+            padding: 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            width: 100%;
+            min-width: 500px;
         }
         .auth-side {
+            flex: 1;
             background: linear-gradient(135deg, var(--brand), var(--brand-dark));
             padding: 60px;
             color: #fff;
@@ -76,41 +77,32 @@
             margin-bottom: 24px;
         }
 
-        /* Responsive Improvements */
-        @@media (max-width: 1024px) {
-            .hero {
-                max-width: 900px;
-            }
-        }
+        .logo-desktop { display: inline-block; }
+        .logo-mobile { display: none; }
 
-        @@media (max-width: 900px) {
+        /* Responsive Improvements */
+        @@media (max-width: 1000px) {
             .hero {
-                grid-template-columns: 1fr;
-                max-width: 500px;
-                min-height: auto;
+                max-width: 100%;
+                margin: 20px;
             }
             .auth-side {
                 display: none;
             }
             .auth-card {
                 padding: 40px;
+                min-width: 0;
             }
+            .logo-desktop { display: none !important; }
+            .logo-mobile { display: inline-block !important; }
         }
 
         @@media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-            .auth-card {
-                padding: 30px 20px;
-            }
-            .hero {
-                border-radius: 16px;
-                width: 100%;
-            }
+            body { padding: 10px; }
+            .auth-card { padding: 30px 20px; }
+            .hero { border-radius: 16px; margin: 0; }
         }
 
-        /* Ensure no navigation elements show up on login */
         .topbar, .menu-toggle, .sidebar, .sidebar-overlay { 
             display: none !important; 
         }
@@ -121,15 +113,8 @@
         <div class="auth-card">
             <div class="logo-wrapper" style="margin-bottom: 32px; text-align: center;">
                 <img src="/img/logo.png" alt="Logo" class="logo-desktop" style="max-width: 280px; height: auto; object-fit: contain;" />
-                <img src="/img/logo_v.png" alt="Logo" class="logo-mobile" style="max-width: 160px; height: auto; object-fit: contain; display: none;" />
+                <img src="/img/logo_v.png" alt="Logo" class="logo-mobile" style="max-width: 160px; height: auto; object-fit: contain;" />
             </div>
-
-            <style>
-                @@media (max-width: 900px) {
-                    .logo-desktop { display: none !important; }
-                    .logo-mobile { display: inline-block !important; }
-                }
-            </style>
 
             <div class="brand-pill" style="margin: 0 auto 32px; display: flex; justify-content: center; width: fit-content;">
                 <img src="~/favicon.png" alt="Logo" style="width: 16px; height: 16px; object-fit: contain;" />
